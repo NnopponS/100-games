@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Bug Squash</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{min-height:100vh;background:#1a2e14;color:#fff;font-family:system-ui,-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;padding:12px}
+  .wrap{position:relative;width:min(580px,100%);display:flex;flex-direction:column;gap:8px}
+  .hud{display:flex;justify-content:space-between;background:#243f1c;border:1px solid #4d7c3f;padding:9px 14px;border-radius:12px;font-weight:800;font-size:.95rem}
+  .hud span{color:#a3e635}
+  canvas{width:100%;height:auto;aspect-ratio:560/520;border-radius:14px;border:3px solid #4d7c3f;cursor:crosshair;display:block;touch-action:none}
+  .ov{position:absolute;inset:48px 0 0 0;background:rgba(15,28,12,.84);border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;gap:12px}
+  .ov.hidden{display:none}
+  .btn{padding:11px 28px;border:none;border-radius:999px;background:linear-gradient(135deg,#84cc16,#22c55e);color:#0f1f0a;font-weight:900;font-size:1rem;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hud">
+    <div>Score: <span id="score">0</span></div>
+    <div>Wave: <span id="wave">1</span></div>
+    <div>Picnic HP: <span id="hp">5</span></div>
+  </div>
+  <canvas id="c" width="560" height="520"></canvas>
+  <div class="ov" id="ov">
+    <h1 id="ovT" style="color:#a3e635">BUG SQUASH!</h1>
+    <p id="ovP" style="color:#d9f99d;max-width:340px">Click or tap crawling bugs before they reach your picnic basket in the center!</p>
+    <button class="btn" id="startBtn">Defend Picnic</button>
+  </div>
+</div>
+<script>
+(() => {
+  const c = document.getElementById('c'), ctx = c.getContext('2d');
+  const W = c.width, H = c.height, CX = W/2, CY = H/2;
+  const scoreEl = document.getElementById('score'), waveEl = document.getElementById('wave'), hpEl = document.getElementById('hp');
+  const ov = document.getElementById('ov'), ovT = document.getElementById('ovT'), ovP = document.getElementById('ovP'), startBtn = document.getElementById('startBtn');
+
+  let state = 'idle', bugs = [], splats = [], score = 0, hp = 5, wave = 1, spawnTimer = 0, kills = 0;
+
+  function spawnBug() {
+    const side = Math.floor(Math.random()*4);
+    let x, y;
+    if (side === 0) { x = Math.random()*W; y = -20; }
+    else if (side === 1) { x = W + 20; y = Math.random()*H; }
+    else if (side === 2) { x = Math.random()*W; y = H + 20; }
+    else { x = -20; y = Math.random()*H; }
+
+    const types = [
+      { icon: '🐜', speed: 55 + wave*7, pts: 10, r: 16, hp: 1 },
+      { icon: '🪲', speed: 42 + wave*5, pts: 20, r: 19, hp: 2 },
+      { icon: '🕷️', speed: 85 + wave*9, pts: 25, r: 16, hp: 1 }
+    ];
+    const t = types[Math.floor(Math.random() * (wave >= 2 ? 3 : 2))];
+    bugs.push({ x, y, ...t, maxHp: t.hp, wob: Math.random()*6 });
+  }
+
+  function reset() {
+    bugs = []; splats = []; score = 0; hp = 5; wave = 1; kills = 0; spawnTimer = 0.2;
+    scoreEl.textContent = '0'; waveEl.textContent = '1'; hpEl.textContent = '5';
+    state = 'play';
+    ov.classList.add('hidden');
+  }
+
+  let last = performance.now();
+  function loop(now) {
+    const dt = Math.min(0.04, (now - last) / 1000);
+    last = now;
+    if (state === 'play') update(dt, now / 1000);
+    draw(now / 1000);
+    requestAnimationFrame(loop);
+  }
+
+  function update(dt, t) {
+    spawnTimer -= dt;
+    if (spawnTimer <= 0) {
+      spawnBug();
+      spawnTimer = Math.max(0.32, 1.35 - wave * 0.12);
+    }
+
+    for (let i = bugs.length - 1; i >= 0; i--) {
+      const b = bugs[i];
+      const ang = Math.atan2(CY - b.y, CX - b.x) + Math.sin(t * 7 + b.wob) * 0.25;
+      b.x += Math.cos(ang) * b.speed * dt;
+      b.y += Math.sin(ang) * b.speed * dt;
+      if (Math.hypot(CX - b.x, CY - b.y) < 34) {
+        bugs.splice(i, 1);
+        hp--;
+        hpEl.textContent = Math.max(0, hp);
+        if (hp <= 0) {
+          state = 'over';
+          ovT.textContent = 'PICNIC RUINED!';
+          ovP.textContent = `You squashed ${kills} bugs and scored ${score} points!`;
+          startBtn.textContent = 'Play Again';
+          ov.classList.remove('hidden');
+        }
+      }
+    }
+
+    for (let i = splats.length - 1; i >= 0; i--) {
+      splats[i].life -= dt;
+      if (splats[i].life <= 0) splats.splice(i, 1);
+    }
+  }
+
+  function draw() {
+    // Grass + picnic blanket
+    ctx.fillStyle = '#365314';
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#dc2626';
+    ctx.fillRect(CX - 70, CY - 70, 140, 140);
+    ctx.fillStyle = '#fef2f2';
+    for (let gx = 0; gx < 5; gx++) for (let gy = 0; gy < 5; gy++) {
+      if ((gx + gy) % 2 === 0) ctx.fillRect(CX - 70 + gx*28, CY - 70 + gy*28, 28, 28);
+    }
+    ctx.font = '40px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('🧺', CX, CY);
+
+    for (const s of splats) {
+      ctx.fillStyle = `rgba(163, 230, 53, ${Math.min(1, s.life) * 0.7})`;
+      ctx.beginPath(); ctx.arc(s.x, s.y, 16, 0, Math.PI*2); ctx.fill();
+    }
+    for (const b of bugs) {
+      ctx.font = b.hp > 1 ? '28px sans-serif' : '24px sans-serif';
+      ctx.fillText(b.icon, b.x, b.y);
+      if (b.maxHp > 1 && b.hp < b.maxHp) {
+        ctx.fillStyle = '#facc15';
+        ctx.fillRect(b.x - 10, b.y - 18, 20 * (b.hp / b.maxHp), 3);
+      }
+    }
+  }
+
+  c.addEventListener('pointerdown', e => {
+    if (state !== 'play') return;
+    const r = c.getBoundingClientRect();
+    const mx = (e.clientX - r.left) * W / r.width;
+    const my = (e.clientY - r.top) * H / r.height;
+    for (let i = bugs.length - 1; i >= 0; i--) {
+      const b = bugs[i];
+      if (Math.hypot(mx - b.x, my - b.y) <= b.r + 10) {
+        b.hp--;
+        splats.push({ x: b.x, y: b.y, life: 0.7 });
+        if (b.hp <= 0) {
+          score += b.pts;
+          kills++;
+          wave = 1 + Math.floor(kills / 10);
+          scoreEl.textContent = score;
+          waveEl.textContent = wave;
+          bugs.splice(i, 1);
+        }
+        break;
+      }
+    }
+  });
+  startBtn.onclick = reset;
+  draw();
+})();
+</script>
+</body>
+</html>

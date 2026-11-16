@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Chain Reaction</title>
+<style>
+  :root{
+    --bg:#070b16; --panel:#0d1424; --line:#1c2a4a;
+    --cool:#3fd9ff; --warm:#ffb84d; --hot:#ff5a6e; --txt:#cfe3ff; --dim:#5b6d95;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;min-height:100%;color:var(--txt);
+    font-family:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;user-select:none;
+    background:radial-gradient(1200px 800px at 50% -10%,#101a33 0%,var(--bg) 60%) fixed;}
+  #app{max-width:640px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;padding:14px 14px 24px;}
+  header h1{font-size:20px;letter-spacing:.35em;margin:6px 0 10px;text-align:center;color:#eaf4ff;
+    text-shadow:0 0 18px rgba(63,217,255,.55);}
+  .hud{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:10px;align-items:stretch;}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:6px 12px;text-align:center;min-width:76px;}
+  .stat b{display:block;font-size:16px;color:#fff;}
+  .stat span{font-size:10px;letter-spacing:.15em;color:var(--dim);}
+  button{font:inherit;color:#eaf6ff;background:linear-gradient(180deg,#12345c,#0d2242);border:1px solid #2c5d92;
+    border-radius:10px;padding:7px 14px;cursor:pointer;letter-spacing:.08em;}
+  button:hover{filter:brightness(1.3);}
+  #targetLine{display:flex;align-items:center;gap:10px;margin:0 2px 12px;font-size:12px;color:var(--dim);letter-spacing:.08em;}
+  #barWrap{flex:1;height:8px;background:#0a1122;border:1px solid var(--line);border-radius:6px;overflow:hidden;}
+  #bar{height:100%;width:0%;background:linear-gradient(90deg,#1b7fbf,var(--cool));
+    box-shadow:0 0 12px rgba(63,217,255,.8);transition:width .25s;}
+  #board{position:relative;display:grid;gap:6px;width:min(100%,62vh);margin:0 auto;}
+  .cell{position:relative;aspect-ratio:1;background:#0e1830;border:1px solid #21345c;border-radius:12%;
+    cursor:pointer;display:flex;align-items:center;justify-content:center;
+    transition:background .12s,transform .12s,border-color .2s;}
+  .cell:hover{background:#15244a;}
+  .cell.blocked{background:#05080f;border-color:#131c31;cursor:default;}
+  .cell.blocked::after{content:"";width:24%;height:24%;border-radius:4px;background:#131c31;}
+  .cell.hot{border-color:#6b3242;}
+  .orbs{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:9%;width:80%;pointer-events:none;}
+  .orb{width:27%;aspect-ratio:1;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%,#bff4ff,var(--cool) 60%);
+    box-shadow:0 0 8px rgba(63,217,255,.9);transition:transform .15s;}
+  .cell.warm .orb{background:radial-gradient(circle at 35% 30%,#ffe9c4,var(--warm) 62%);
+    box-shadow:0 0 9px rgba(255,184,77,.95);}
+  .cell.hot .orb{background:radial-gradient(circle at 35% 30%,#ffd2d8,var(--hot) 62%);
+    box-shadow:0 0 13px rgba(255,90,110,1);animation:pulse .7s infinite alternate;}
+  @keyframes pulse{from{transform:scale(1)}to{transform:scale(1.22)}}
+  .cell.boom{background:#eaf7ff;border-color:#fff;box-shadow:0 0 26px #fff;transform:scale(1.07);z-index:2;}
+  #fx{position:absolute;inset:0;pointer-events:none;z-index:5;}
+  .ring{position:absolute;border:2px solid #9df;border-radius:50%;transform:translate(-50%,-50%) scale(.15);
+    animation:ring .45s ease-out forwards;}
+  @keyframes ring{to{transform:translate(-50%,-50%) scale(1);opacity:0;}}
+  .fs{position:absolute;transform:translate(-50%,-50%);font-size:13px;font-weight:700;color:#bff0ff;
+    text-shadow:0 0 8px rgba(63,217,255,.9);animation:fs .7s ease-out forwards;white-space:nowrap;}
+  @keyframes fs{to{transform:translate(-50%,-180%);opacity:0;}}
+  #hint{text-align:center;color:var(--dim);font-size:12px;margin-top:12px;letter-spacing:.05em;line-height:1.6;}
+  #overlay{position:fixed;inset:0;background:rgba(4,8,18,.8);backdrop-filter:blur(3px);display:none;
+    align-items:center;justify-content:center;z-index:20;}
+  #overlay.show{display:flex;}
+  .card{background:var(--panel);border:1px solid #27457a;border-radius:16px;padding:28px 34px;text-align:center;
+    box-shadow:0 0 40px rgba(63,217,255,.25);max-width:88vw;}
+  .card h2{margin:0 0 8px;letter-spacing:.2em;font-size:22px;color:#fff;}
+  .card p{margin:4px 0 18px;color:var(--dim);font-size:13px;line-height:1.7;}
+  .card .row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+  .card .big{font-size:26px;color:var(--cool);font-weight:700;}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>CHAIN REACTION</h1>
+    <div class="hud">
+      <div class="stat"><b id="score">0</b><span>SCORE</span></div>
+      <div class="stat"><b id="level">1</b><span>LEVEL</span></div>
+      <div class="stat"><b id="moves">8</b><span>MOVES</span></div>
+      <div class="stat"><b id="chain">0</b><span>BEST CHAIN</span></div>
+      <button id="retryBtn" title="Restart this level">&#8634; RETRY</button>
+    </div>
+    <div id="targetLine"><span id="targetTxt">TARGET 250</span><div id="barWrap"><div id="bar"></div></div><span id="lvlScore">0</span></div>
+  </header>
+  <div id="board"><div id="fx"></div></div>
+  <div id="hint">Drop an orb &mdash; a cell explodes at critical mass and seeds its neighbors. Chain them.<br>
+  Cyan = stable &middot; amber = charged &middot; red = critical. Press <b>R</b> to retry the level.</div>
+</div>
+<div id="overlay"><div class="card" id="card"></div></div>
+<script>
+(function(){
+"use strict";
+var $ = function(id){ return document.getElementById(id); };
+var boardEl=$('board'), fx=$('fx'), overlay=$('overlay'), card=$('card');
+var sleep=function(ms){ return new Promise(function(r){ setTimeout(r,ms); }); };
+var DIRS=[[1,0],[-1,0],[0,1],[0,-1]];
+
+var size=0, grid=[], moves=0, busy=false, over=false;
+var level=1, score=0, lvlScore=0, levelStartScore=0, target=0, bestChain=0, bestScore=0;
+var exploding={};
+
+try{ bestScore=+localStorage.getItem('cr_best')||0; }catch(e){}
+
+function cfg(l){
+  return {
+    size: Math.min(6+Math.floor((l-1)/2),9),
+    moves: Math.max(4, 8-Math.floor((l-1)/3)),
+    target: 220+160*(l-1),
+    density: Math.min(0.30+0.045*l,0.62),
+    hotBias: Math.min(0.42+0.05*l,0.75),
+    blocked: l>=3 ? Math.min(2+Math.floor(l/3),7) : 0
+  };
+}
+function inB(r,c){ return r>=0 && c>=0 && r<size && c<size; }
+function computeCaps(){
+  for(var r=0;r<size;r++)for(var c=0;c<size;c++){
+    var cell=grid[r][c];
+    if(cell.blocked){ cell.cap=0; continue; }
+    var k=0;
+    for(var i=0;i<4;i++){ var rr=r+DIRS[i][0], cc=c+DIRS[i][1];
+      if(inB(rr,cc) && !grid[rr][cc].blocked) k++; }
+    cell.cap=k;
+  }
+}
+function neighbors(r,c){
+  var out=[];
+  for(var i=0;i<4;i++){ var rr=r+DIRS[i][0], cc=c+DIRS[i][1];
+    if(inB(rr,cc) && !grid[rr][cc].blocked) out.push(grid[rr][cc]); }
+  return out;
+}
+function newLevel(l){
+  var cf=cfg(l);
+  size=cf.size; moves=cf.moves; target=cf.target;
+  lvlScore=0; levelStartScore=score; over=false; busy=false; exploding={};
+  grid=[];
+  for(var r=0;r<size;r++){ grid.push([]);
+    for(var c=0;c<size;c++) grid[r].push({r:r,c:c,n:0,blocked:false,cap:4}); }
+
+  var placed=0, guard=0;
+  while(placed<cf.blocked && guard++<500){
+    var r=Math.floor(Math.random()*size), c=Math.floor(Math.random()*size);
+    if(grid[r][c].blocked) continue;
+    grid[r][c].blocked=true; computeCaps();
+    var ok=true;
+    for(var rr=0;rr<size&&ok;rr++)for(var cc=0;cc<size;cc++)
+      if(!grid[rr][cc].blocked && grid[rr][cc].cap<1){ ok=false; break; }
+    if(ok) placed++; else grid[r][c].blocked=false;
+  }
+  computeCaps();
+
+  for(var r=0;r<size;r++)for(var c=0;c<size;c++){
+    var cell=grid[r][c];
+    if(cell.blocked) continue;
+    if(Math.random()<cf.density){
+      cell.n = Math.random()<cf.hotBias ? cell.cap-1 : 1+Math.floor(Math.random()*(cell.cap-1));
+      if(cell.n<1) cell.n=1;
+    }
+  }
+  var hot=0, open=[];
+  for(var r=0;r<size;r++)for(var c=0;c<size;c++){
+    var cell=grid[r][c];
+    if(!cell.blocked){ open.push(cell); if(cell.n===cell.cap-1) hot++; }
+  }
+  while(hot<2 && open.length){
+    var i=Math.floor(Math.random()*open.length);
+    var cell=open.splice(i,1)[0]; cell.n=cell.cap-1; hot++;
+  }
+  buildBoard(); updateHUD(); hideOverlay();
+}
+function buildBoard(){
+  var olds=boardEl.querySelectorAll('.cell');
+  for(var i=0;i<olds.length;i++) olds[i].remove();
+  boardEl.style.gridTemplateColumns='repeat('+size+',1fr)';
+  for(var r=0;r<size;r++)for(var c=0;c<size;c++){
+    var d=document.createElement('div');
+    d.className='cell'; d.dataset.r=r; d.dataset.c=c;
+    d.addEventListener('click',onCellClick);
+    boardEl.appendChild(d);
+  }
+  boardEl.appendChild(fx);
+  render();
+}
+function render(){
+  var ds=boardEl.querySelectorAll('.cell');
+  for(var i=0;i<ds.length;i++){
+    var d=ds[i], cell=grid[d.dataset.r][d.dataset.c];
+    var cls='cell';
+    if(cell.blocked) cls+=' blocked';
+    else{
+      if(cell.n===cell.cap-1) cls+=' hot';
+      else if(cell.n>0 && cell.n>=cell.cap-2) cls+=' warm';
+      if(exploding[cell.r+','+cell.c]) cls+=' boom';
+    }
+    if(d.className!==cls) d.className=cls;
+    var html='<div class="orbs">';
+    var dots=Math.min(cell.n,9);
+    for(var k=0;k<dots;k++) html+='<span class="orb"></span>';
+    html+='</div>';
+    if(d.innerHTML!==html) d.innerHTML=html;
+  }
+}
+function updateHUD(){
+  $('score').textContent=score;
+  $('level').textContent=level;
+  $('moves').textContent=moves;
+  $('chain').textContent=bestChain;
+  $('targetTxt').textContent='TARGET '+target;
+  $('lvlScore').textContent=lvlScore;
+  $('bar').style.width=Math.min(100,Math.round(100*lvlScore/target))+'%';
+}
+function cellXY(cell){
+  return { x:(cell.c+0.5)/size*100, y:(cell.r+0.5)/size*100 };
+}
+function spawnRing(cell){
+  var p=cellXY(cell);
+  var el=document.createElement('div');
+  el.className='ring';
+  el.style.left=p.x+'%'; el.style.top=p.y+'%';
+  el.style.width=el.style.height=(1.9/size*100)+'%';
+  el.addEventListener('animationend',function(){ el.remove(); });
+  fx.appendChild(el);
+}
+function spawnScore(cell,wave){
+  var p=cellXY(cell);
+  var el=document.createElement('div');
+  el.className='fs'; el.textContent='+'+(10*wave);
+  el.style.left=p.x+'%'; el.style.top=p.y+'%';
+  el.addEventListener('animationend',function(){ el.remove(); });
+  fx.appendChild(el);
+}
+var actx=null;
+function ensureAudio(){
+  if(!actx){ try{ actx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} }
+  if(actx && actx.state==='suspended') actx.resume();
+}
+function blip(wave,count){
+  if(!actx) return;
+  try{
+    var t=actx.currentTime;
+    var o=actx.createOscillator(), g=actx.createGain();
+    o.type='triangle';
+    o.frequency.setValueAtTime(Math.min(160*Math.pow(1.14,wave),1400),t);
+    g.gain.setValueAtTime(0.0001,t);
+    g.gain.exponentialRampToValueAtTime(Math.min(0.12+count*0.01,0.3),t+0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+0.18);
+    o.connect(g); g.connect(actx.destination);
+    o.start(t); o.stop(t+0.2);
+  }catch(e){}
+}
+function onCellClick(e){
+  if(busy||over) return;
+  var d=e.currentTarget, cell=grid[d.dataset.r][d.dataset.c];
+  if(cell.blocked) return;
+  ensureAudio();
+  cell.n++; moves--;
+  render(); updateHUD();
+  resolve().then(afterMove);
+}
+function resolve(){
+  busy=true;
+  var wave=0, chainTotal=0;
+  function step(){
+    var boom=[];
+    for(var r=0;r<size;r++)for(var c=0;c<size;c++){
+      var cell=grid[r][c];
+      if(!cell.blocked && cell.n>=cell.cap) boom.push(cell);
+    }
+    if(!boom.length || wave>250){
+      busy=false; exploding={}; render();
+      return Promise.resolve(chainTotal);
+    }
+    wave++;
+    exploding={};
+    for(var i=0;i<boom.length;i++) exploding[boom[i].r+','+boom[i].c]=1;
+    for(var i=0;i<boom.length;i++){
+      var cell=boom[i];
+      cell.n-=cell.cap; if(cell.n<0) cell.n=0;
+      var ns=neighbors(cell.r,cell.c);
+      for(var j=0;j<ns.length;j++) ns[j].n++;
+      spawnRing(cell); spawnScore(cell,wave);
+      chainTotal++;
+      score+=10*wave; lvlScore+=10*wave;
+    }
+    blip(wave,boom.length);
+    render(); updateHUD();
+    return sleep(190).then(function(){
+      exploding={}; render();
+      return sleep(70);
+    }).then(step);
+  }
+  return step();
+}
+function afterMove(chain){
+  if(chain>bestChain) bestChain=chain;
+  updateHUD();
+  if(lvlScore>=target){ levelClear(); return; }
+  if(moves<=0) gameOver();
+}
+function showCard(title,html,buttons){
+  var b='';
+  for(var i=0;i<buttons.length;i++) b+='<button data-i="'+i+'">'+buttons[i].t+'</button>';
+  card.innerHTML='<h2>'+title+'</h2><p>'+html+'</p><div class="row">'+b+'</div>';
+  var bs=card.querySelectorAll('button');
+  for(var i=0;i<bs.length;i++)
+    bs[i].addEventListener('click',buttons[bs[i].dataset.i].f);
+  overlay.classList.add('show');
+}
+function hideOverlay(){ overlay.classList.remove('show'); }
+function levelClear(){
+  over=true;
+  var bonus=moves*50;
+  score+=bonus;
+  if(score>bestScore){
+    bestScore=score;
+    try{ localStorage.setItem('cr_best',bestScore); }catch(e){}
+  }
+  updateHUD();
+  showCard('LEVEL '+level+' CLEARED',
+    'Moves bonus <span class="big">+'+bonus+'</span><br>Total score '+score+' &middot; Best '+bestScore,
+    [
+      {t:'NEXT LEVEL &#9654;', f:function(){ level++; newLevel(level); }},
+      {t:'RESTART GAME', f:function(){ level=1; score=0; newLevel(1); }}
+    ]);
+}
+function gameOver(){
+  over=true;
+  if(score>bestScore){
+    bestScore=score;
+    try{ localStorage.setItem('cr_best',bestScore); }catch(e){}
+  }
+  showCard('OUT OF MOVES',
+    'You needed '+(target-lvlScore)+' more points.<br>Score '+score+' &middot; Best '+bestScore+' &middot; Best chain '+bestChain,
+    [
+      {t:'RETRY LEVEL', f:function(){ retryLevel(); }},
+      {t:'RESTART GAME', f:function(){ level=1; score=0; newLevel(1); }}
+    ]);
+}
+function retryLevel(){
+  if(busy) return;
+  score=levelStartScore;
+  newLevel(level);
+}
+$('retryBtn').addEventListener('click',retryLevel);
+document.addEventListener('keydown',function(e){
+  if(e.key==='r'||e.key==='R') retryLevel();
+});
+newLevel(1);
+})();
+</script>
+</body>
+</html>

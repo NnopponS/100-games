@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rock Paper Scissors — First to 5</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: radial-gradient(ellipse at top, #1a2a4a 0%, #0a0f1e 70%);
+    color: #e8ecf4;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    overflow-x: hidden;
+  }
+
+  h1 {
+    font-size: clamp(1.5rem, 4vw, 2.4rem);
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+    background: linear-gradient(90deg, #ffd166, #ef476f, #06d6a0);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-align: center;
+  }
+
+  .subtitle {
+    color: #8b95ad;
+    font-size: 0.95rem;
+    margin-bottom: 24px;
+    text-align: center;
+  }
+
+  /* ---------- Scoreboard ---------- */
+  .scoreboard {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+    margin-bottom: 30px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 16px;
+    padding: 14px 32px;
+  }
+
+  .score-box { text-align: center; min-width: 70px; }
+  .score-box .label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.15em; color: #8b95ad; }
+  .score-box .value { font-size: 2.2rem; font-weight: 700; }
+  #playerScore { color: #06d6a0; }
+  #aiScore { color: #ef476f; }
+  .score-vs { font-size: 1.1rem; color: #556; font-weight: 700; }
+
+  /* ---------- Arena ---------- */
+  .arena {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(20px, 8vw, 80px);
+    margin-bottom: 24px;
+    min-height: 170px;
+  }
+
+  .hand-slot { text-align: center; }
+  .hand {
+    font-size: clamp(4rem, 12vw, 6.5rem);
+    line-height: 1;
+    display: inline-block;
+    filter: drop-shadow(0 8px 16px rgba(0,0,0,0.5));
+    user-select: none;
+  }
+  .hand-name {
+    margin-top: 10px;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: #8b95ad;
+    min-height: 1.2em;
+  }
+
+  #playerHand { transform: scaleX(-1); }        /* face the AI */
+  .vs {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: #445;
+    font-style: italic;
+  }
+
+  /* Shaking during countdown */
+  .shaking #playerHand { animation: shakeL 0.5s ease-in-out; }
+  .shaking #aiHand     { animation: shakeR 0.5s ease-in-out; }
+  @keyframes shakeL {
+    0%,100% { transform: scaleX(-1) translateY(0); }
+    25%     { transform: scaleX(-1) translateY(-28px) rotate(-12deg); }
+    75%     { transform: scaleX(-1) translateY(6px); }
+  }
+  @keyframes shakeR {
+    0%,100% { transform: translateY(0); }
+    25%     { transform: translateY(-28px) rotate(12deg); }
+    75%     { transform: translateY(6px); }
+  }
+
+  /* Winner pop */
+  .pop { animation: pop 0.45s cubic-bezier(.2,1.6,.4,1); }
+  @keyframes pop {
+    0%   { transform: scale(0.3) rotate(-20deg); opacity: 0; }
+    100% { transform: scale(1) rotate(0); opacity: 1; }
+  }
+  #playerHand.pop { animation: popFlip 0.45s cubic-bezier(.2,1.6,.4,1); }
+  @keyframes popFlip {
+    0%   { transform: scaleX(-1) scale(0.3) rotate(20deg); opacity: 0; }
+    100% { transform: scaleX(-1) scale(1) rotate(0); opacity: 1; }
+  }
+
+  /* ---------- Result banner ---------- */
+  .result {
+    min-height: 2.4em;
+    font-size: clamp(1.1rem, 3vw, 1.5rem);
+    font-weight: 700;
+    margin-bottom: 22px;
+    text-align: center;
+    transition: opacity 0.2s;
+  }
+  .result.win  { color: #06d6a0; }
+  .result.lose { color: #ef476f; }
+  .result.tie  { color: #ffd166; }
+
+  /* ---------- Choice buttons ---------- */
+  .choices { display: flex; gap: 18px; margin-bottom: 26px; }
+  .choice {
+    font-size: 2.6rem;
+    width: 88px;
+    height: 88px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.06);
+    cursor: pointer;
+    transition: transform 0.15s, border-color 0.15s, background 0.15s, box-shadow 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .choice:hover:not(:disabled) {
+    transform: translateY(-6px) scale(1.08);
+    border-color: #ffd166;
+    background: rgba(255,209,102,0.12);
+    box-shadow: 0 10px 24px rgba(255,209,102,0.2);
+  }
+  .choice:active:not(:disabled) { transform: scale(0.95); }
+  .choice:disabled { opacity: 0.4; cursor: not-allowed; }
+  .choice .tip {
+    position: absolute;
+    font-size: 0.65rem;
+  }
+
+  /* ---------- Restart ---------- */
+  #restart {
+    font: inherit;
+    font-weight: 700;
+    font-size: 1rem;
+    letter-spacing: 0.08em;
+    color: #0a0f1e;
+    background: linear-gradient(90deg, #ffd166, #ffb347);
+    border: none;
+    border-radius: 999px;
+    padding: 12px 34px;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    display: none;
+  }
+  #restart:hover { transform: scale(1.06); box-shadow: 0 8px 24px rgba(255,209,102,0.35); }
+
+  .round-log {
+    font-size: 0.8rem;
+    color: #5a6480;
+    min-height: 1.2em;
+    margin-top: 4px;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+  <h1>ROCK · PAPER · SCISSORS</h1>
+  <div class="subtitle">First to 5 wins the match</div>
+
+  <div class="scoreboard">
+    <div class="score-box">
+      <div class="label">You</div>
+      <div class="value" id="playerScore">0</div>
+    </div>
+    <div class="score-vs">VS</div>
+    <div class="score-box">
+      <div class="label">AI</div>
+      <div class="value" id="aiScore">0</div>
+    </div>
+  </div>
+
+  <div class="arena" id="arena">
+    <div class="hand-slot">
+      <div class="hand" id="playerHand">✊</div>
+      <div class="hand-name" id="playerLabel">You</div>
+    </div>
+    <div class="vs">VS</div>
+    <div class="hand-slot">
+      <div class="hand" id="aiHand">✊</div>
+      <div class="hand-name" id="aiLabel">AI</div>
+    </div>
+  </div>
+
+  <div class="result" id="result">Pick your weapon!</div>
+
+  <div class="choices" id="choices">
+    <button class="choice" data-choice="rock"     title="Rock">✊</button>
+    <button class="choice" data-choice="paper"    title="Paper">✋</button>
+    <button class="choice" data-choice="scissors" title="Scissors">✌️</button>
+  </div>
+
+  <button id="restart">Play Again</button>
+  <div class="round-log" id="roundLog"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  var EMOJI = { rock: '✊', paper: '✋', scissors: '✌️' };
+  var BEATS = { rock: 'scissors', paper: 'rock', scissors: 'paper' };
+  var WIN_SCORE = 5;
+
+  var playerScoreEl = document.getElementById('playerScore');
+  var aiScoreEl     = document.getElementById('aiScore');
+  var playerHand    = document.getElementById('playerHand');
+  var aiHand        = document.getElementById('aiHand');
+  var playerLabel   = document.getElementById('playerLabel');
+  var aiLabel       = document.getElementById('aiLabel');
+  var resultEl      = document.getElementById('result');
+  var arena         = document.getElementById('arena');
+  var choicesEl     = document.getElementById('choices');
+  var restartBtn    = document.getElementById('restart');
+  var roundLog      = document.getElementById('roundLog');
+
+  var playerScore = 0;
+  var aiScore = 0;
+  var busy = false;
+  var gameOver = false;
+  var timers = [];
+
+  function schedule(fn, ms) {
+    timers.push(setTimeout(fn, ms));
+  }
+
+  function clearTimers() {
+    timers.forEach(clearTimeout);
+    timers = [];
+  }
+
+  function setButtonsEnabled(enabled) {
+    var btns = choicesEl.querySelectorAll('.choice');
+    for (var i = 0; i < btns.length; i++) btns[i].disabled = !enabled;
+  }
+
+  function updateScore() {
+    playerScoreEl.textContent = playerScore;
+    aiScoreEl.textContent = aiScore;
+  }
+
+  function setResult(text, cls) {
+    resultEl.textContent = text;
+    resultEl.className = 'result' + (cls ? ' ' + cls : '');
+  }
+
+  function resetHands() {
+    playerHand.textContent = EMOJI.rock;
+    aiHand.textContent = EMOJI.rock;
+    playerHand.classList.remove('pop');
+    aiHand.classList.remove('pop');
+    playerLabel.textContent = 'You';
+    aiLabel.textContent = 'AI';
+  }
+
+  function play(playerChoice) {
+    if (busy || gameOver) return;
+    busy = true;
+    setButtonsEnabled(false);
+    resetHands();
+    setResult('Rock… Paper… Scissors…', '');
+
+    // Shake phase — 3 pumps
+    var pumps = 0;
+    function pump() {
+      arena.classList.remove('shaking');
+      void arena.offsetWidth; // restart animation
+      arena.classList.add('shaking');
+      pumps++;
+      if (pumps < 3) {
+        schedule(pump, 500);
+      } else {
+        schedule(function () { reveal(playerChoice); }, 500);
+      }
+    }
+    pump();
+  }
+
+  function reveal(playerChoice) {
+    arena.classList.remove('shaking');
+
+    var options = ['rock', 'paper', 'scissors'];
+    var aiChoice = options[Math.floor(Math.random() * 3)];
+
+    playerHand.textContent = EMOJI[playerChoice];
+    aiHand.textContent = EMOJI[aiChoice];
+    playerHand.classList.add('pop');
+    aiHand.classList.add('pop');
+    playerLabel.textContent = capitalize(playerChoice);
+    aiLabel.textContent = capitalize(aiChoice);
+
+    var outcome;
+    if (playerChoice === aiChoice) {
+      outcome = 'tie';
+      setResult("It's a tie!", 'tie');
+      roundLog.textContent = 'Both threw ' + playerChoice + '.';
+    } else if (BEATS[playerChoice] === aiChoice) {
+      outcome = 'win';
+      playerScore++;
+      setResult('You win the round!', 'win');
+      roundLog.textContent = capitalize(playerChoice) + ' beats ' + aiChoice + '.';
+    } else {
+      outcome = 'lose';
+      aiScore++;
+      setResult('AI wins the round!', 'lose');
+      roundLog.textContent = capitalize(aiChoice) + ' beats ' + playerChoice + '.';
+    }
+    updateScore();
+
+    schedule(function () {
+      if (playerScore >= WIN_SCORE || aiScore >= WIN_SCORE) {
+        endMatch();
+      } else {
+        busy = false;
+        setButtonsEnabled(true);
+      }
+    }, 700);
+  }
+
+  function endMatch() {
+    gameOver = true;
+    var won = playerScore >= WIN_SCORE;
+    setResult(won ? '🏆 You win the match ' + playerScore + '–' + aiScore + '!'
+                  : '🤖 AI wins the match ' + aiScore + '–' + playerScore + '.',
+              won ? 'win' : 'lose');
+    roundLog.textContent = '';
+    restartBtn.style.display = 'inline-block';
+    busy = false;
+  }
+
+  function restart() {
+    clearTimers();
+    playerScore = 0;
+    aiScore = 0;
+    busy = false;
+    gameOver = false;
+    updateScore();
+    resetHands();
+    arena.classList.remove('shaking');
+    setResult('Pick your weapon!', '');
+    roundLog.textContent = '';
+    restartBtn.style.display = 'none';
+    setButtonsEnabled(true);
+  }
+
+  function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+  choicesEl.addEventListener('click', function (e) {
+    var btn = e.target.closest('.choice');
+    if (btn) play(btn.getAttribute('data-choice'));
+  });
+  restartBtn.addEventListener('click', restart);
+
+  // Keyboard shortcuts: R = rock, P = paper, S = scissors
+  document.addEventListener('keydown', function (e) {
+    if (busy || gameOver) {
+      if (gameOver && (e.key === 'Enter' || e.key === ' ')) restart();
+      return;
+    }
+    var k = e.key.toLowerCase();
+    if (k === 'r') play('rock');
+    else if (k === 'p') play('paper');
+    else if (k === 's') play('scissors');
+  });
+})();
+</script>
+</body>
+</html>

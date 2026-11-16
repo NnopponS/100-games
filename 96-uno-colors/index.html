@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Color Match Rush</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{min-height:100vh;background:linear-gradient(135deg,#0f172a,#1e293b);color:#fff;font-family:system-ui,-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;padding:16px}
+  .card{width:min(480px,100%);background:#0b1120;border:1px solid rgba(255,255,255,.12);border-radius:24px;padding:24px;display:flex;flex-direction:column;gap:16px;box-shadow:0 24px 60px rgba(0,0,0,.55);text-align:center}
+  .hud{display:flex;justify-content:space-between;font-weight:800}
+  .pill{background:rgba(255,255,255,.07);padding:7px 14px;border-radius:999px}
+  .pill b{color:#38bdf8}
+  .word-box{height:170px;background:#111827;border-radius:18px;border:2px solid #1f2937;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}
+  .word{font-size:3.4rem;font-weight:900;letter-spacing:.06em;text-transform:uppercase;user-select:none}
+  .sub{font-size:.86rem;color:#94a3b8}
+  .btns{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  button{padding:15px;border:none;border-radius:14px;font-weight:900;font-size:1.1rem;cursor:pointer;transition:.12s}
+  button:active{transform:scale(.96)}
+  .yes{background:#22c55e;color:#052e16}
+  .no{background:#ef4444;color:#450a0a}
+  .start{background:linear-gradient(135deg,#38bdf8,#818cf8);color:#0f172a}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="hud">
+    <div class="pill">Score: <b id="score">0</b></div>
+    <div class="pill">Combo: <b id="combo">x1</b></div>
+    <div class="pill">Time: <b id="time">40s</b></div>
+  </div>
+  <div class="word-box">
+    <div class="word" id="word" style="color:#38bdf8">READY</div>
+    <div class="sub" id="sub">Does the WORD match its INK COLOR?</div>
+  </div>
+  <div class="btns" id="playBtns" style="display:none">
+    <button class="no" id="noBtn">✕ NO MATCH (◀)</button>
+    <button class="yes" id="yesBtn">✓ MATCH (▶)</button>
+  </div>
+  <button class="start" id="startBtn">Start 40s Rush</button>
+</div>
+<script>
+(() => {
+  const PALETTE = [
+    { name: 'RED',    hex: '#ef4444' },
+    { name: 'BLUE',   hex: '#3b82f6' },
+    { name: 'GREEN',  hex: '#22c55e' },
+    { name: 'YELLOW', hex: '#facc15' },
+    { name: 'PURPLE', hex: '#c084fc' }
+  ];
+  const scoreEl = document.getElementById('score'), comboEl = document.getElementById('combo'), timeEl = document.getElementById('time');
+  const wordEl = document.getElementById('word'), subEl = document.getElementById('sub');
+  const playBtns = document.getElementById('playBtns'), startBtn = document.getElementById('startBtn');
+
+  let playing = false, score = 0, streak = 0, timeLeft = 40, isMatch = false, timer = null;
+
+  function nextPrompt() {
+    const w = PALETTE[Math.floor(Math.random()*PALETTE.length)];
+    isMatch = Math.random() < 0.5;
+    let c = w;
+    if (!isMatch) {
+      const others = PALETTE.filter(x => x.name !== w.name);
+      c = others[Math.floor(Math.random()*others.length)];
+    }
+    wordEl.textContent = w.name;
+    wordEl.style.color = c.hex;
+  }
+
+  function start() {
+    playing = true; score = 0; streak = 0; timeLeft = 40;
+    scoreEl.textContent = '0'; comboEl.textContent = 'x1'; timeEl.textContent = '40s';
+    startBtn.style.display = 'none';
+    playBtns.style.display = 'grid';
+    subEl.textContent = 'Does the WORD match its INK COLOR?';
+    nextPrompt();
+    clearInterval(timer);
+    timer = setInterval(() => {
+      timeLeft--;
+      timeEl.textContent = timeLeft + 's';
+      if (timeLeft <= 0) {
+        clearInterval(timer);
+        playing = false;
+        playBtns.style.display = 'none';
+        startBtn.style.display = 'block';
+        startBtn.textContent = 'Play Again';
+        wordEl.textContent = 'DONE!';
+        wordEl.style.color = '#38bdf8';
+        subEl.textContent = `Final Score: ${score}!`;
+      }
+    }, 1000);
+  }
+
+  function answer(choice) {
+    if (!playing) return;
+    if (choice === isMatch) {
+      streak++;
+      const mult = Math.min(5, 1 + Math.floor(streak / 4));
+      score += 10 * mult;
+      comboEl.textContent = 'x' + mult;
+      subEl.textContent = 'Nice! +' + (10 * mult);
+    } else {
+      streak = 0;
+      score = Math.max(0, score - 5);
+      comboEl.textContent = 'x1';
+      subEl.textContent = 'Wrong! -5';
+    }
+    scoreEl.textContent = score;
+    nextPrompt();
+  }
+
+  document.getElementById('yesBtn').onclick = () => answer(true);
+  document.getElementById('noBtn').onclick = () => answer(false);
+  startBtn.onclick = start;
+  window.addEventListener('keydown', e => {
+    if (!playing) return;
+    if (e.code === 'ArrowRight' || e.code === 'KeyD') answer(true);
+    if (e.code === 'ArrowLeft' || e.code === 'KeyA') answer(false);
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Word Scramble</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    color: #eee;
+    padding: 16px;
+  }
+  .game {
+    width: 100%;
+    max-width: 520px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 20px;
+    padding: 28px;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+  h1 {
+    text-align: center;
+    font-size: 1.7rem;
+    letter-spacing: 2px;
+    margin-bottom: 18px;
+    background: linear-gradient(90deg, #ffd166, #ef476f);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .stats {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  .stat {
+    flex: 1;
+    text-align: center;
+    background: rgba(0,0,0,0.25);
+    border-radius: 12px;
+    padding: 10px 4px;
+  }
+  .stat .label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; color: #9ab; }
+  .stat .value { font-size: 1.4rem; font-weight: 700; }
+  #timer.low { color: #ef476f; animation: pulse 1s infinite; }
+  @keyframes pulse { 50% { opacity: 0.4; } }
+  .scrambled {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin: 22px 0;
+    min-height: 56px;
+  }
+  .tile {
+    width: 46px; height: 52px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.5rem; font-weight: 700; text-transform: uppercase;
+    background: linear-gradient(180deg, #3a506b, #2b3a4e);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-bottom: 4px solid #1c2b3a;
+    border-radius: 10px;
+    animation: pop 0.3s ease backwards;
+  }
+  @keyframes pop { from { transform: scale(0.5); opacity: 0; } }
+  .hint {
+    text-align: center;
+    min-height: 24px;
+    font-style: italic;
+    color: #ffd166;
+    margin-bottom: 18px;
+    font-size: 0.95rem;
+  }
+  input[type=text] {
+    width: 100%;
+    padding: 14px;
+    font-size: 1.15rem;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    border: 2px solid rgba(255,255,255,0.2);
+    border-radius: 12px;
+    background: rgba(0,0,0,0.3);
+    color: #fff;
+    outline: none;
+    margin-bottom: 14px;
+  }
+  input[type=text]:focus { border-color: #ffd166; }
+  input[type=text]:disabled { opacity: 0.5; }
+  .buttons { display: flex; gap: 10px; }
+  button {
+    flex: 1;
+    padding: 12px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: transform 0.1s, filter 0.15s;
+    color: #1a1a2e;
+  }
+  button:hover { filter: brightness(1.1); }
+  button:active { transform: scale(0.97); }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  #submitBtn { background: #06d6a0; }
+  #hintBtn { background: #ffd166; }
+  #skipBtn { background: #8ecae6; }
+  #restartBtn { background: #ef476f; color: #fff; }
+  .feedback {
+    text-align: center;
+    min-height: 26px;
+    font-weight: 700;
+    margin-top: 14px;
+    font-size: 1rem;
+  }
+  .feedback.good { color: #06d6a0; }
+  .feedback.bad { color: #ef476f; }
+  .shake { animation: shake 0.4s; }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    20%,60% { transform: translateX(-8px); }
+    40%,80% { transform: translateX(8px); }
+  }
+  .overlay {
+    display: none;
+    text-align: center;
+    padding: 20px 0;
+  }
+  .overlay.show { display: block; }
+  .overlay h2 { font-size: 1.8rem; margin-bottom: 10px; }
+  .overlay p { color: #9ab; margin-bottom: 8px; }
+  .overlay .final { font-size: 2.6rem; font-weight: 800; color: #ffd166; margin: 12px 0 20px; }
+  .play-area.hide { display: none; }
+</style>
+</head>
+<body>
+  <div class="game">
+    <h1>WORD SCRAMBLE</h1>
+    <div class="stats">
+      <div class="stat"><div class="label">Score</div><div class="value" id="score">0</div></div>
+      <div class="stat"><div class="label">Time</div><div class="value" id="timer">60</div></div>
+      <div class="stat"><div class="label">Solved</div><div class="value" id="solved">0</div></div>
+      <div class="stat"><div class="label">Hints</div><div class="value" id="hintsLeft">3</div></div>
+    </div>
+
+    <div class="play-area" id="playArea">
+      <div class="scrambled" id="scrambled"></div>
+      <div class="hint" id="hintText">Press Hint for a clue (-5 pts)</div>
+      <input type="text" id="guess" placeholder="Your answer..." autocomplete="off" maxlength="20">
+      <div class="buttons">
+        <button id="submitBtn">Submit</button>
+        <button id="hintBtn">Hint</button>
+        <button id="skipBtn">Skip</button>
+        <button id="restartBtn">Restart</button>
+      </div>
+      <div class="feedback" id="feedback"></div>
+    </div>
+
+    <div class="overlay" id="overlay">
+      <h2 id="overlayTitle">Time's Up!</h2>
+      <p>You unscrambled <span id="finalSolved">0</span> word(s)</p>
+      <div class="final" id="finalScore">0</div>
+      <div class="buttons"><button id="playAgainBtn" style="background:#06d6a0">Play Again</button></div>
+    </div>
+  </div>
+
+<script>
+(function() {
+  'use strict';
+
+  var WORDS = [
+    { w: 'elephant', h: 'The largest land animal' },
+    { w: 'computer', h: 'Machine you are using right now' },
+    { w: 'pizza', h: 'Italian dish with cheese and tomato' },
+    { w: 'rainbow', h: 'Colorful arc after rain' },
+    { w: 'guitar', h: 'Six-stringed instrument' },
+    { w: 'mountain', h: 'Everest is the tallest one' },
+    { w: 'bicycle', h: 'Two-wheeled pedal vehicle' },
+    { w: 'chocolate', h: 'Sweet treat made from cocoa' },
+    { w: 'airplane', h: 'It flies passengers through the sky' },
+    { w: 'library', h: 'Place full of books' },
+    { w: 'dolphin', h: 'Smart ocean mammal' },
+    { w: 'volcano', h: 'It erupts with lava' },
+    { w: 'telescope', h: 'Used to look at stars' },
+    { w: 'sandwich', h: 'Lunch between two slices of bread' },
+    { w: 'penguin', h: 'Flightless bird in Antarctica' },
+    { w: 'keyboard', h: 'You type on it' },
+    { w: 'umbrella', h: 'Keeps you dry in rain' },
+    { w: 'dinosaur', h: 'Extinct reptile like T-Rex' },
+    { w: 'hospital', h: 'Where doctors work' },
+    { w: 'sunflower', h: 'Tall yellow flower that faces the sun' },
+    { w: 'football', h: 'Sport with a goal and a round ball' },
+    { w: 'butterfly', h: 'Insect that was once a caterpillar' },
+    { w: 'lighthouse', h: 'Guides ships at night' },
+    { w: 'treasure', h: 'Pirates bury it' },
+    { w: 'calendar', h: 'Shows days and months' },
+    { w: 'microscope', h: 'Makes tiny things look big' },
+    { w: 'astronaut', h: 'Travels to space' },
+    { w: 'waterfall', h: 'Niagara is a famous one' },
+    { w: 'candle', h: 'Wax with a burning wick' },
+    { w: 'pyramid', h: 'Ancient Egyptian structure' }
+  ];
+
+  var GAME_TIME = 60;
+  var MAX_HINTS = 3;
+  var POINTS_PER_WORD = 10;
+  var HINT_COST = 5;
+  var SKIP_PENALTY = 2;
+
+  var score, timeLeft, solved, hintsLeft, current, timerId, usedIndices, playing;
+
+  var scoreEl = document.getElementById('score');
+  var timerEl = document.getElementById('timer');
+  var solvedEl = document.getElementById('solved');
+  var hintsEl = document.getElementById('hintsLeft');
+  var scrambledEl = document.getElementById('scrambled');
+  var hintTextEl = document.getElementById('hintText');
+  var guessEl = document.getElementById('guess');
+  var feedbackEl = document.getElementById('feedback');
+  var submitBtn = document.getElementById('submitBtn');
+  var hintBtn = document.getElementById('hintBtn');
+  var skipBtn = document.getElementById('skipBtn');
+  var restartBtn = document.getElementById('restartBtn');
+  var playArea = document.getElementById('playArea');
+  var overlay = document.getElementById('overlay');
+  var finalScoreEl = document.getElementById('finalScore');
+  var finalSolvedEl = document.getElementById('finalSolved');
+  var playAgainBtn = document.getElementById('playAgainBtn');
+
+  function shuffle(str) {
+    var a = str.split('');
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a.join('');
+  }
+
+  function scrambleWord(word) {
+    var s = shuffle(word);
+    var tries = 0;
+    while (s === word && tries < 20) { s = shuffle(word); tries++; }
+    return s;
+  }
+
+  function pickWord() {
+    if (usedIndices.length >= WORDS.length) usedIndices = [];
+    var idx;
+    do { idx = Math.floor(Math.random() * WORDS.length); }
+    while (usedIndices.indexOf(idx) !== -1);
+    usedIndices.push(idx);
+    current = WORDS[idx];
+    renderTiles();
+    hintTextEl.textContent = 'Press Hint for a clue (-' + HINT_COST + ' pts)';
+    guessEl.value = '';
+    guessEl.focus();
+  }
+
+  function renderTiles() {
+    scrambledEl.innerHTML = '';
+    var s = scrambleWord(current.w);
+    for (var i = 0; i < s.length; i++) {
+      var d = document.createElement('div');
+      d.className = 'tile';
+      d.textContent = s[i];
+      d.style.animationDelay = (i * 0.04) + 's';
+      scrambledEl.appendChild(d);
+    }
+  }
+
+  function updateStats() {
+    scoreEl.textContent = score;
+    solvedEl.textContent = solved;
+    hintsEl.textContent = hintsLeft;
+    timerEl.textContent = timeLeft;
+    timerEl.className = 'value' + (timeLeft <= 10 ? ' low' : '');
+    timerEl.id = 'timer';
+    hintBtn.disabled = hintsLeft <= 0;
+  }
+
+  function setFeedback(msg, cls) {
+    feedbackEl.textContent = msg;
+    feedbackEl.className = 'feedback' + (cls ? ' ' + cls : '');
+  }
+
+  function submit() {
+    if (!playing) return;
+    var guess = guessEl.value.trim().toLowerCase();
+    if (!guess) return;
+    if (guess === current.w) {
+      score += POINTS_PER_WORD;
+      solved++;
+      setFeedback('Correct! +' + POINTS_PER_WORD + ' pts', 'good');
+      updateStats();
+      setTimeout(function() { if (playing) { pickWord(); setFeedback(''); } }, 500);
+    } else {
+      setFeedback('Not quite — try again!', 'bad');
+      guessEl.classList.remove('shake');
+      void guessEl.offsetWidth;
+      guessEl.classList.add('shake');
+      guessEl.select();
+    }
+  }
+
+  function useHint() {
+    if (!playing || hintsLeft <= 0) return;
+    hintsLeft--;
+    score = Math.max(0, score - HINT_COST);
+    hintTextEl.textContent = 'Hint: ' + current.h;
+    updateStats();
+    guessEl.focus();
+  }
+
+  function skip() {
+    if (!playing) return;
+    score = Math.max(0, score - SKIP_PENALTY);
+    setFeedback('Skipped: ' + current.w.toUpperCase() + ' (-' + SKIP_PENALTY + ' pts)', 'bad');
+    updateStats();
+    setTimeout(function() { if (playing) { pickWord(); setFeedback(''); } }, 800);
+  }
+
+  function tick() {
+    timeLeft--;
+    updateStats();
+    if (timeLeft <= 0) endGame();
+  }
+
+  function endGame() {
+    playing = false;
+    clearInterval(timerId);
+    playArea.classList.add('hide');
+    overlay.classList.add('show');
+    finalScoreEl.textContent = score;
+    finalSolvedEl.textContent = solved;
+  }
+
+  function startGame() {
+    score = 0; timeLeft = GAME_TIME; solved = 0; hintsLeft = MAX_HINTS;
+    usedIndices = [];
+    playing = true;
+    clearInterval(timerId);
+    overlay.classList.remove('show');
+    playArea.classList.remove('hide');
+    setFeedback('');
+    updateStats();
+    pickWord();
+    timerId = setInterval(tick, 1000);
+  }
+
+  submitBtn.addEventListener('click', submit);
+  hintBtn.addEventListener('click', useHint);
+  skipBtn.addEventListener('click', skip);
+  restartBtn.addEventListener('click', startGame);
+  playAgainBtn.addEventListener('click', startGame);
+  guessEl.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') submit();
+  });
+
+  startGame();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Button Masher</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #0f0f1a;
+    color: #eee;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+    overflow: hidden;
+  }
+  h1 {
+    font-size: 2.2rem;
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    color: #ffd23f;
+    text-shadow: 0 0 18px rgba(255, 210, 63, .4);
+  }
+  .sub { color: #888; margin-bottom: 32px; }
+  #count {
+    font-size: 7rem;
+    font-weight: 800;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    transition: transform .05s;
+  }
+  #count.pop { transform: scale(1.12); }
+  #timer-wrap {
+    width: min(480px, 80vw);
+    height: 14px;
+    background: #222;
+    border-radius: 8px;
+    margin: 28px 0 12px;
+    overflow: hidden;
+    border: 1px solid #333;
+  }
+  #timer-bar {
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(90deg, #ffd23f, #ff6b35);
+    transition: width .1s linear;
+  }
+  #time-left { font-size: 1.2rem; color: #aaa; font-variant-numeric: tabular-nums; }
+  #best { margin-top: 18px; font-size: 1.1rem; color: #7ee787; }
+  #message { margin-top: 20px; font-size: 1.3rem; min-height: 1.8em; color: #ffd23f; font-weight: 600; }
+  button {
+    margin-top: 18px;
+    padding: 14px 42px;
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    background: #ffd23f;
+    color: #111;
+    text-transform: uppercase;
+    transition: transform .1s, box-shadow .1s;
+  }
+  button:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(255,210,63,.35); }
+  button:active { transform: translateY(0); }
+  #mash-btn { display: none; }
+  .hidden { display: none !important; }
+  @media (pointer: coarse) {
+    #mash-btn { display: inline-block; }
+  }
+</style>
+</head>
+<body>
+  <h1>Button Masher</h1>
+  <div class="sub">Mash <b>SPACE</b> as fast as you can for 10 seconds!</div>
+  <div id="count">0</div>
+  <div id="timer-wrap"><div id="timer-bar"></div></div>
+  <div id="time-left">10.0s</div>
+  <div id="best">Best: 0</div>
+  <div id="message">Press SPACE to start</div>
+  <button id="mash-btn">MASH!</button>
+  <button id="restart-btn" class="hidden">Restart</button>
+
+<script>
+(function () {
+  var DURATION = 10000;
+  var countEl = document.getElementById('count');
+  var barEl = document.getElementById('timer-bar');
+  var timeEl = document.getElementById('time-left');
+  var bestEl = document.getElementById('best');
+  var msgEl = document.getElementById('message');
+  var restartBtn = document.getElementById('restart-btn');
+  var mashBtn = document.getElementById('mash-btn');
+
+  var count = 0;
+  var running = false;
+  var finished = false;
+  var startTime = 0;
+  var rafId = null;
+  var best = 0;
+
+  try { best = parseInt(localStorage.getItem('buttonMasherBest'), 10) || 0; } catch (e) {}
+  bestEl.textContent = 'Best: ' + best;
+
+  function pop() {
+    countEl.classList.remove('pop');
+    void countEl.offsetWidth;
+    countEl.classList.add('pop');
+  }
+
+  function press() {
+    if (finished) return;
+    if (!running) { start(); return; }
+    count++;
+    countEl.textContent = count;
+    pop();
+  }
+
+  function start() {
+    running = true;
+    count = 0;
+    countEl.textContent = '0';
+    msgEl.textContent = 'GO!';
+    restartBtn.classList.add('hidden');
+    startTime = performance.now();
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function tick(now) {
+    var elapsed = now - startTime;
+    var remaining = Math.max(0, DURATION - elapsed);
+    timeEl.textContent = (remaining / 1000).toFixed(1) + 's';
+    barEl.style.width = (remaining / DURATION * 100) + '%';
+    if (remaining <= 0) { end(); return; }
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function end() {
+    running = false;
+    finished = true;
+    var isBest = count > best;
+    if (isBest) {
+      best = count;
+      bestEl.textContent = 'Best: ' + best;
+      try { localStorage.setItem('buttonMasherBest', String(best)); } catch (e) {}
+    }
+    msgEl.textContent = 'Time! You pressed ' + count + ' times' + (isBest ? ' — NEW BEST!' : '.');
+    restartBtn.classList.remove('hidden');
+    restartBtn.focus();
+  }
+
+  function reset() {
+    finished = false;
+    running = false;
+    count = 0;
+    countEl.textContent = '0';
+    barEl.style.width = '100%';
+    timeEl.textContent = '10.0s';
+    msgEl.textContent = 'Press SPACE to start';
+    restartBtn.classList.add('hidden');
+  }
+
+  document.addEventListener('keydown', function (e) {
+    if (e.code === 'Space' || e.key === ' ') {
+      e.preventDefault();
+      if (e.repeat) return;
+      if (finished && document.activeElement === restartBtn) return;
+      press();
+    }
+  });
+
+  mashBtn.addEventListener('pointerdown', function (e) {
+    e.preventDefault();
+    press();
+  });
+
+  restartBtn.addEventListener('click', function () {
+    reset();
+    this.blur();
+  });
+})();
+</script>
+</body>
+</html>

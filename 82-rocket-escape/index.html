@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<title>Rocket Escape</title>
+<link rel="icon" href="data:," />
+<style>
+  :root{
+    --cyan:#7ff0ff;
+    --amber:#ffb24d;
+    --dim:rgba(196,216,246,.55);
+    --ink:#e9f2ff;
+  }
+  *{box-sizing:border-box}
+  html,body{
+    margin:0;height:100%;overflow:hidden;background:#04050a;color:var(--ink);
+    font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;
+    overscroll-behavior:none;
+  }
+  #game{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:crosshair;background:#04050a}
+
+  #hud{
+    position:fixed;inset:0;z-index:3;pointer-events:none;
+    padding:clamp(10px,2.2vmin,26px);
+    display:flex;justify-content:space-between;align-items:flex-start;gap:12px;
+  }
+  .stat{display:flex;flex-direction:column;gap:3px;min-width:0}
+  .stat.mid{align-items:center;text-align:center}
+  .stat.right{align-items:flex-end;text-align:right}
+  .lbl{
+    font:600 clamp(8px,1.2vmin,10px)/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+    letter-spacing:.24em;text-transform:uppercase;color:var(--dim);
+  }
+  .val{
+    font:700 clamp(19px,3.4vmin,34px)/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+    color:#eef7ff;text-shadow:0 0 22px rgba(110,210,255,.45);
+    font-variant-numeric:tabular-nums;
+  }
+  .val.small{font-size:clamp(13px,2.1vmin,20px);color:rgba(226,240,255,.85)}
+  .unit{font-size:.46em;color:var(--dim);margin-left:4px;letter-spacing:.06em;font-weight:600}
+
+  #overlay{
+    position:fixed;inset:0;z-index:6;display:grid;place-items:center;
+    padding:max(14px,4vmin);
+    background:radial-gradient(ellipse at 50% 42%, rgba(22,34,74,.42), rgba(2,3,9,.86) 72%);
+    -webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);
+    transition:opacity .28s ease,visibility .28s ease;
+  }
+  #overlay.hidden{opacity:0;visibility:hidden;pointer-events:none}
+
+  .panel{
+    width:min(520px,100%);
+    padding:clamp(20px,4vmin,40px) clamp(18px,4vmin,38px);
+    text-align:center;border-radius:20px;
+    border:1px solid rgba(130,200,255,.18);
+    background:linear-gradient(160deg, rgba(17,25,50,.86), rgba(8,11,24,.93));
+    box-shadow:0 30px 90px -24px rgba(0,0,0,.95), inset 0 1px 0 rgba(180,220,255,.08), 0 0 80px -30px rgba(90,160,255,.55);
+    animation:panelIn .32s cubic-bezier(.2,.9,.3,1.2);
+  }
+  .panel.hidden{display:none}
+  @keyframes panelIn{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}
+
+  .title{
+    margin:0;display:flex;flex-direction:column;align-items:center;gap:0;
+    font:900 clamp(36px,8.6vmin,70px)/0.92 ui-sans-serif,system-ui,sans-serif;
+    letter-spacing:.02em;
+  }
+  .title span{display:block;-webkit-background-clip:text;background-clip:text;color:transparent}
+  .title .t1{background-image:linear-gradient(180deg,#ffffff,#b6e4ff 55%,#5aa8ff);filter:drop-shadow(0 0 26px rgba(90,170,255,.45))}
+  .title .t2{background-image:linear-gradient(180deg,#ffe6b0,#ffb24d 55%,#ff7a3c);filter:drop-shadow(0 0 26px rgba(255,150,60,.35))}
+  .title.small{font:900 clamp(26px,5.6vmin,42px)/1 ui-sans-serif,system-ui,sans-serif;letter-spacing:.06em}
+  .title.small span{background-image:linear-gradient(180deg,#ffffff,#ffd9d9 40%,#ff6a7a);filter:drop-shadow(0 0 24px rgba(255,90,110,.35))}
+
+  .tagline{margin:14px auto 0;max-width:36ch;color:rgba(200,222,255,.66);font-size:clamp(12px,1.7vmin,15px);line-height:1.55}
+  .kicker{margin:0 0 10px;font:700 10px/1 ui-monospace,monospace;letter-spacing:.34em;color:rgba(255,140,150,.9);text-transform:uppercase}
+
+  .controls{display:flex;flex-direction:column;gap:9px;margin:20px auto 0;max-width:340px}
+  .ctl{display:flex;align-items:center;justify-content:center;gap:3px}
+  .ctl em{font-style:normal;color:var(--dim);margin-left:9px;letter-spacing:.16em;text-transform:uppercase;font-size:10px;font-weight:600}
+  .key{
+    display:inline-grid;place-items:center;min-width:26px;height:26px;padding:0 7px;
+    border-radius:7px;border:1px solid rgba(160,205,255,.28);
+    background:rgba(150,200,255,.07);
+    font:700 11px/1 ui-monospace,monospace;color:#d2e8ff;
+    box-shadow:inset 0 -2px 0 rgba(0,0,0,.35);
+  }
+
+  .btn{
+    margin-top:24px;appearance:none;border:0;cursor:pointer;
+    padding:14px 36px;border-radius:999px;
+    font:800 14px/1 ui-sans-serif,system-ui,sans-serif;letter-spacing:.2em;color:#04121a;
+    background:linear-gradient(180deg,#c4f7ff,#5fcbff 55%,#2d9be8);
+    box-shadow:0 12px 34px -10px rgba(80,190,255,.85), inset 0 1px 0 rgba(255,255,255,.65);
+    transition:transform .12s ease,box-shadow .2s ease;
+  }
+  .btn:hover{transform:translateY(-1px);box-shadow:0 16px 40px -10px rgba(80,190,255,1), inset 0 1px 0 rgba(255,255,255,.75)}
+  .btn:active{transform:translateY(1px) scale(.985)}
+  .btn:focus-visible{outline:2px solid #9fe9ff;outline-offset:3px}
+
+  .hint{margin:14px 0 0;font-size:11px;letter-spacing:.08em;color:rgba(180,205,240,.45)}
+  .hint b{color:rgba(215,235,255,.8);font-weight:700}
+
+  .final{
+    margin:6px 0 0;font:800 clamp(44px,10vmin,72px)/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+    color:#fff;text-shadow:0 0 44px rgba(120,220,255,.45);font-variant-numeric:tabular-nums;
+  }
+  .final small{font-size:.3em;color:var(--dim);margin-left:8px;letter-spacing:.1em;font-weight:700}
+  .sub{margin:10px 0 0;font:600 12px/1 ui-monospace,monospace;letter-spacing:.14em;color:var(--dim);text-transform:uppercase}
+
+  #touch{
+    position:fixed;left:0;right:0;bottom:0;z-index:4;
+    display:none;justify-content:space-between;align-items:flex-end;
+    padding:0 clamp(12px,3vmin,22px) max(16px,env(safe-area-inset-bottom));
+    pointer-events:none;
+  }
+  @media (pointer:coarse){
+    body.playing #touch{display:flex}
+  }
+  .tbtn{
+    pointer-events:auto;touch-action:none;appearance:none;
+    width:clamp(62px,17vmin,86px);aspect-ratio:1;border-radius:50%;
+    border:1px solid rgba(150,210,255,.32);
+    background:radial-gradient(circle at 50% 34%, rgba(120,200,255,.26), rgba(10,20,40,.5));
+    color:#e0f4ff;font-size:clamp(20px,5.4vmin,28px);line-height:1;
+    display:grid;place-items:center;
+    -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+    box-shadow:0 10px 30px -12px rgba(0,0,0,.9), inset 0 1px 0 rgba(255,255,255,.14);
+    transition:transform .1s ease,background .1s ease;
+  }
+  .tbtn:active,.tbtn.on{transform:scale(.95);background:radial-gradient(circle at 50% 34%, rgba(170,235,255,.55), rgba(20,60,110,.65))}
+  #touch .mid{flex:1;display:flex;justify-content:center}
+  #btnUp{
+    width:clamp(76px,21vmin,104px);
+    border-color:rgba(255,190,120,.4);
+    background:radial-gradient(circle at 50% 34%, rgba(255,190,110,.28), rgba(40,20,10,.5));
+  }
+  #btnUp:active,#btnUp.on{background:radial-gradient(circle at 50% 34%, rgba(255,215,150,.6), rgba(90,40,10,.7))}
+</style>
+</head>
+<body>
+<canvas id="game" aria-label="Rocket Escape game area"></canvas>
+
+<div id="hud">
+  <div class="stat">
+    <span class="lbl">Altitude</span>
+    <span class="val"><span id="altVal">0</span><span class="unit">m</span></span>
+  </div>
+  <div class="stat mid">
+    <span class="lbl">Best</span>
+    <span class="val small"><span id="bestVal">0</span><span class="unit">m</span></span>
+  </div>
+  <div class="stat right">
+    <span class="lbl">Velocity</span>
+    <span class="val"><span id="spdVal">0</span><span class="unit">m/s</span></span>
+  </div>
+</div>
+
+<div id="touch">
+  <button class="tbtn" id="btnLeft" type="button" aria-label="Steer left">&#9664;</button>
+  <div class="mid"><button class="tbtn" id="btnUp" type="button" aria-label="Thrust">&#9650;</button></div>
+  <button class="tbtn" id="btnRight" type="button" aria-label="Steer right">&#9654;</button>
+</div>
+
+<div id="overlay" aria-hidden="false">
+  <div class="panel" id="titlePanel">
+    <h1 class="title"><span class="t1">ROCKET</span><span class="t2">ESCAPE</span></h1>
+    <p class="tagline">Thread the asteroid field. Climb as high as you can before something clips your hull.</p>
+    <div class="controls">
+      <div class="ctl"><span class="key">W</span><span class="key">&#8593;</span><span class="key">SPACE</span><em>thrust</em></div>
+      <div class="ctl"><span class="key">A</span><span class="key">D</span><span class="key">&#8592;</span><span class="key">&#8594;</span><em>steer</em></div>
+    </div>
+    <button class="btn" id="startBtn" type="button">LAUNCH</button>
+    <p class="hint">Press <b>SPACE</b> to launch &middot; hold to thrust</p>
+  </div>
+
+  <div class="panel hidden" id="overPanel">
+    <p class="kicker">Hull breach</p>
+    <h2 class="title small"><span>ROCKET LOST</span></h2>
+    <p class="final"><span id="finalAlt">0</span><small>m</small></p>
+    <p class="sub">Best <span id="finalBest">0</span> m</p>
+    <button class="btn" id="retryBtn" type="button">TRY AGAIN</button>
+    <p class="hint">Press <b>R</b> or <b>SPACE</b></p>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var canvas = document.getElementById('game');
+  var ctx = canvas.getContext('2d', { alpha: false });
+  var elAlt = document.getElementById('altVal');
+  var elBest = document.getElementById('bestVal');
+  var elSpd = document.getElementById('spdVal');
+  var overlay = document.getElementById('overlay');
+  var titlePanel = document.getElementById('titlePanel');
+  var overPanel = document.getElementById('overPanel');
+  var finalAlt = document.getElementById('finalAlt');
+  var finalBest = document.getElementById('finalBest');
+
+  var W = 800, H = 800, DPR = 1, U = 800;
+  var bg = null;
+  var stars = [];
+
+  function rand(a, b) { return a + Math.random() * (b - a); }
+  function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
+  function mod(v, m) { return ((v % m) + m) % m; }
+
+  var input = { left: false, right: false, up: false, pointerActive: false, pointerX: null };
+
+  var state = {
+    mode: 'ready',
+    t: 0,
+    cam: 0,
+    startY: 0,
+    alt: 0,
+    maxAlt: 0,
+    best: 0,
+    shake: 0,
+    deadTimer: 0,
+    flame: 0,
+    hudTimer: 0,
+    rocket: { x: 0, y: 0, vx: 0, vy: 0, angle: 0, thrust: false, alive: true },
+    asteroids: [],
+    particles: [],
+    nextBandY: 0,
+    overShown: false
+  };
+
+  try {
+    state.best = Math.max(0, parseInt(localStorage.getItem('rocketEscape.best') || '0', 10) || 0);
+  } catch (e) { state.best = 0; }
+
+  /* ------------------------------------------------------------------ */
+  /* layout / background                                                 */
+  /* ------------------------------------------------------------------ */
+
+  function resize() {
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    W = Math.max(280, canvas.clientWidth || window.innerWidth);
+    H = Math.max(320, canvas.clientHeight || window.innerHeight);
+    canvas.width = Math.round(W * DPR);
+    canvas.height = Math.round(H * DPR);
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    U = Math.min(H, W * 1.15);
+    buildBackground();
+    buildStars();
+    if (state.mode === 'ready') idlePlace();
+    else state.rocket.x = clamp(state.rocket.x, U * 0.05, W - U * 0.05);
+  }
+
+  function buildBackground() {
+    bg = document.createElement('canvas');
+    bg.width = Math.max(2, Math.round(W));
+    bg.height = Math.max(2, Math.round(H));
+    var b = bg.getContext('2d');
+
+    var g = b.createLinearGradient(0, 0, W * 0.6, H);
+    g.addColorStop(0, '#05060e');
+    g.addColorStop(0.45, '#080b1a');
+    g.addColorStop(1, '#04050c');
+    b.fillStyle = g;
+    b.fillRect(0, 0, W, H);
+
+    var blobs = [
+      [0.22, 0.28, 0.55, 'rgba(86,64,190,0.20)'],
+      [0.78, 0.18, 0.45, 'rgba(30,120,190,0.16)'],
+      [0.62, 0.74, 0.60, 'rgba(120,40,150,0.13)'],
+      [0.10, 0.82, 0.45, 'rgba(20,90,150,0.12)'],
+      [0.50, 0.45, 0.75, 'rgba(40,60,150,0.10)']
+    ];
+    for (var i = 0; i < blobs.length; i++) {
+      var bl = blobs[i];
+      var x = bl[0] * W, y = bl[1] * H, r = bl[2] * Math.max(W, H);
+      var rg = b.createRadialGradient(x, y, 0, x, y, r);
+      rg.addColorStop(0, bl[3]);
+      rg.addColorStop(1, 'rgba(0,0,0,0)');
+      b.fillStyle = rg;
+      b.fillRect(0, 0, W, H);
+    }
+
+    var vg = b.createRadialGradient(W * 0.5, H * 0.5, Math.min(W, H) * 0.35, W * 0.5, H * 0.5, Math.max(W, H) * 0.78);
+    vg.addColorStop(0, 'rgba(0,0,0,0)');
+    vg.addColorStop(1, 'rgba(0,0,0,0.55)');
+    b.fillStyle = vg;
+    b.fillRect(0, 0, W, H);
+  }
+
+  function buildStars() {
+    stars = [];
+    var n = clamp(Math.round((W * H) / 4200), 70, 340);
+    for (var i = 0; i < n; i++) {
+      var z = Math.random();
+      var c = Math.random();
+      stars.push({
+        x: Math.random() * W,
+        y: Math.random() * H,
+        z: 0.25 + z * 0.75,
+        s: 0.6 + z * 1.8,
+        tw: Math.random() * Math.PI * 2,
+        col: c > 0.86 ? '160,210,255' : (c > 0.7 ? '255,228,196' : '226,238,255')
+      });
+    }
+  }
+
+  function idlePlace() {
+    var r = state.rocket;
+    r.x = W * 0.5;
+    r.y = H * 0.78;
+    r.vx = 0; r.vy = 0; r.angle = 0;
+    r.thrust = false;
+    r.alive = true;
+    state.cam = 0;
+    state.alt = 0;
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* game flow                                                           */
+  /* ------------------------------------------------------------------ */
+
+  function startGame() {
+    var r = state.rocket;
+    state.mode = 'playing';
+    state.t = 0;
+    r.x = W * 0.5;
+    r.y = H * 0.8;
+    r.vx = 0; r.vy = 0; r.angle = 0; r.thrust = false; r.alive = true;
+    state.startY = r.y;
+    state.cam = r.y - H * 0.62;
+    state.alt = 0;
+    state.maxAlt = 0;
+    state.shake = 0;
+    state.deadTimer = 0;
+    state.flame = 0;
+    state.overShown = false;
+    state.asteroids.length = 0;
+    state.particles.length = 0;
+    state.nextBandY = state.cam - U * 0.85;
+    input.left = input.right = input.up = false;
+    input.pointerActive = false;
+    input.pointerX = null;
+    titlePanel.classList.add('hidden');
+    overPanel.classList.add('hidden');
+    overlay.classList.add('hidden');
+    overlay.setAttribute('aria-hidden', 'true');
+    document.body.classList.add('playing');
+    refreshHUD();
+  }
+
+  function die() {
+    if (state.mode !== 'playing') return;
+    state.mode = 'dead';
+    state.deadTimer = 0;
+    state.rocket.alive = false;
+    state.rocket.thrust = false;
+    state.rocket.vy = 0;
+    state.flame = 0;
+    explode(state.rocket.x, state.rocket.y);
+    var score = Math.floor(state.maxAlt);
+    if (score > state.best) {
+      state.best = score;
+      try { localStorage.setItem('rocketEscape.best', String(score)); } catch (e) {}
+    }
+    document.body.classList.remove('playing');
+    refreshHUD();
+  }
+
+  function showGameOver() {
+    state.overShown = true;
+    finalAlt.textContent = String(Math.floor(state.maxAlt));
+    finalBest.textContent = String(state.best);
+    titlePanel.classList.add('hidden');
+    overPanel.classList.remove('hidden');
+    overlay.classList.remove('hidden');
+    overlay.setAttribute('aria-hidden', 'false');
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* update                                                              */
+  /* ------------------------------------------------------------------ */
+
+  function update(dt) {
+    state.t += dt;
+    state.shake *= Math.exp(-3.4 * dt);
+    updateParticles(dt);
+
+    state.hudTimer += dt;
+    if (state.hudTimer > 0.08) {
+      state.hudTimer = 0;
+      refreshHUD();
+    }
+
+    if (state.mode === 'ready') { idleUpdate(dt); return; }
+
+    if (state.mode === 'dead') {
+      state.deadTimer += dt;
+      state.flame += (0 - state.flame) * Math.min(1, dt * 8);
+      updateAsteroids(dt, false);
+      if (!state.overShown && state.deadTimer > 0.85) showGameOver();
+      return;
+    }
+
+    playUpdate(dt);
+  }
+
+  function idleUpdate(dt) {
+    var r = state.rocket;
+    r.x = W * 0.5;
+    r.y = H * 0.78 + Math.sin(state.t * 1.7) * H * 0.007;
+    r.angle = Math.sin(state.t * 1.3) * 0.06;
+    state.flame = 0.2 + 0.07 * Math.sin(state.t * 5.3);
+    state.alt = 0;
+    state.cam = 0;
+  }
+
+  function playUpdate(dt) {
+    var r = state.rocket;
+    var g = U * 0.58;
+    var thrustA = U * 1.62;
+    var hAcc = U * 1.65;
+
+    var steer = 0;
+    if (input.left) steer -= 1;
+    if (input.right) steer += 1;
+    if (input.pointerActive && input.pointerX !== null) {
+      var dx = input.pointerX - r.x;
+      if (Math.abs(dx) > U * 0.02) steer += dx > 0 ? 1 : -1;
+      steer = clamp(steer, -1, 1);
+    }
+
+    r.vx += steer * hAcc * dt;
+    r.vx *= Math.exp(-2.4 * dt);
+
+    var thrusting = input.up || input.pointerActive;
+    r.thrust = thrusting;
+    state.flame += ((thrusting ? 1 : 0) - state.flame) * Math.min(1, dt * 14);
+
+    r.vy += g * dt;
+    if (thrusting) r.vy -= thrustA * dt;
+    r.vy *= Math.exp(-0.5 * dt);
+    r.vy = clamp(r.vy, -U * 0.85, U * 1.05);
+
+    r.x += r.vx * dt;
+    r.y += r.vy * dt;
+
+    var rad = U * 0.021;
+    if (r.x < rad) { r.x = rad; r.vx = Math.abs(r.vx) * 0.3; }
+    if (r.x > W - rad) { r.x = W - rad; r.vx = -Math.abs(r.vx) * 0.3; }
+
+    var tilt = clamp(r.vx / (U * 0.8), -1, 1) * 0.38;
+    r.angle += (tilt - r.angle) * Math.min(1, dt * 9);
+
+    if (thrusting) emitThrust(r);
+
+    var camTarget = r.y - H * 0.62;
+    state.cam += (camTarget - state.cam) * (1 - Math.exp(-8 * dt));
+
+    var alt = Math.max(0, (state.startY - r.y) / (U * 0.02));
+    state.alt = alt;
+    if (alt > state.maxAlt) state.maxAlt = alt;
+
+    updateAsteroids(dt, true);
+
+    var hit = rad * 1.15;
+    for (var i = 0; i < state.asteroids.length; i++) {
+      var a = state.asteroids[i];
+      var ddx = a.x - r.x;
+      var ddy = a.y - r.y;
+      var rr = a.r * 0.84 + hit;
+      if (ddx * ddx + ddy * ddy < rr * rr) { die(); break; }
+    }
+  }
+
+  function updateAsteroids(dt, spawning) {
+    if (spawning) spawnBands();
+    var arr = state.asteroids;
+    for (var i = arr.length - 1; i >= 0; i--) {
+      var a = arr[i];
+      a.x += a.vx * dt;
+      a.y += a.vy * dt;
+      a.rot += a.vr * dt;
+      if (a.x < -a.r) a.x = W + a.r;
+      else if (a.x > W + a.r) a.x = -a.r;
+      var sy = a.y - state.cam;
+      if (sy > H + a.r * 2 || sy < -H * 1.6) arr.splice(i, 1);
+    }
+  }
+
+  function spawnBands() {
+    var diff = clamp(state.maxAlt / 900, 0, 1);
+    var guard = 0;
+    while (state.nextBandY - state.cam > -H * 0.16 && guard++ < 8) {
+      spawnBand(state.nextBandY, diff);
+      state.nextBandY -= U * (0.78 - 0.42 * diff) * rand(0.9, 1.12);
+    }
+  }
+
+  function spawnBand(y, diff) {
+    var placed = [];
+    var wide = clamp(W / (U * 1.2), 1, 2.2);
+    var n = clamp(Math.round((1 + Math.random() * (1.3 + diff * 2.2)) * wide), 1, 6);
+
+    for (var i = 0; i < n; i++) {
+      var r = U * (0.030 + Math.random() * 0.045) * (1 + diff * 0.3);
+      var px = 0;
+      var ok = false;
+      for (var k = 0; k < 12; k++) {
+        px = rand(r * 0.4, W - r * 0.4);
+        ok = true;
+        for (var j = 0; j < placed.length; j++) {
+          if (Math.abs(placed[j].x - px) < placed[j].r + r + U * 0.13) { ok = false; break; }
+        }
+        if (ok) break;
+      }
+      if (!ok) continue;
+      placed.push({ x: px, r: r });
+      state.asteroids.push(makeAsteroid(px, y + rand(-U * 0.07, U * 0.07), r));
+    }
+  }
+
+  function makeAsteroid(x, y, r) {
+    var n = 9 + Math.floor(Math.random() * 5);
+    var pts = [];
+    for (var i = 0; i < n; i++) {
+      var ang = (i / n) * Math.PI * 2;
+      var rr = r * (0.76 + Math.random() * 0.3);
+      pts.push({ x: Math.cos(ang) * rr, y: Math.sin(ang) * rr });
+    }
+    var craters = [];
+    var cn = 1 + Math.floor(Math.random() * 3);
+    for (var c = 0; c < cn; c++) {
+      craters.push({
+        a: Math.random() * Math.PI * 2,
+        d: Math.random() * 0.5,
+        r: r * (0.13 + Math.random() * 0.15)
+      });
+    }
+    return {
+      x: x, y: y, r: r, pts: pts, craters: craters,
+      rot: Math.random() * Math.PI * 2,
+      vr: (Math.random() - 0.5) * 1.1,
+      vx: (Math.random() - 0.5) * U * 0.1,
+      vy: U * (0.03 + Math.random() * 0.09),
+      tone: Math.random()
+    };
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* particles                                                           */
+  /* ------------------------------------------------------------------ */
+
+  function emitThrust(r) {
+    var L = U * 0.085;
+    for (var i = 0; i < 2; i++) {
+      var life = rand(0.2, 0.42);
+      var spread = U * 0.03;
+      state.particles.push({
+        x: r.x + rand(-U * 0.006, U * 0.006),
+        y: r.y + L * 0.42 + rand(0, U * 0.01),
+        vx: r.vx * 0.25 + rand(-spread, spread),
+        vy: Math.max(r.vy * 0.2, 0) + rand(U * 0.25, U * 0.55),
+        life: life,
+        maxLife: life,
+        size: rand(U * 0.004, U * 0.010),
+        color: Math.random() < 0.45 ? '255,240,190' : (Math.random() < 0.6 ? '255,170,60' : '255,110,40'),
+        grav: 0,
+        drag: 1.6,
+        kind: 'spark'
+      });
+    }
+  }
+
+  function explode(x, y) {
+    state.shake = 1;
+    state.particles.push({
+      kind: 'ring', x: x, y: y, vx: 0, vy: 0,
+      life: 0.6, maxLife: 0.6, size: U * 0.02, grav: 0, drag: 0, color: '255,180,90'
+    });
+    var cols = ['255,255,240', '255,220,120', '255,150,50', '255,90,40'];
+    for (var i = 0; i < 74; i++) {
+      var a = Math.random() * Math.PI * 2;
+      var sp = U * rand(0.1, 0.95);
+      var life = rand(0.4, 1.25);
+      state.particles.push({
+        x: x, y: y,
+        vx: Math.cos(a) * sp,
+        vy: Math.sin(a) * sp,
+        life: life,
+        maxLife: life,
+        size: rand(U * 0.004, U * 0.014),
+        color: cols[Math.floor(Math.random() * cols.length)],
+        grav: U * 0.35,
+        drag: 0.9,
+        kind: 'spark'
+      });
+    }
+  }
+
+  function updateParticles(dt) {
+    var arr = state.particles;
+    for (var i = arr.length - 1; i >= 0; i--) {
+      var p = arr[i];
+      p.life -= dt;
+      if (p.life <= 0) { arr.splice(i, 1); continue; }
+      if (p.kind === 'ring') continue;
+      p.vy += p.grav * dt;
+      p.vx *= Math.exp(-p.drag * dt);
+      p.vy *= Math.exp(-p.drag * dt);
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+    }
+    if (arr.length > 620) arr.splice(0, arr.length - 620);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* render                                                              */
+  /* ------------------------------------------------------------------ */
+
+  function render() {
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    ctx.fillStyle = '#04050a';
+    ctx.fillRect(0, 0, W, H);
+    if (bg) ctx.drawImage(bg, 0, 0, W, H);
+    drawStars();
+
+    ctx.save();
+    if (state.shake > 0.003) {
+      var s = state.shake * state.shake * U * 0.035;
+      ctx.translate((Math.random() - 0.5) * s, (Math.random() - 0.5) * s);
+    }
+
+    if (state.mode === 'playing' || state.mode === 'dead') drawMilestones();
+
+    for (var i = 0; i < state.asteroids.length; i++) {
+      var a = state.asteroids[i];
+      var sy = a.y - state.cam;
+      if (sy < -a.r * 2 || sy > H + a.r * 2) continue;
+      drawAsteroid(a, sy);
+    }
+
+    drawParticles();
+    if (state.rocket.alive) drawRocket();
+    ctx.restore();
+  }
+
+  function drawStars() {
+    var drift = state.mode === 'ready' ? state.t * H * 0.02 : 0;
+    var scroll = -state.cam + drift;
+    var span = H + 40;
+    ctx.save();
+    for (var i = 0; i < stars.length; i++) {
+      var st = stars[i];
+      var sy = mod(st.y + scroll * st.z, span) - 20;
+      var tw = 0.55 + 0.45 * Math.sin(state.t * 1.6 + st.tw);
+      var al = (0.22 + st.z * 0.72) * tw;
+      if (al <= 0.02) continue;
+      ctx.globalAlpha = al;
+      ctx.fillStyle = 'rgb(' + st.col + ')';
+      ctx.fillRect(st.x, sy, st.s, st.s);
+    }
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  }
+
+  function drawMilestones() {
+    var step = 50 * (U * 0.02);
+    var lowK = Math.ceil((state.startY - (state.cam + H)) / step);
+    var highK = Math.floor((state.startY - state.cam) / step);
+    if (highK - lowK > 10) lowK = highK - 10;
+
+    ctx.save();
+    ctx.font = '600 ' + Math.round(U * 0.014) + 'px ui-monospace, Menlo, monospace';
+    ctx.textBaseline = 'middle';
+    for (var k = Math.max(1, lowK); k <= highK; k++) {
+      var sy = state.startY - k * step - state.cam;
+      if (sy < -20 || sy > H + 20) continue;
+      var y = Math.round(sy) + 0.5;
+      ctx.strokeStyle = 'rgba(120,180,255,0.10)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([U * 0.02, U * 0.03]);
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(W, y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = 'rgba(140,195,255,0.30)';
+      ctx.fillText((k * 50) + ' m', U * 0.025, sy - U * 0.024);
+    }
+    ctx.restore();
+  }
+
+  function drawAsteroid(a, sy) {
+    ctx.save();
+    ctx.translate(a.x, sy);
+    ctx.rotate(a.rot);
+
+    var p = a.pts;
+    ctx.beginPath();
+    ctx.moveTo(p[0].x, p[0].y);
+    for (var i = 1; i < p.length; i++) ctx.lineTo(p[i].x, p[i].y);
+    ctx.closePath();
+
+    var g = ctx.createLinearGradient(-a.r * 0.7, -a.r * 0.9, a.r * 0.8, a.r * 0.9);
+    if (a.tone < 0.5) {
+      g.addColorStop(0, '#8d94a6');
+      g.addColorStop(0.55, '#5c6478');
+      g.addColorStop(1, '#363c4a');
+    } else {
+      g.addColorStop(0, '#9a8a78');
+      g.addColorStop(0.55, '#6b5d4f');
+      g.addColorStop(1, '#41362c');
+    }
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(190,210,235,0.20)';
+    ctx.lineWidth = Math.max(1, a.r * 0.035);
+    ctx.stroke();
+
+    for (var c = 0; c < a.craters.length; c++) {
+      var cr = a.craters[c];
+      var cx = Math.cos(cr.a) * cr.d * a.r;
+      var cy = Math.sin(cr.a) * cr.d * a.r;
+      ctx.beginPath();
+      ctx.arc(cx, cy, cr.r, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(16,20,30,0.32)';
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(cx - cr.r * 0.16, cy - cr.r * 0.16, cr.r * 0.82, Math.PI * 0.9, Math.PI * 1.9);
+      ctx.strokeStyle = 'rgba(220,235,255,0.10)';
+      ctx.lineWidth = Math.max(1, cr.r * 0.24);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawParticles() {
+    if (!state.particles.length) return;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    for (var i = 0; i < state.particles.length; i++) {
+      var p = state.particles[i];
+      var k = p.life / p.maxLife;
+      var sy = p.y - state.cam;
+
+      if (p.kind === 'ring') {
+        var rr = p.size + p.size * (1 - k) * 6;
+        ctx.strokeStyle = 'rgba(' + p.color + ',' + (k * 0.55).toFixed(3) + ')';
+        ctx.lineWidth = 1 + 3 * k;
+        ctx.beginPath();
+        ctx.arc(p.x, sy, rr, 0, Math.PI * 2);
+        ctx.stroke();
+        continue;
+      }
+
+      ctx.globalAlpha = Math.min(1, k * 1.4);
+      ctx.fillStyle = 'rgb(' + p.color + ')';
+      ctx.beginPath();
+      ctx.arc(p.x, sy, p.size * (0.4 + k * 0.8), 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  }
+
+  function drawFlame(L, w, power) {
+    var t = state.t;
+    var flick = 0.86 + 0.24 * Math.sin(t * 43) + 0.12 * Math.sin(t * 97 + 1.3);
+    var len = L * (0.22 + 0.95 * power) * flick;
+    var y0 = L * 0.40;
+
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+
+    var g = ctx.createLinearGradient(0, y0, 0, y0 + len);
+    g.addColorStop(0, 'rgba(255,255,240,0.95)');
+    g.addColorStop(0.22, 'rgba(255,215,120,0.85)');
+    g.addColorStop(0.65, 'rgba(255,120,45,0.42)');
+    g.addColorStop(1, 'rgba(255,60,20,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(-w * 0.27, y0);
+    ctx.quadraticCurveTo(-w * 0.22, y0 + len * 0.55, 0, y0 + len);
+    ctx.quadraticCurveTo(w * 0.22, y0 + len * 0.55, w * 0.27, y0);
+    ctx.closePath();
+    ctx.fill();
+
+    var g2 = ctx.createLinearGradient(0, y0, 0, y0 + len * 0.6);
+    g2.addColorStop(0, 'rgba(255,255,255,0.95)');
+    g2.addColorStop(1, 'rgba(255,235,160,0)');
+    ctx.fillStyle = g2;
+    ctx.beginPath();
+    ctx.moveTo(-w * 0.14, y0);
+    ctx.quadraticCurveTo(-w * 0.10, y0 + len * 0.32, 0, y0 + len * 0.6);
+    ctx.quadraticCurveTo(w * 0.10, y0 + len * 0.32, w * 0.14, y0);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  function drawRocket() {
+    var r = state.rocket;
+    var sy = r.y - state.cam;
+    var L = U * 0.085;
+    var w = U * 0.036;
+
+    ctx.save();
+    ctx.translate(r.x, sy);
+    ctx.rotate(r.angle);
+
+    ctx.globalCompositeOperation = 'lighter';
+    var halo = ctx.createRadialGradient(0, 0, 0, 0, 0, L * 1.6);
+    halo.addColorStop(0, 'rgba(110,200,255,0.14)');
+    halo.addColorStop(0.5, 'rgba(90,170,255,0.05)');
+    halo.addColorStop(1, 'rgba(90,170,255,0)');
+    ctx.fillStyle = halo;
+    ctx.beginPath();
+    ctx.arc(0, 0, L * 1.6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalCompositeOperation = 'source-over';
+
+    if (state.flame > 0.02) drawFlame(L, w, state.flame);
+
+    ctx.fillStyle = '#e0503e';
+    ctx.strokeStyle = 'rgba(80,20,15,0.4)';
+    ctx.lineWidth = Math.max(1, L * 0.012);
+    for (var s = -1; s <= 1; s += 2) {
+      ctx.beginPath();
+      ctx.moveTo(s * w * 0.30, L * 0.08);
+      ctx.lineTo(s * w * 1.00, L * 0.50);
+      ctx.lineTo(s * w * 0.78, L * 0.56);
+      ctx.lineTo(s * w * 0.26, L * 0.44);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    }
+
+    ctx.fillStyle = '#3a4457';
+    ctx.beginPath();
+    ctx.moveTo(-w * 0.24, L * 0.36);
+    ctx.lineTo(w * 0.24, L * 0.36);
+    ctx.lineTo(w * 0.32, L * 0.50);
+    ctx.lineTo(-w * 0.32, L * 0.50);
+    ctx.closePath();
+    ctx.fill();
+
+    var bodyGrad = ctx.createLinearGradient(-w * 0.5, 0, w * 0.5, 0);
+    bodyGrad.addColorStop(0, '#8fa2bd');
+    bodyGrad.addColorStop(0.18, '#e8f2ff');
+    bodyGrad.addColorStop(0.42, '#ffffff');
+    bodyGrad.addColorStop(0.75, '#c9d9ee');
+    bodyGrad.addColorStop(1, '#7286a3');
+    ctx.beginPath();
+    ctx.moveTo(0, -L * 0.52);
+    ctx.bezierCurveTo(w * 0.32, -L * 0.38, w * 0.48, -L * 0.10, w * 0.44, L * 0.14);
+    ctx.lineTo(w * 0.36, L * 0.40);
+    ctx.lineTo(-w * 0.36, L * 0.40);
+    ctx.lineTo(-w * 0.44, L * 0.14);
+    ctx.bezierCurveTo(-w * 0.48, -L * 0.10, -w * 0.32, -L * 0.38, 0, -L * 0.52);
+    ctx.closePath();
+    ctx.fillStyle = bodyGrad;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(30,45,70,0.35)';
+    ctx.lineWidth = Math.max(1, L * 0.012);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(0, -L * 0.52);
+    ctx.bezierCurveTo(w * 0.17, -L * 0.44, w * 0.25, -L * 0.35, w * 0.27, -L * 0.27);
+    ctx.lineTo(-w * 0.27, -L * 0.27);
+    ctx.bezierCurveTo(-w * 0.25, -L * 0.35, -w * 0.17, -L * 0.44, 0, -L * 0.52);
+    ctx.closePath();
+    ctx.fillStyle = '#e0503e';
+    ctx.fill();
+
+    var cg = ctx.createRadialGradient(-w * 0.06, -L * 0.16, 0, 0, -L * 0.12, w * 0.34);
+    cg.addColorStop(0, '#e0fdff');
+    cg.addColorStop(0.45, '#63dbf7');
+    cg.addColorStop(1, '#16679c');
+    ctx.beginPath();
+    ctx.ellipse(0, -L * 0.12, w * 0.22, L * 0.13, 0, 0, Math.PI * 2);
+    ctx.fillStyle = cg;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(20,50,80,0.5)';
+    ctx.lineWidth = Math.max(1, L * 0.008);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.ellipse(-w * 0.06, -L * 0.16, w * 0.06, L * 0.035, -0.5, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.8)';
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* hud                                                                 */
+  /* ------------------------------------------------------------------ */
+
+  function refreshHUD() {
+    var a = state.mode === 'ready' ? 0 : Math.floor(state.alt);
+    var spd = state.mode === 'ready' ? 0 : Math.round(Math.abs(state.rocket.vy) / (U * 0.02));
+    var sa = String(a);
+    var ss = String(spd);
+    var sb = String(state.best);
+    if (elAlt.textContent !== sa) elAlt.textContent = sa;
+    if (elSpd.textContent !== ss) elSpd.textContent = ss;
+    if (elBest.textContent !== sb) elBest.textContent = sb;
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* input                                                               */
+  /* ------------------------------------------------------------------ */
+
+  window.addEventListener('keydown', function (e) {
+    var k = e.code;
+    if (k === 'ArrowLeft' || k === 'ArrowRight' || k === 'ArrowUp' || k === 'ArrowDown' || k === 'Space') {
+      e.preventDefault();
+    }
+    if (k === 'ArrowLeft' || k === 'KeyA') input.left = true;
+    if (k === 'ArrowRight' || k === 'KeyD') input.right = true;
+    if (k === 'ArrowUp' || k === 'KeyW' || k === 'Space') {
+      input.up = true;
+      if (state.mode === 'ready') startGame();
+      else if (state.mode === 'dead' && state.deadTimer > 0.45) startGame();
+    }
+    if (k === 'KeyR' && state.mode === 'dead' && state.deadTimer > 0.45) startGame();
+    if (k === 'Enter' && state.mode !== 'playing') startGame();
+  });
+
+  window.addEventListener('keyup', function (e) {
+    var k = e.code;
+    if (k === 'ArrowLeft' || k === 'KeyA') input.left = false;
+    if (k === 'ArrowRight' || k === 'KeyD') input.right = false;
+    if (k === 'ArrowUp' || k === 'KeyW' || k === 'Space') input.up = false;
+  });
+
+  window.addEventListener('blur', function () {
+    input.left = input.right = input.up = false;
+    input.pointerActive = false;
+    input.pointerX = null;
+  });
+
+  canvas.addEventListener('pointerdown', function (e) {
+    if (state.mode !== 'playing') return;
+    try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
+    input.pointerActive = true;
+    input.pointerX = e.clientX;
+    e.preventDefault();
+  });
+
+  canvas.addEventListener('pointermove', function (e) {
+    if (!input.pointerActive) return;
+    input.pointerX = e.clientX;
+  });
+
+  function endPointer() {
+    input.pointerActive = false;
+    input.pointerX = null;
+  }
+  canvas.addEventListener('pointerup', endPointer);
+  canvas.addEventListener('pointercancel', endPointer);
+  canvas.addEventListener('lostpointercapture', endPointer);
+
+  function bindHold(el, prop) {
+    if (!el) return;
+    el.addEventListener('pointerdown', function (e) {
+      e.preventDefault();
+      try { el.setPointerCapture(e.pointerId); } catch (err) {}
+      input[prop] = true;
+      el.classList.add('on');
+    });
+    function off() {
+      input[prop] = false;
+      el.classList.remove('on');
+    }
+    el.addEventListener('pointerup', off);
+    el.addEventListener('pointercancel', off);
+    el.addEventListener('lostpointercapture', off);
+  }
+  bindHold(document.getElementById('btnLeft'), 'left');
+  bindHold(document.getElementById('btnRight'), 'right');
+  bindHold(document.getElementById('btnUp'), 'up');
+
+  document.getElementById('startBtn').addEventListener('click', startGame);
+  document.getElementById('retryBtn').addEventListener('click', startGame);
+
+  window.addEventListener('resize', resize);
+  window.addEventListener('orientationchange', function () {
+    setTimeout(resize, 120);
+  });
+
+  /* ------------------------------------------------------------------ */
+  /* loop                                                                */
+  /* ------------------------------------------------------------------ */
+
+  var last = 0;
+  function frame(now) {
+    if (!last) last = now;
+    var dt = (now - last) / 1000;
+    last = now;
+    if (dt > 0.05) dt = 0.05;
+    if (dt < 0) dt = 0;
+    update(dt);
+    render();
+    requestAnimationFrame(frame);
+  }
+
+  resize();
+  idlePlace();
+  refreshHUD();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

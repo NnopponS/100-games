@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Planet Defender</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{min-height:100vh;background:#060914;color:#fff;font-family:system-ui,-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;padding:12px}
+  .wrap{position:relative;width:min(520px,100%);display:flex;flex-direction:column;gap:8px}
+  .hud{display:flex;justify-content:space-between;background:#10172b;border:1px solid #2b3a67;padding:9px 14px;border-radius:12px;font-weight:800}
+  .hud span{color:#38bdf8}
+  canvas{width:100%;height:auto;aspect-ratio:500/500;background:#070b18;border-radius:16px;border:2px solid #2b3a67;display:block;touch-action:none}
+  .ov{position:absolute;inset:48px 0 0 0;background:rgba(6,9,20,.84);border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;gap:12px}
+  .ov.hidden{display:none}
+  .btn{padding:11px 28px;border:none;border-radius:999px;background:linear-gradient(135deg,#22d3ee,#3b82f6);color:#060914;font-weight:900;font-size:1rem;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hud">
+    <div>Blocked: <span id="score">0</span></div>
+    <div>HP: <span id="hp" style="color:#4ade80">5</span></div>
+    <div>Best: <span id="best">0</span></div>
+  </div>
+  <canvas id="c" width="500" height="500"></canvas>
+  <div class="ov" id="ov">
+    <h1 id="ovT" style="color:#38bdf8">PLANET DEFENDER</h1>
+    <p id="ovP" style="color:#cbd5e1;max-width:320px">Rotate the energy shield around Earth using Arrow Keys / A & D or Mouse/Touch to deflect incoming meteors!</p>
+    <button class="btn" id="startBtn">Activate Shield</button>
+  </div>
+</div>
+<script>
+(() => {
+  const c = document.getElementById('c'), ctx = c.getContext('2d');
+  const W = c.width, H = c.height, CX = W/2, CY = H/2, SHIELD_R = 82, ARC_HALF = 0.68;
+  const scoreEl = document.getElementById('score'), hpEl = document.getElementById('hp'), bestEl = document.getElementById('best');
+  const ov = document.getElementById('ov'), ovT = document.getElementById('ovT'), ovP = document.getElementById('ovP'), startBtn = document.getElementById('startBtn');
+
+  let best = Number(localStorage.getItem('planet_best') || 0);
+  bestEl.textContent = best;
+
+  let state = 'idle', shieldAng = -Math.PI/2, meteors = [], sparks = [], score = 0, hp = 5, spawnT = 0, keys = {};
+  const stars = Array.from({length: 60}, () => ({ x: Math.random()*W, y: Math.random()*H, r: Math.random()*1.6 }));
+
+  function reset() {
+    shieldAng = -Math.PI/2; meteors = []; sparks = []; score = 0; hp = 5; spawnT = 0.4;
+    scoreEl.textContent = '0'; hpEl.textContent = '5';
+    state = 'play';
+    ov.classList.add('hidden');
+  }
+
+  function spawnMeteor() {
+    const a = Math.random()*Math.PI*2;
+    const spd = 110 + Math.min(180, score * 2.5);
+    meteors.push({ x: CX + Math.cos(a)*320, y: CY + Math.sin(a)*320, vx: -Math.cos(a)*spd, vy: -Math.sin(a)*spd, r: 9 + Math.random()*5, ang: a });
+  }
+
+  function angDiff(a, b) {
+    let d = a - b;
+    while (d > Math.PI) d -= Math.PI*2;
+    while (d < -Math.PI) d += Math.PI*2;
+    return Math.abs(d);
+  }
+
+  let last = performance.now();
+  function loop(now) {
+    const dt = Math.min(0.04, (now - last) / 1000);
+    last = now;
+    if (state === 'play') update(dt);
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  function update(dt) {
+    if (keys.ArrowLeft || keys.KeyA) shieldAng -= 4.2 * dt;
+    if (keys.ArrowRight || keys.KeyD) shieldAng += 4.2 * dt;
+
+    spawnT -= dt;
+    if (spawnT <= 0) {
+      spawnMeteor();
+      spawnT = Math.max(0.28, 1.05 - score * 0.012);
+    }
+
+    for (let i = meteors.length - 1; i >= 0; i--) {
+      const m = meteors[i];
+      m.x += m.vx * dt; m.y += m.vy * dt;
+      const dist = Math.hypot(m.x - CX, m.y - CY);
+      if (dist <= SHIELD_R + m.r && dist >= SHIELD_R - 14) {
+        const ma = Math.atan2(m.y - CY, m.x - CX);
+        if (angDiff(ma, shieldAng) <= ARC_HALF) {
+          score++;
+          scoreEl.textContent = score;
+          if (score > best) { best = score; bestEl.textContent = best; localStorage.setItem('planet_best', String(best)); }
+          for (let k = 0; k < 8; k++) sparks.push({ x: m.x, y: m.y, vx: (Math.random()-0.5)*160, vy: (Math.random()-0.5)*160, t: 0.35 });
+          meteors.splice(i, 1);
+          continue;
+        }
+      }
+      if (dist <= 44 + m.r) {
+        hp--;
+        hpEl.textContent = Math.max(0, hp);
+        meteors.splice(i, 1);
+        if (hp <= 0) {
+          state = 'over';
+          ovT.textContent = 'PLANET LOST!';
+          ovP.textContent = `Meteors Blocked: ${score}`;
+          startBtn.textContent = 'Defend Again';
+          ov.classList.remove('hidden');
+          return;
+        }
+      }
+    }
+
+    for (let i = sparks.length - 1; i >= 0; i--) {
+      const s = sparks[i];
+      s.x += s.vx * dt; s.y += s.vy * dt; s.t -= dt;
+      if (s.t <= 0) sparks.splice(i, 1);
+    }
+  }
+
+  function draw() {
+    ctx.fillStyle = '#070b18';
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = 'rgba(255,255,255,.45)';
+    for (const st of stars) { ctx.beginPath(); ctx.arc(st.x, st.y, st.r, 0, Math.PI*2); ctx.fill(); }
+
+    // Planet
+    const g = ctx.createRadialGradient(CX-12, CY-12, 8, CX, CY, 44);
+    g.addColorStop(0, '#4ade80'); g.addColorStop(0.6, '#0284c7'); g.addColorStop(1, '#1e3a8a');
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(CX, CY, 44, 0, Math.PI*2); ctx.fill();
+
+    // Shield arc
+    ctx.strokeStyle = '#22d3ee'; ctx.lineWidth = 10; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.arc(CX, CY, SHIELD_R, shieldAng - ARC_HALF, shieldAng + ARC_HALF); ctx.stroke();
+
+    // Meteors
+    for (const m of meteors) {
+      ctx.fillStyle = '#f97316';
+      ctx.beginPath(); ctx.arc(m.x, m.y, m.r, 0, Math.PI*2); ctx.fill();
+    }
+    for (const s of sparks) {
+      ctx.fillStyle = `rgba(34,211,238,${s.t*2.8})`;
+      ctx.beginPath(); ctx.arc(s.x, s.y, 3, 0, Math.PI*2); ctx.fill();
+    }
+  }
+
+  window.addEventListener('keydown', e => { keys[e.code] = true; });
+  window.addEventListener('keyup', e => { keys[e.code] = false; });
+  c.addEventListener('pointermove', e => {
+    if (state !== 'play') return;
+    const r = c.getBoundingClientRect();
+    const mx = (e.clientX - r.left) * W / r.width;
+    const my = (e.clientY - r.top) * H / r.height;
+    shieldAng = Math.atan2(my - CY, mx - CX);
+  });
+  startBtn.onclick = reset;
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

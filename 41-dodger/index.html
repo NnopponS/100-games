@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dodger</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    height: 100%;
+    background: #0d0d1a;
+    color: #eee;
+    font-family: "Segoe UI", Tahoma, sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  #wrap {
+    position: relative;
+  }
+  canvas {
+    display: block;
+    background: linear-gradient(#141428, #1a1a33);
+    border: 2px solid #444;
+    border-radius: 6px;
+  }
+  #hud {
+    position: absolute;
+    top: 10px;
+    left: 12px;
+    font-size: 18px;
+    font-weight: 600;
+    color: #8fd3ff;
+    text-shadow: 0 0 6px rgba(0,0,0,.8);
+    pointer-events: none;
+  }
+  #overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(10,10,25,.78);
+    border-radius: 6px;
+    text-align: center;
+  }
+  #overlay h1 {
+    font-size: 42px;
+    color: #ffd75e;
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+    text-shadow: 0 0 12px rgba(255,215,94,.4);
+  }
+  #overlay p { font-size: 16px; margin: 6px 0; color: #ccc; }
+  #overlay .key {
+    display: inline-block;
+    padding: 2px 8px;
+    border: 1px solid #777;
+    border-radius: 4px;
+    background: #222;
+    font-family: monospace;
+  }
+  #overlay button {
+    margin-top: 18px;
+    padding: 12px 34px;
+    font-size: 18px;
+    font-weight: 700;
+    color: #0d0d1a;
+    background: #ffd75e;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: transform .1s, background .15s;
+  }
+  #overlay button:hover { background: #ffe58a; transform: scale(1.05); }
+  #finalScore { color: #8fd3ff; font-size: 22px !important; font-weight: 700; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="game" width="480" height="640"></canvas>
+  <div id="hud">Time: <span id="time">0.0</span>s &nbsp; Best: <span id="best">0.0</span>s</div>
+  <div id="overlay">
+    <h1>DODGER</h1>
+    <p id="msg">Dodge the falling blocks. Survive as long as you can!</p>
+    <p id="finalScore" class="hidden"></p>
+    <p>Move with <span class="key">&larr;</span> <span class="key">&rarr;</span> or <span class="key">A</span> <span class="key">D</span></p>
+    <button id="btn">Start</button>
+  </div>
+</div>
+<script>
+(function () {
+  var canvas = document.getElementById('game');
+  var ctx = canvas.getContext('2d');
+  var W = canvas.width, H = canvas.height;
+  var timeEl = document.getElementById('time');
+  var bestEl = document.getElementById('best');
+  var overlay = document.getElementById('overlay');
+  var btn = document.getElementById('btn');
+  var msg = document.getElementById('msg');
+  var finalScore = document.getElementById('finalScore');
+
+  var best = 0;
+  try { best = parseFloat(localStorage.getItem('dodgerBest')) || 0; } catch (e) {}
+  bestEl.textContent = best.toFixed(1);
+
+  var keys = {};
+  var player, blocks, particles, running, startTime, lastSpawn, spawnInterval, lastFrame;
+
+  var COLORS = ['#ff5e5e', '#ff9f43', '#ee5253', '#ff6b81', '#f368e0'];
+
+  function reset() {
+    player = { x: W / 2 - 20, y: H - 70, w: 40, h: 18, speed: 340 };
+    blocks = [];
+    particles = [];
+    spawnInterval = 700;
+    lastSpawn = 0;
+  }
+
+  function start() {
+    reset();
+    running = true;
+    startTime = performance.now();
+    lastFrame = startTime;
+    overlay.classList.add('hidden');
+  }
+
+  function gameOver() {
+    running = false;
+    var t = (performance.now() - startTime) / 1000;
+    if (t > best) {
+      best = t;
+      try { localStorage.setItem('dodgerBest', best); } catch (e) {}
+    }
+    bestEl.textContent = best.toFixed(1);
+    // explosion particles
+    for (var i = 0; i < 40; i++) {
+      particles.push({
+        x: player.x + player.w / 2,
+        y: player.y + player.h / 2,
+        vx: (Math.random() - 0.5) * 400,
+        vy: (Math.random() - 0.5) * 400,
+        life: 1,
+        color: '#4dd0e1'
+      });
+    }
+    msg.textContent = 'You got hit!';
+    finalScore.textContent = 'Survived ' + t.toFixed(1) + 's';
+    finalScore.classList.remove('hidden');
+    btn.textContent = 'Restart';
+    setTimeout(function () { overlay.classList.remove('hidden'); }, 600);
+  }
+
+  function spawnBlock(now) {
+    var elapsed = (now - startTime) / 1000;
+    var w = 24 + Math.random() * 40;
+    blocks.push({
+      x: Math.random() * (W - w),
+      y: -60,
+      w: w,
+      h: w * (0.6 + Math.random() * 0.6),
+      speed: 160 + Math.random() * 120 + elapsed * 8,
+      color: COLORS[(Math.random() * COLORS.length) | 0],
+      rot: Math.random() * Math.PI * 2,
+      rotSpeed: (Math.random() - 0.5) * 3
+    });
+  }
+
+  function update(dt, now) {
+    var elapsed = (now - startTime) / 1000;
+
+    // player movement
+    var dir = 0;
+    if (keys.ArrowLeft || keys.a || keys.A) dir -= 1;
+    if (keys.ArrowRight || keys.d || keys.D) dir += 1;
+    player.x += dir * player.speed * dt;
+    if (player.x < 0) player.x = 0;
+    if (player.x > W - player.w) player.x = W - player.w;
+
+    // spawn blocks, accelerating over time
+    spawnInterval = Math.max(180, 700 - elapsed * 22);
+    if (now - lastSpawn > spawnInterval) {
+      spawnBlock(now);
+      lastSpawn = now;
+    }
+
+    // move blocks
+    for (var i = blocks.length - 1; i >= 0; i--) {
+      var b = blocks[i];
+      b.y += b.speed * dt;
+      b.rot += b.rotSpeed * dt;
+      if (b.y > H + 80) { blocks.splice(i, 1); continue; }
+      // collision (approx: use block bounding box)
+      if (b.x < player.x + player.w && b.x + b.w > player.x &&
+          b.y < player.y + player.h && b.y + b.h > player.y) {
+        gameOver();
+        return;
+      }
+    }
+
+    // particles
+    for (var j = particles.length - 1; j >= 0; j--) {
+      var p = particles[j];
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      p.vy += 300 * dt;
+      p.life -= dt * 1.4;
+      if (p.life <= 0) particles.splice(j, 1);
+    }
+
+    timeEl.textContent = elapsed.toFixed(1);
+  }
+
+  function drawPlayer() {
+    ctx.save();
+    ctx.fillStyle = '#4dd0e1';
+    ctx.shadowColor = '#4dd0e1';
+    ctx.shadowBlur = 12;
+    // simple ship shape
+    var x = player.x, y = player.y, w = player.w, h = player.h;
+    ctx.beginPath();
+    ctx.moveTo(x + w / 2, y - 8);
+    ctx.lineTo(x + w, y + h);
+    ctx.lineTo(x + w * 0.65, y + h * 0.7);
+    ctx.lineTo(x + w * 0.35, y + h * 0.7);
+    ctx.lineTo(x, y + h);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+
+    // stars background
+    ctx.fillStyle = 'rgba(255,255,255,.5)';
+    for (var s = 0; s < 40; s++) {
+      var sx = (s * 97) % W, sy = (s * 173) % H;
+      ctx.fillRect(sx, sy, 2, 2);
+    }
+
+    for (var i = 0; i < blocks.length; i++) {
+      var b = blocks[i];
+      ctx.save();
+      ctx.translate(b.x + b.w / 2, b.y + b.h / 2);
+      ctx.rotate(b.rot);
+      ctx.fillStyle = b.color;
+      ctx.fillRect(-b.w / 2, -b.h / 2, b.w, b.h);
+      ctx.restore();
+    }
+
+    if (running) drawPlayer();
+
+    for (var j = 0; j < particles.length; j++) {
+      var p = particles[j];
+      ctx.globalAlpha = Math.max(0, p.life);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(p.x - 3, p.y - 3, 6, 6);
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  function loop(now) {
+    var dt = Math.min((now - lastFrame) / 1000, 0.05);
+    lastFrame = now;
+    if (running) update(dt, now);
+    else {
+      // keep particles animating on game-over screen
+      for (var j = particles.length - 1; j >= 0; j--) {
+        var p = particles[j];
+        p.x += p.vx * dt; p.y += p.vy * dt;
+        p.vy += 300 * dt; p.life -= dt * 1.4;
+        if (p.life <= 0) particles.splice(j, 1);
+      }
+    }
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  document.addEventListener('keydown', function (e) {
+    keys[e.key] = true;
+    if ((e.key === ' ' || e.key === 'Enter') && !running) start();
+    if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' '].indexOf(e.key) !== -1) e.preventDefault();
+  });
+  document.addEventListener('keyup', function (e) { keys[e.key] = false; });
+  btn.addEventListener('click', start);
+
+  reset();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

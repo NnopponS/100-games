@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Target Shooter</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #0d1117;
+    font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+    color: #e6edf3;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  #arena {
+    position: absolute;
+    inset: 0;
+    cursor: crosshair;
+    background:
+      radial-gradient(ellipse at 50% 40%, rgba(35, 60, 100, 0.25), transparent 70%),
+      repeating-linear-gradient(0deg, transparent 0 39px, rgba(255,255,255,0.03) 39px 40px),
+      repeating-linear-gradient(90deg, transparent 0 39px, rgba(255,255,255,0.03) 39px 40px),
+      #0d1117;
+  }
+
+  /* ---------- HUD ---------- */
+  #hud {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 16px;
+    pointer-events: none;
+    z-index: 10;
+    font-variant-numeric: tabular-nums;
+  }
+  .hud-group { display: flex; gap: 18px; align-items: center; }
+  .stat { text-align: center; min-width: 64px; }
+  .stat .label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #7d8590;
+  }
+  .stat .value { font-size: 22px; font-weight: 700; }
+  #timeVal { color: #58a6ff; }
+  #accVal  { color: #3fb950; }
+  #scoreVal{ color: #f2cc60; }
+
+  #timebar {
+    position: absolute;
+    top: 0; left: 0;
+    height: 4px;
+    width: 100%;
+    background: #58a6ff;
+    transform-origin: left;
+    z-index: 11;
+    transition: background 0.3s;
+  }
+  #timebar.low { background: #f85149; }
+
+  /* ---------- Targets ---------- */
+  .target {
+    position: absolute;
+    border-radius: 50%;
+    cursor: crosshair;
+    will-change: transform, opacity;
+    box-shadow: 0 0 14px rgba(248, 81, 73, 0.35);
+    background: radial-gradient(circle,
+      #ffea00 0%, #ffea00 12%,
+      #f85149 12%, #f85149 38%,
+      #f0f6fc 38%, #f0f6fc 62%,
+      #f85149 62%, #f85149 100%);
+  }
+  .target::after {
+    content: "";
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    border: 2px solid rgba(248, 81, 73, 0.5);
+    opacity: 0;
+  }
+  .target.expiring::after { opacity: 1; animation: ring 0.35s linear infinite; }
+  @keyframes ring {
+    0%   { transform: scale(1);    opacity: 0.9; }
+    100% { transform: scale(1.25); opacity: 0; }
+  }
+
+  .bonus {
+    background: radial-gradient(circle,
+      #fff 0%, #fff 15%,
+      #bc8cff 15%, #bc8cff 45%,
+      #f0f6fc 45%, #f0f6fc 65%,
+      #bc8cff 65%, #bc8cff 100%);
+    box-shadow: 0 0 18px rgba(188, 140, 255, 0.6);
+  }
+
+  /* ---------- Floating score popups ---------- */
+  .pop {
+    position: absolute;
+    font-weight: 800;
+    font-size: 18px;
+    pointer-events: none;
+    z-index: 20;
+    animation: rise 0.7s ease-out forwards;
+    text-shadow: 0 2px 6px rgba(0,0,0,0.7);
+  }
+  @keyframes rise {
+    0%   { transform: translateY(0);    opacity: 1; }
+    100% { transform: translateY(-46px); opacity: 0; }
+  }
+
+  /* ---------- Click ripple / miss marker ---------- */
+  .miss-mark {
+    position: absolute;
+    width: 18px; height: 18px;
+    margin: -9px 0 0 -9px;
+    pointer-events: none;
+    z-index: 19;
+    animation: missfade 0.45s ease-out forwards;
+  }
+  .miss-mark::before, .miss-mark::after {
+    content: "";
+    position: absolute;
+    left: 8px; top: 0;
+    width: 2px; height: 18px;
+    background: #f85149;
+  }
+  .miss-mark::before { transform: rotate(45deg); }
+  .miss-mark::after  { transform: rotate(-45deg); }
+  @keyframes missfade {
+    0%   { transform: scale(1.4); opacity: 1; }
+    100% { transform: scale(0.7); opacity: 0; }
+  }
+
+  /* ---------- Overlays ---------- */
+  .overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    background: rgba(13, 17, 23, 0.88);
+    backdrop-filter: blur(4px);
+    z-index: 50;
+    text-align: center;
+    padding: 20px;
+  }
+  .overlay h1 {
+    font-size: clamp(34px, 7vw, 60px);
+    letter-spacing: 4px;
+    color: #f85149;
+    text-shadow: 0 0 30px rgba(248, 81, 73, 0.45);
+  }
+  .overlay h1 span { color: #e6edf3; }
+  .overlay p { color: #8b949e; max-width: 460px; line-height: 1.6; }
+  .btn {
+    pointer-events: auto;
+    background: #f85149;
+    color: #fff;
+    border: none;
+    padding: 14px 44px;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .btn:hover { transform: scale(1.06); box-shadow: 0 0 24px rgba(248, 81, 73, 0.55); }
+
+  .final-stats {
+    display: flex;
+    gap: 28px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .final-stats .stat .value { font-size: 34px; }
+  #rankLine { font-size: 20px; color: #f2cc60; font-weight: 700; }
+
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<div id="arena"></div>
+
+<div id="timebar"></div>
+
+<div id="hud">
+  <div class="hud-group">
+    <div class="stat"><div class="label">Score</div><div class="value" id="scoreVal">0</div></div>
+    <div class="stat"><div class="label">Hits</div><div class="value" id="hitsVal">0</div></div>
+    <div class="stat"><div class="label">Misses</div><div class="value" id="missVal">0</div></div>
+  </div>
+  <div class="hud-group">
+    <div class="stat"><div class="label">Accuracy</div><div class="value" id="accVal">--%</div></div>
+    <div class="stat"><div class="label">Time</div><div class="value" id="timeVal">30</div></div>
+  </div>
+</div>
+
+<div class="overlay" id="startOverlay">
+  <h1>TARGET <span>SHOOTER</span></h1>
+  <p>Click the bullseyes before they vanish! Smaller and faster targets are worth more points.
+     Purple targets are bonus targets worth 150. Missed clicks count against your accuracy.
+     You have 30 seconds.</p>
+  <button class="btn" id="startBtn">START</button>
+</div>
+
+<div class="overlay hidden" id="endOverlay">
+  <h1>TIME <span>UP</span></h1>
+  <div id="rankLine"></div>
+  <div class="final-stats">
+    <div class="stat"><div class="label">Score</div><div class="value" id="finalScore">0</div></div>
+    <div class="stat"><div class="label">Hits</div><div class="value" id="finalHits">0</div></div>
+    <div class="stat"><div class="label">Misses</div><div class="value" id="finalMiss">0</div></div>
+    <div class="stat"><div class="label">Escaped</div><div class="value" id="finalEsc">0</div></div>
+    <div class="stat"><div class="label">Accuracy</div><div class="value" id="finalAcc">0%</div></div>
+  </div>
+  <button class="btn" id="restartBtn">RESTART</button>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var GAME_SECONDS = 30;
+  var arena = document.getElementById("arena");
+  var timebar = document.getElementById("timebar");
+
+  var scoreEl = document.getElementById("scoreVal");
+  var hitsEl = document.getElementById("hitsVal");
+  var missEl = document.getElementById("missVal");
+  var accEl = document.getElementById("accVal");
+  var timeEl = document.getElementById("timeVal");
+
+  var startOverlay = document.getElementById("startOverlay");
+  var endOverlay = document.getElementById("endOverlay");
+
+  var targets = [];       // {el, x, y, vx, vy, r, born, life, points}
+  var running = false;
+  var score, hits, misses, escaped;
+  var startTime, lastSpawn, rafId;
+  var elapsed = 0;
+
+  function rand(min, max) { return min + Math.random() * (max - min); }
+
+  function spawnInterval() {
+    // spawn faster as time goes on: ~800ms -> ~380ms
+    return 800 - (elapsed / GAME_SECONDS) * 420;
+  }
+
+  function spawnTarget() {
+    var W = arena.clientWidth, H = arena.clientHeight;
+    var bonus = Math.random() < 0.08;
+    var r = bonus ? rand(16, 22) : rand(16, 42);
+    var x = rand(r + 8, W - r - 8);
+    var y = rand(r + 60, H - r - 8); // keep below HUD
+
+    // speed scales up over the round
+    var speed = rand(40, 90) + (elapsed / GAME_SECONDS) * 120;
+    var ang = rand(0, Math.PI * 2);
+
+    var el = document.createElement("div");
+    el.className = "target" + (bonus ? " bonus" : "");
+    var size = r * 2;
+    el.style.width = size + "px";
+    el.style.height = size + "px";
+
+    // smaller targets are worth more
+    var points = bonus ? 150 : Math.round(120 - (r - 16) * (90 / 26));
+
+    var t = {
+      el: el, x: x, y: y, r: r,
+      vx: Math.cos(ang) * speed,
+      vy: Math.sin(ang) * speed,
+      born: elapsed,
+      life: rand(1.4, 2.3) - (elapsed / GAME_SECONDS) * 0.4,
+      points: points
+    };
+    if (t.life < 0.9) t.life = 0.9;
+
+    el.addEventListener("pointerdown", function (e) {
+      e.stopPropagation();
+      hitTarget(t);
+    });
+
+    arena.appendChild(el);
+    targets.push(t);
+    position(t);
+  }
+
+  function position(t) {
+    t.el.style.transform =
+      "translate(" + (t.x - t.r) + "px," + (t.y - t.r) + "px)" +
+      " scale(" + t.scale + ")";
+    t.el.style.opacity = t.opacity;
+  }
+
+  function hitTarget(t) {
+    if (!running || t.dead) return;
+    t.dead = true;
+    score += t.points;
+    hits++;
+    pop("+" + t.points, t.x, t.y - t.r, t.points >= 100 ? "#bc8cff" : "#3fb950");
+    removeTarget(t);
+    updateHud();
+  }
+
+  function removeTarget(t) {
+    var i = targets.indexOf(t);
+    if (i !== -1) targets.splice(i, 1);
+    if (t.el.parentNode) t.el.parentNode.removeChild(t.el);
+  }
+
+  function pop(text, x, y, color) {
+    var el = document.createElement("div");
+    el.className = "pop";
+    el.textContent = text;
+    el.style.left = (x - 20) + "px";
+    el.style.top = (y - 10) + "px";
+    el.style.color = color || "#3fb950";
+    arena.appendChild(el);
+    setTimeout(function () { el.remove(); }, 700);
+  }
+
+  function missMark(x, y) {
+    var el = document.createElement("div");
+    el.className = "miss-mark";
+    el.style.left = x + "px";
+    el.style.top = y + "px";
+    arena.appendChild(el);
+    setTimeout(function () { el.remove(); }, 450);
+  }
+
+  arena.addEventListener("pointerdown", function (e) {
+    if (!running) return;
+    misses++;
+    missMark(e.clientX, e.clientY);
+    updateHud();
+  });
+
+  function update(now) {
+    if (!running) return;
+    elapsed = (now - startTime) / 1000;
+    var dt = Math.min(0.05, (now - update.last) / 1000);
+    update.last = now;
+
+    if (elapsed >= GAME_SECONDS) { endGame(); return; }
+
+    // spawn
+    if (now - lastSpawn > spawnInterval()) {
+      lastSpawn = now;
+      spawnTarget();
+    }
+
+    var W = arena.clientWidth, H = arena.clientHeight;
+    var floor = 56; // HUD height
+
+    for (var i = targets.length - 1; i >= 0; i--) {
+      var t = targets[i];
+      var age = elapsed - t.born;
+
+      if (age >= t.life) {
+        escaped++;
+        removeTarget(t);
+        continue;
+      }
+
+      // move + bounce off walls (below HUD)
+      t.x += t.vx * dt;
+      t.y += t.vy * dt;
+      if (t.x < t.r + 4)     { t.x = t.r + 4;     t.vx = Math.abs(t.vx); }
+      if (t.x > W - t.r - 4) { t.x = W - t.r - 4; t.vx = -Math.abs(t.vx); }
+      if (t.y < t.r + floor) { t.y = t.r + floor; t.vy = Math.abs(t.vy); }
+      if (t.y > H - t.r - 4) { t.y = H - t.r - 4; t.vy = -Math.abs(t.vy); }
+
+      // pop-in scale, shrink + fade when expiring
+      var remain = t.life - age;
+      t.scale = age < 0.15 ? age / 0.15 : 1;
+      t.opacity = remain < 0.5 ? remain / 0.5 : 1;
+      if (remain < 0.7) t.el.classList.add("expiring");
+
+      position(t);
+    }
+
+    // timer
+    var left = Math.ceil(GAME_SECONDS - elapsed);
+    timeEl.textContent = left;
+    var frac = 1 - elapsed / GAME_SECONDS;
+    timebar.style.transform = "scaleX(" + frac + ")";
+    timebar.classList.toggle("low", frac < 0.25);
+
+    rafId = requestAnimationFrame(update);
+  }
+
+  function updateHud() {
+    scoreEl.textContent = score;
+    hitsEl.textContent = hits;
+    missEl.textContent = misses;
+    var shots = hits + misses;
+    accEl.textContent = shots ? Math.round((hits / shots) * 100) + "%" : "--%";
+  }
+
+  function startGame() {
+    // clear any leftovers
+    while (targets.length) removeTarget(targets[0]);
+    arena.querySelectorAll(".pop,.miss-mark").forEach(function (n) { n.remove(); });
+
+    score = 0; hits = 0; misses = 0; escaped = 0; elapsed = 0;
+    running = true;
+    updateHud();
+    timeEl.textContent = GAME_SECONDS;
+    timebar.style.transform = "scaleX(1)";
+    timebar.classList.remove("low");
+
+    startOverlay.classList.add("hidden");
+    endOverlay.classList.add("hidden");
+
+    startTime = performance.now();
+    update.last = startTime;
+    lastSpawn = startTime - 500; // first target appears quickly
+    rafId = requestAnimationFrame(update);
+  }
+
+  function endGame() {
+    running = false;
+    cancelAnimationFrame(rafId);
+    while (targets.length) removeTarget(targets[0]);
+
+    var shots = hits + misses;
+    var acc = shots ? Math.round((hits / shots) * 100) : 0;
+
+    document.getElementById("finalScore").textContent = score;
+    document.getElementById("finalHits").textContent = hits;
+    document.getElementById("finalMiss").textContent = misses;
+    document.getElementById("finalEsc").textContent = escaped;
+    document.getElementById("finalAcc").textContent = acc + "%";
+
+    var rank =
+      score >= 2000 ? "SHARPSHOOTER" :
+      score >= 1400 ? "MARKSMAN" :
+      score >= 900  ? "DEADEYE" :
+      score >= 500  ? "ROOKIE" : "KEEP PRACTICING";
+    document.getElementById("rankLine").textContent = "Rank: " + rank;
+
+    endOverlay.classList.remove("hidden");
+  }
+
+  document.getElementById("startBtn").addEventListener("click", startGame);
+  document.getElementById("restartBtn").addEventListener("click", startGame);
+
+  // also allow Enter / Space to start or restart
+  document.addEventListener("keydown", function (e) {
+    if (!running && (e.code === "Enter" || e.code === "Space")) {
+      e.preventDefault();
+      startGame();
+    }
+  });
+})();
+</script>
+</body>
+</html>

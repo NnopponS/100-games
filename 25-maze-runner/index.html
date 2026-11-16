@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Maze Runner</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #1a1a2e;
+    color: #eee;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+  }
+  h1 {
+    font-size: 1.8rem;
+    letter-spacing: 2px;
+    margin-bottom: 12px;
+    color: #4ecca3;
+    text-transform: uppercase;
+  }
+  #hud {
+    display: flex;
+    gap: 24px;
+    align-items: center;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .stat {
+    background: #16213e;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-variant-numeric: tabular-nums;
+    font-size: 1.05rem;
+  }
+  .stat span { color: #4ecca3; font-weight: 600; }
+  button {
+    background: #4ecca3;
+    color: #1a1a2e;
+    border: none;
+    padding: 9px 18px;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform .08s, background .15s;
+  }
+  button:hover { background: #63e0b8; }
+  button:active { transform: scale(.96); }
+  #maze-wrap { position: relative; }
+  canvas {
+    background: #0f3460;
+    border-radius: 10px;
+    box-shadow: 0 8px 30px rgba(0,0,0,.5);
+    display: block;
+  }
+  #win {
+    position: absolute;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 12px;
+    background: rgba(15, 22, 40, .85);
+    border-radius: 10px;
+    text-align: center;
+  }
+  #win.show { display: flex; }
+  #win h2 { color: #4ecca3; font-size: 2rem; }
+  #win p { font-size: 1.1rem; }
+  #hint {
+    margin-top: 14px;
+    color: #8899aa;
+    font-size: .9rem;
+  }
+  #touch-pad {
+    display: none;
+    margin-top: 16px;
+    grid-template-columns: repeat(3, 56px);
+    grid-template-rows: repeat(3, 56px);
+    gap: 6px;
+  }
+  #touch-pad button {
+    padding: 0;
+    font-size: 1.3rem;
+    background: #16213e;
+    color: #4ecca3;
+    border: 1px solid #4ecca3;
+  }
+  #touch-pad .empty { visibility: hidden; }
+  @media (pointer: coarse) { #touch-pad { display: grid; } }
+</style>
+</head>
+<body>
+<h1>Maze Runner</h1>
+<div id="hud">
+  <div class="stat">Time: <span id="timer">0.0s</span></div>
+  <div class="stat">Moves: <span id="moves">0</span></div>
+  <div class="stat">Best: <span id="best">&mdash;</span></div>
+  <label class="stat">Size:
+    <select id="size">
+      <option value="10">10&times;10</option>
+      <option value="15" selected>15&times;15</option>
+      <option value="20">20&times;20</option>
+      <option value="25">25&times;25</option>
+      <option value="30">30&times;30</option>
+    </select>
+  </label>
+  <button id="newMaze">New Maze</button>
+</div>
+<div id="maze-wrap">
+  <canvas id="maze"></canvas>
+  <div id="win">
+    <h2>You Escaped!</h2>
+    <p id="winStats"></p>
+    <button id="again">Play Again</button>
+  </div>
+</div>
+<p id="hint">Use arrow keys or WASD to move. Reach the green exit.</p>
+<div id="touch-pad">
+  <div class="empty"></div><button data-dir="up">&uarr;</button><div class="empty"></div>
+  <button data-dir="left">&larr;</button><button data-dir="down">&darr;</button><button data-dir="right">&rarr;</button>
+</div>
+
+<script>
+'use strict';
+
+const canvas = document.getElementById('maze');
+const ctx = canvas.getContext('2d');
+const timerEl = document.getElementById('timer');
+const movesEl = document.getElementById('moves');
+const bestEl = document.getElementById('best');
+const winEl = document.getElementById('win');
+const winStats = document.getElementById('winStats');
+const sizeSel = document.getElementById('size');
+
+const MAX_CANVAS = Math.min(window.innerWidth - 40, 560);
+
+let N, cell, grid, player, exit, moves, startTime, timerId, won, best = {};
+
+// Maze generation: recursive backtracker (iterative).
+// grid[y][x] walls encoded: 1=top 2=right 4=bottom 8=left
+function generateMaze(n) {
+  const g = Array.from({length: n}, () => new Array(n).fill(15));
+  const visited = Array.from({length: n}, () => new Array(n).fill(false));
+  const stack = [[0, 0]];
+  visited[0][0] = true;
+  const dirs = [
+    {dx: 0, dy: -1, wall: 1, opp: 4},
+    {dx: 1, dy: 0,  wall: 2, opp: 8},
+    {dx: 0, dy: 1,  wall: 4, opp: 1},
+    {dx: -1, dy: 0, wall: 8, opp: 2}
+  ];
+  while (stack.length) {
+    const [x, y] = stack[stack.length - 1];
+    const options = dirs.filter(d => {
+      const nx = x + d.dx, ny = y + d.dy;
+      return nx >= 0 && ny >= 0 && nx < n && ny < n && !visited[ny][nx];
+    });
+    if (!options.length) { stack.pop(); continue; }
+    const d = options[(Math.random() * options.length) | 0];
+    const nx = x + d.dx, ny = y + d.dy;
+    g[y][x] &= ~d.wall;
+    g[ny][nx] &= ~d.opp;
+    visited[ny][nx] = true;
+    stack.push([nx, ny]);
+  }
+  return g;
+}
+
+// BFS to pick the farthest cell from (0,0) as the exit — guarantees a good run.
+function farthestCell(n, g) {
+  const dist = Array.from({length: n}, () => new Array(n).fill(-1));
+  const q = [[0, 0]];
+  dist[0][0] = 0;
+  let far = [0, 0];
+  for (let i = 0; i < q.length; i++) {
+    const [x, y] = q[i];
+    if (dist[y][x] > dist[far[1]][far[0]]) far = [x, y];
+    const w = g[y][x];
+    if (!(w & 1) && dist[y-1][x] < 0) { dist[y-1][x] = dist[y][x]+1; q.push([x, y-1]); }
+    if (!(w & 2) && dist[y][x+1] < 0) { dist[y][x+1] = dist[y][x]+1; q.push([x+1, y]); }
+    if (!(w & 4) && dist[y+1][x] < 0) { dist[y+1][x] = dist[y][x]+1; q.push([x, y+1]); }
+    if (!(w & 8) && dist[y][x-1] < 0) { dist[y][x-1] = dist[y][x]+1; q.push([x-1, y]); }
+  }
+  return far;
+}
+
+function setup() {
+  N = parseInt(sizeSel.value, 10);
+  cell = Math.floor(MAX_CANVAS / N);
+  canvas.width = canvas.height = cell * N;
+  grid = generateMaze(N);
+  exit = farthestCell(N, grid);
+  player = {x: 0, y: 0};
+  moves = 0;
+  won = false;
+  startTime = null;
+  clearInterval(timerId);
+  timerId = null;
+  timerEl.textContent = '0.0s';
+  movesEl.textContent = '0';
+  bestEl.textContent = best[N] ? best[N].toFixed(1) + 's' : '\u2014';
+  winEl.classList.remove('show');
+  draw();
+}
+
+function draw() {
+  const s = cell * N;
+  ctx.fillStyle = '#0f3460';
+  ctx.fillRect(0, 0, s, s);
+
+  // Exit cell
+  ctx.fillStyle = '#4ecca3';
+  ctx.fillRect(exit[0] * cell + 2, exit[1] * cell + 2, cell - 4, cell - 4);
+
+  // Walls
+  ctx.strokeStyle = '#e8e8e8';
+  ctx.lineWidth = Math.max(1.5, cell * 0.09);
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  for (let y = 0; y < N; y++) {
+    for (let x = 0; x < N; x++) {
+      const w = grid[y][x];
+      const px = x * cell, py = y * cell;
+      if (w & 1) { ctx.moveTo(px, py);            ctx.lineTo(px + cell, py); }
+      if (w & 2) { ctx.moveTo(px + cell, py);     ctx.lineTo(px + cell, py + cell); }
+      if (w & 4) { ctx.moveTo(px, py + cell);     ctx.lineTo(px + cell, py + cell); }
+      if (w & 8) { ctx.moveTo(px, py);            ctx.lineTo(px, py + cell); }
+    }
+  }
+  ctx.stroke();
+
+  // Player
+  const cx = player.x * cell + cell / 2;
+  const cy = player.y * cell + cell / 2;
+  ctx.fillStyle = '#ff6b6b';
+  ctx.beginPath();
+  ctx.arc(cx, cy, cell * 0.32, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  ctx.arc(cx - cell * 0.1, cy - cell * 0.08, cell * 0.06, 0, Math.PI * 2);
+  ctx.arc(cx + cell * 0.1, cy - cell * 0.08, cell * 0.06, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function startTimer() {
+  if (startTime !== null) return;
+  startTime = performance.now();
+  timerId = setInterval(() => {
+    timerEl.textContent = ((performance.now() - startTime) / 1000).toFixed(1) + 's';
+  }, 100);
+}
+
+function move(dx, dy, wallBit) {
+  if (won) return;
+  if (grid[player.y][player.x] & wallBit) return;
+  startTimer();
+  player.x += dx;
+  player.y += dy;
+  moves++;
+  movesEl.textContent = moves;
+  draw();
+  if (player.x === exit[0] && player.y === exit[1]) finish();
+}
+
+function finish() {
+  won = true;
+  clearInterval(timerId);
+  const t = (performance.now() - startTime) / 1000;
+  timerEl.textContent = t.toFixed(1) + 's';
+  let record = '';
+  if (!best[N] || t < best[N]) {
+    best[N] = t;
+    bestEl.textContent = t.toFixed(1) + 's';
+    record = ' New best!';
+  }
+  winStats.textContent = `Time: ${t.toFixed(1)}s \u2022 Moves: ${moves}.${record}`;
+  setTimeout(() => winEl.classList.add('show'), 150);
+}
+
+const keyMap = {
+  ArrowUp:    [0, -1, 1], ArrowDown:  [0, 1, 4],
+  ArrowLeft:  [-1, 0, 8], ArrowRight: [1, 0, 2],
+  w: [0, -1, 1], s: [0, 1, 4], a: [-1, 0, 8], d: [1, 0, 2],
+  W: [0, -1, 1], S: [0, 1, 4], A: [-1, 0, 8], D: [1, 0, 2]
+};
+
+document.addEventListener('keydown', e => {
+  const m = keyMap[e.key];
+  if (!m) return;
+  e.preventDefault();
+  move(m[0], m[1], m[2]);
+});
+
+document.querySelectorAll('#touch-pad button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const m = {up: [0,-1,1], down: [0,1,4], left: [-1,0,8], right: [1,0,2]}[btn.dataset.dir];
+    move(m[0], m[1], m[2]);
+  });
+});
+
+document.getElementById('newMaze').addEventListener('click', setup);
+document.getElementById('again').addEventListener('click', setup);
+sizeSel.addEventListener('change', setup);
+
+setup();
+</script>
+</body>
+</html>

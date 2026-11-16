@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tic-Tac-Toe vs AI</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #eee;
+    padding: 20px;
+  }
+  h1 { font-size: 2rem; margin-bottom: 8px; letter-spacing: 2px; }
+  .subtitle { color: #8899aa; margin-bottom: 16px; font-size: 0.95rem; }
+  .controls { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; justify-content: center; }
+  .controls button, .controls select {
+    background: #2a3a5a;
+    color: #eee;
+    border: 1px solid #445;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .controls button:hover, .controls select:hover { background: #3a4d75; }
+  #status {
+    font-size: 1.2rem;
+    font-weight: 600;
+    min-height: 1.6em;
+    margin-bottom: 14px;
+    text-align: center;
+  }
+  #board {
+    display: grid;
+    grid-template-columns: repeat(3, 110px);
+    grid-template-rows: repeat(3, 110px);
+    gap: 8px;
+    background: #0f1526;
+    padding: 10px;
+    border-radius: 14px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+  }
+  .cell {
+    background: #223055;
+    border: none;
+    border-radius: 10px;
+    font-size: 3.2rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s, transform 0.1s;
+    color: #fff;
+    user-select: none;
+  }
+  .cell:hover:not(:disabled) { background: #2f4170; transform: scale(1.03); }
+  .cell:disabled { cursor: default; }
+  .cell.x { color: #4ecdc4; }
+  .cell.o { color: #ff6b6b; }
+  .cell.win { background: #2e6b4f; animation: pulse 0.6s ease-in-out infinite alternate; }
+  @keyframes pulse { from { box-shadow: 0 0 0 rgba(78,205,196,0); } to { box-shadow: 0 0 18px rgba(78,205,196,0.8); } }
+  .scores { display: flex; gap: 24px; margin-top: 16px; font-size: 1rem; }
+  .scores span b { color: #4ecdc4; }
+  @media (max-width: 420px) {
+    #board { grid-template-columns: repeat(3, 84px); grid-template-rows: repeat(3, 84px); }
+    .cell { font-size: 2.4rem; }
+  }
+</style>
+</head>
+<body>
+  <h1>TIC-TAC-TOE</h1>
+  <div class="subtitle">You are X &mdash; the AI is O</div>
+  <div class="controls">
+    <select id="difficulty" title="AI difficulty">
+      <option value="unbeatable" selected>Unbeatable</option>
+      <option value="medium">Medium</option>
+      <option value="easy">Easy</option>
+    </select>
+    <button id="restart">Restart</button>
+    <button id="resetScores">Reset Scores</button>
+  </div>
+  <div id="status">Your turn</div>
+  <div id="board"></div>
+  <div class="scores">
+    <span>You: <b id="scoreX">0</b></span>
+    <span>Draws: <b id="scoreD">0</b></span>
+    <span>AI: <b id="scoreO">0</b></span>
+  </div>
+
+<script>
+(function () {
+  'use strict';
+  var boardEl = document.getElementById('board');
+  var statusEl = document.getElementById('status');
+  var difficultyEl = document.getElementById('difficulty');
+  var scoreXEl = document.getElementById('scoreX');
+  var scoreOEl = document.getElementById('scoreO');
+  var scoreDEl = document.getElementById('scoreD');
+
+  var HUMAN = 'X', AI = 'O';
+  var board, gameOver, thinking;
+  var scores = { X: 0, O: 0, D: 0 };
+  var cells = [];
+
+  var LINES = [
+    [0,1,2],[3,4,5],[6,7,8],
+    [0,3,6],[1,4,7],[2,5,8],
+    [0,4,8],[2,4,6]
+  ];
+
+  function init() {
+    board = ['','','','','','','','',''];
+    gameOver = false;
+    thinking = false;
+    boardEl.innerHTML = '';
+    cells = [];
+    for (var i = 0; i < 9; i++) {
+      (function (idx) {
+        var c = document.createElement('button');
+        c.className = 'cell';
+        c.addEventListener('click', function () { onCellClick(idx); });
+        boardEl.appendChild(c);
+        cells.push(c);
+      })(i);
+    }
+    statusEl.textContent = 'Your turn';
+  }
+
+  function onCellClick(i) {
+    if (gameOver || thinking || board[i] !== '') return;
+    place(i, HUMAN);
+    if (checkEnd()) return;
+    thinking = true;
+    statusEl.textContent = 'AI is thinking...';
+    setTimeout(function () {
+      var move = aiMove();
+      if (move !== -1) place(move, AI);
+      thinking = false;
+      if (!checkEnd()) statusEl.textContent = 'Your turn';
+    }, 250);
+  }
+
+  function place(i, mark) {
+    board[i] = mark;
+    cells[i].textContent = mark;
+    cells[i].classList.add(mark.toLowerCase());
+    cells[i].disabled = true;
+  }
+
+  function winner(b) {
+    for (var k = 0; k < LINES.length; k++) {
+      var a = LINES[k][0], c = LINES[k][1], d = LINES[k][2];
+      if (b[a] && b[a] === b[c] && b[a] === b[d]) return { mark: b[a], line: LINES[k] };
+    }
+    return null;
+  }
+
+  function isFull(b) {
+    for (var i = 0; i < 9; i++) if (b[i] === '') return false;
+    return true;
+  }
+
+  function checkEnd() {
+    var w = winner(board);
+    if (w) {
+      gameOver = true;
+      w.line.forEach(function (i) { cells[i].classList.add('win'); });
+      if (w.mark === HUMAN) {
+        statusEl.textContent = 'You win!';
+        scores.X++;
+      } else {
+        statusEl.textContent = 'AI wins!';
+        scores.O++;
+      }
+      updateScores();
+      return true;
+    }
+    if (isFull(board)) {
+      gameOver = true;
+      statusEl.textContent = "It's a draw!";
+      scores.D++;
+      updateScores();
+      return true;
+    }
+    return false;
+  }
+
+  function updateScores() {
+    scoreXEl.textContent = scores.X;
+    scoreOEl.textContent = scores.O;
+    scoreDEl.textContent = scores.D;
+  }
+
+  function aiMove() {
+    var empty = [];
+    for (var i = 0; i < 9; i++) if (board[i] === '') empty.push(i);
+    if (empty.length === 0) return -1;
+
+    var level = difficultyEl.value;
+    if (level === 'easy') {
+      // Mostly random, occasionally blocks.
+      if (Math.random() < 0.25) {
+        var block = findWinning(HUMAN);
+        if (block !== -1) return block;
+      }
+      return empty[Math.floor(Math.random() * empty.length)];
+    }
+    if (level === 'medium') {
+      // Win if possible, block if needed, prefer center/corners.
+      var win = findWinning(AI);
+      if (win !== -1) return win;
+      var blk = findWinning(HUMAN);
+      if (blk !== -1) return blk;
+      if (board[4] === '') return 4;
+      var corners = [0,2,6,8].filter(function (i) { return board[i] === ''; });
+      if (corners.length) return corners[Math.floor(Math.random() * corners.length)];
+      return empty[Math.floor(Math.random() * empty.length)];
+    }
+    // Unbeatable: full minimax.
+    return bestMoveMinimax();
+  }
+
+  function findWinning(mark) {
+    for (var i = 0; i < 9; i++) {
+      if (board[i] === '') {
+        board[i] = mark;
+        var w = winner(board);
+        board[i] = '';
+        if (w) return i;
+      }
+    }
+    return -1;
+  }
+
+  function bestMoveMinimax() {
+    var bestScore = -Infinity, move = -1;
+    for (var i = 0; i < 9; i++) {
+      if (board[i] === '') {
+        board[i] = AI;
+        var s = minimax(board, 0, false, -Infinity, Infinity);
+        board[i] = '';
+        if (s > bestScore) { bestScore = s; move = i; }
+      }
+    }
+    return move;
+  }
+
+  function minimax(b, depth, isMax, alpha, beta) {
+    var w = winner(b);
+    if (w) return w.mark === AI ? 10 - depth : depth - 10;
+    if (isFull(b)) return 0;
+
+    var i, s;
+    if (isMax) {
+      var best = -Infinity;
+      for (i = 0; i < 9; i++) {
+        if (b[i] === '') {
+          b[i] = AI;
+          s = minimax(b, depth + 1, false, alpha, beta);
+          b[i] = '';
+          best = Math.max(best, s);
+          alpha = Math.max(alpha, s);
+          if (beta <= alpha) break;
+        }
+      }
+      return best;
+    } else {
+      var worst = Infinity;
+      for (i = 0; i < 9; i++) {
+        if (b[i] === '') {
+          b[i] = HUMAN;
+          s = minimax(b, depth + 1, true, alpha, beta);
+          b[i] = '';
+          worst = Math.min(worst, s);
+          beta = Math.min(beta, s);
+          if (beta <= alpha) break;
+        }
+      }
+      return worst;
+    }
+  }
+
+  document.getElementById('restart').addEventListener('click', init);
+  document.getElementById('resetScores').addEventListener('click', function () {
+    scores = { X: 0, O: 0, D: 0 };
+    updateScores();
+    init();
+  });
+  difficultyEl.addEventListener('change', init);
+
+  init();
+})();
+</script>
+</body>
+</html>

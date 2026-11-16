@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Strike Alley Bowling</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{min-height:100vh;background:linear-gradient(180deg,#12182b,#0b0f1c);color:#fff;font-family:system-ui,-apple-system,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px;gap:10px}
+  .wrap{width:min(640px,100%);display:flex;flex-direction:column;gap:8px}
+  .scorecard{display:grid;grid-template-columns:repeat(10,1fr);gap:3px;background:#1b233d;padding:6px;border-radius:10px;border:1px solid rgba(255,255,255,.12);font-size:.72rem}
+  .fbox{background:#0f1526;border-radius:6px;padding:3px;text-align:center;border:1px solid rgba(255,255,255,.08)}
+  .fbox.active{border-color:#fbbf24;background:#1e2644}
+  .fnum{color:#94a3b8;font-size:.65rem}
+  .frolls{font-weight:800;min-height:16px;color:#e2e8f0}
+  .ftot{font-weight:900;color:#fbbf24;min-height:16px}
+  canvas{width:100%;height:auto;max-height:58vh;aspect-ratio:480/480;background:#161d33;border-radius:14px;border:2px solid #2d3a5e;display:block;margin:0 auto}
+  .ctrl{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;background:#1b233d;padding:10px 14px;border-radius:12px}
+  .ctrl label{font-size:.82rem;font-weight:700;display:flex;align-items:center;gap:6px;color:#cbd5e1}
+  input[type=range]{accent-color:#fbbf24;cursor:pointer}
+  button{padding:10px 20px;border:none;border-radius:10px;font-weight:900;cursor:pointer;font-family:inherit}
+  .btn-roll{background:linear-gradient(135deg,#fbbf24,#f97316);color:#111827}
+  .btn-res{background:#334155;color:#fff}
+  #status{text-align:center;font-weight:800;color:#fbbf24;min-height:22px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="scorecard" id="scorecard"></div>
+  <div id="status">Aim, set curve, and press BOWL (or Space)!</div>
+  <canvas id="c" width="480" height="480"></canvas>
+  <div class="ctrl">
+    <label>Aim <input type="range" id="aim" min="-95" max="95" value="0"></label>
+    <label>Curve <input type="range" id="curve" min="-60" max="60" value="0"></label>
+    <label>Power <input type="range" id="power" min="45" max="100" value="85"></label>
+    <div style="display:flex;gap:8px">
+      <button class="btn-roll" id="rollBtn">BOWL</button>
+      <button class="btn-res" id="resetBtn">Restart</button>
+    </div>
+  </div>
+</div>
+<script>
+(() => {
+  const c = document.getElementById('c'), ctx = c.getContext('2d');
+  const W = c.width, H = c.height;
+  const scorecard = document.getElementById('scorecard');
+  const statusEl = document.getElementById('status');
+  const aimEl = document.getElementById('aim'), curveEl = document.getElementById('curve'), powerEl = document.getElementById('power');
+  const rollBtn = document.getElementById('rollBtn');
+
+  let pins = [], ball = null, rolling = false, settleTimer = 0;
+  let rolls = [], frame = 0, rollInFrame = 0, gameOver = false;
+
+  function setupPins() {
+    pins = [];
+    const startY = 128, dx = 24, dy = 21;
+    let idx = 0;
+    for (let row = 0; row < 4; row++) {
+      for (let col = 0; col <= row; col++) {
+        const x = W/2 + (col - row/2) * dx;
+        const y = startY - row * dy;
+        pins.push({ id: idx++, x, y, vx: 0, vy: 0, r: 8, down: false });
+      }
+    }
+  }
+
+  function computeScores() {
+    const frames = [];
+    let ri = 0, total = 0;
+    for (let f = 0; f < 10; f++) {
+      const r1 = rolls[ri], r2 = rolls[ri+1], r3 = rolls[ri+2];
+      let disp = '', score = null;
+      if (f < 9) {
+        if (r1 === 10) {
+          disp = 'X';
+          if (r2 !== undefined && r3 !== undefined) { total += 10 + r2 + r3; score = total; }
+          ri += 1;
+        } else if (r1 !== undefined && r2 !== undefined) {
+          if (r1 + r2 === 10) {
+            disp = `${r1} /`;
+            if (r3 !== undefined) { total += 10 + r3; score = total; }
+          } else {
+            disp = `${r1} ${r2}`;
+            total += r1 + r2; score = total;
+          }
+          ri += 2;
+        } else if (r1 !== undefined) {
+          disp = `${r1}`;
+          ri += 1;
+        }
+      } else {
+        const arr = [];
+        for (let k = ri; k < rolls.length; k++) arr.push(rolls[k]);
+        disp = arr.map((v, idx) => v === 10 ? 'X' : (idx === 1 && arr[0] !== 10 && arr[0]+v === 10) ? '/' : v).join(' ');
+        if ((arr.length >= 2 && arr[0] + arr[1] < 10) || arr.length === 3) {
+          total += arr.reduce((a,b) => a+b, 0);
+          score = total;
+        }
+      }
+      frames.push({ disp, score });
+    }
+    return frames;
+  }
+
+  function renderScorecard() {
+    const fs = computeScores();
+    scorecard.innerHTML = fs.map((f, i) => `
+      <div class="fbox ${i === frame && !gameOver ? 'active' : ''}">
+        <div class="fnum">${i+1}</div>
+        <div class="frolls">${f.disp || '-'}</div>
+        <div class="ftot">${f.score !== null ? f.score : ''}</div>
+      </div>`).join('');
+  }
+
+  function reset() {
+    rolls = []; frame = 0; rollInFrame = 0; gameOver = false; rolling = false; ball = null;
+    setupPins();
+    renderScorecard();
+    statusEl.textContent = 'Frame 1 — Aim and press BOWL!';
+    rollBtn.disabled = false;
+  }
+
+  function throwBall() {
+    if (rolling || gameOver) return;
+    const aim = Number(aimEl.value);
+    const curve = Number(curveEl.value);
+    const pow = Number(powerEl.value);
+    const spd = 420 + pow * 4.2;
+    const ang = -Math.PI/2 + aim * 0.0022;
+    ball = {
+      x: W/2 + aim * 0.85,
+      y: H - 35,
+      vx: Math.cos(ang) * spd,
+      vy: Math.sin(ang) * spd,
+      spin: curve * 2.3,
+      r: 14
+    };
+    rolling = true;
+    settleTimer = 0;
+    rollBtn.disabled = true;
+  }
+
+  let last = performance.now();
+  function loop(now) {
+    const dt = Math.min(0.03, (now - last) / 1000);
+    last = now;
+    if (rolling) update(dt);
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  function update(dt) {
+    if (ball) {
+      ball.vx += ball.spin * dt;
+      ball.x += ball.vx * dt;
+      ball.y += ball.vy * dt;
+      // Gutter check
+      if (ball.x < W/2 - 120 || ball.x > W/2 + 120) {
+        ball.vx = 0;
+        ball.spin = 0;
+        ball.x = ball.x < W/2 ? W/2 - 128 : W/2 + 128;
+      }
+      // Ball-pin collisions
+      for (const p of pins) {
+        const dx = p.x - ball.x, dy = p.y - ball.y;
+        const dist = Math.hypot(dx, dy);
+        if (dist < ball.r + p.r && dist > 0.01) {
+          const nx = dx / dist, ny = dy / dist;
+          p.vx += nx * 380 + ball.vx * 0.45;
+          p.vy += ny * 380 + ball.vy * 0.45;
+          p.down = true;
+          ball.vx *= 0.94; ball.vy *= 0.94;
+        }
+      }
+      if (ball.y < -30) ball = null;
+    }
+
+    // Pin-pin collisions
+    for (let i = 0; i < pins.length; i++) {
+      const a = pins[i];
+      a.x += a.vx * dt; a.y += a.vy * dt;
+      a.vx *= 0.94; a.vy *= 0.94;
+      if (Math.hypot(a.vx, a.vy) > 25) a.down = true;
+      for (let j = i + 1; j < pins.length; j++) {
+        const b = pins[j];
+        const dx = b.x - a.x, dy = b.y - a.y;
+        const dist = Math.hypot(dx, dy);
+        if (dist < a.r + b.r && dist > 0.01) {
+          const nx = dx / dist, ny = dy / dist;
+          const rel = (a.vx - b.vx)*nx + (a.vy - b.vy)*ny;
+          if (rel > 0) {
+            a.vx -= rel * nx * 0.85; a.vy -= rel * ny * 0.85;
+            b.vx += rel * nx * 0.85; b.vy += rel * ny * 0.85;
+            a.down = true; b.down = true;
+          }
+        }
+      }
+    }
+
+    settleTimer += dt;
+    const movingPins = pins.some(p => Math.hypot(p.vx, p.vy) > 12);
+    if (!ball && (!movingPins || settleTimer > 2.8)) {
+      finishRoll();
+    }
+  }
+
+  function finishRoll() {
+    rolling = false;
+    const knockedNow = pins.filter(p => p.down).length;
+    const prevKnocked = (rollInFrame === 0) ? 0 : (10 - pins.filter(p => !p.down).length - (10 - pins.length));
+    // Recompute properly: pins array only holds standing pins before roll!
+    const newlyDown = pins.filter(p => p.down).length;
+    rolls.push(newlyDown);
+
+    if (frame < 9) {
+      if (rollInFrame === 0 && newlyDown === 10) {
+        statusEl.textContent = 'STRIKE! 🔥';
+        frame++; rollInFrame = 0; setupPins();
+      } else if (rollInFrame === 0) {
+        statusEl.textContent = `Knocked ${newlyDown}! Second ball.`;
+        rollInFrame = 1;
+        pins = pins.filter(p => !p.down);
+      } else {
+        const totalF = rolls[rolls.length - 2] + newlyDown;
+        statusEl.textContent = totalF === 10 ? 'SPARE! ✨' : `Frame ${frame+1} complete (${totalF})`;
+        frame++; rollInFrame = 0; setupPins();
+      }
+    } else {
+      // 10th frame
+      const f10start = rolls.length - 1 - rollInFrame;
+      const r1 = rolls[f10start], r2 = rolls[f10start + 1], r3 = rolls[f10start + 2];
+      if (rollInFrame === 0) {
+        if (r1 === 10) { statusEl.textContent = '10th Frame STRIKE!'; setupPins(); }
+        else { statusEl.textContent = `10th Frame: ${r1} down`; pins = pins.filter(p => !p.down); }
+        rollInFrame = 1;
+      } else if (rollInFrame === 1) {
+        if (r1 === 10 || r1 + r2 === 10) {
+          statusEl.textContent = r1 + r2 === 10 && r1 !== 10 ? 'SPARE! Bonus ball!' : 'Bonus ball!';
+          if (r2 === 10 || r1 + r2 === 10) setupPins(); else pins = pins.filter(p => !p.down);
+          rollInFrame = 2;
+        } else {
+          endGame();
+        }
+      } else {
+        endGame();
+      }
+    }
+    renderScorecard();
+    if (!gameOver) rollBtn.disabled = false;
+  }
+
+  function endGame() {
+    gameOver = true;
+    const fs = computeScores();
+    const finalScore = fs[9].score || 0;
+    statusEl.textContent = `GAME OVER! Final Score: ${finalScore}`;
+    rollBtn.disabled = true;
+  }
+
+  function draw() {
+    ctx.fillStyle = '#0f1526';
+    ctx.fillRect(0, 0, W, H);
+    // Gutters & Lane
+    ctx.fillStyle = '#1e293b';
+    ctx.fillRect(W/2 - 140, 20, 280, H - 20);
+    const lane = ctx.createLinearGradient(0, 20, 0, H);
+    lane.addColorStop(0, '#c89b5e');
+    lane.addColorStop(1, '#e6be83');
+    ctx.fillStyle = lane;
+    ctx.fillRect(W/2 - 115, 20, 230, H - 20);
+
+    // Lane boards
+    ctx.strokeStyle = 'rgba(120,70,20,.16)';
+    for (let x = W/2 - 92; x < W/2 + 115; x += 23) {
+      ctx.beginPath(); ctx.moveTo(x, 20); ctx.lineTo(x, H); ctx.stroke();
+    }
+
+    // Aim guide
+    if (!rolling && !gameOver) {
+      const aim = Number(aimEl.value), curve = Number(curveEl.value);
+      const sx = W/2 + aim * 0.85, sy = H - 35;
+      ctx.strokeStyle = 'rgba(255,255,255,.55)';
+      ctx.setLineDash([6, 6]);
+      ctx.beginPath();
+      ctx.moveTo(sx, sy);
+      ctx.quadraticCurveTo(sx + aim * 0.4, H/2, sx + aim * 0.7 + curve * 1.1, 90);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // Pins
+    for (const p of pins) {
+      if (p.x < 0 || p.x > W || p.y < 0 || p.y > H) continue;
+      ctx.fillStyle = p.down ? '#94a3b8' : '#ffffff';
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r - 3, 0, Math.PI*2); ctx.stroke();
+    }
+
+    // Ball
+    const bx = ball ? ball.x : W/2 + Number(aimEl.value) * 0.85;
+    const by = ball ? ball.y : H - 35;
+    ctx.fillStyle = '#3b82f6';
+    ctx.beginPath(); ctx.arc(bx, by, 14, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#1d4ed8';
+    ctx.beginPath(); ctx.arc(bx - 4, by - 4, 3, 0, Math.PI*2); ctx.arc(bx + 3, by - 5, 3, 0, Math.PI*2); ctx.fill();
+  }
+
+  rollBtn.onclick = throwBall;
+  document.getElementById('resetBtn').onclick = reset;
+  window.addEventListener('keydown', e => {
+    if (e.code === 'Space') { e.preventDefault(); throwBall(); }
+  });
+  reset();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

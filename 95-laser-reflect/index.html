@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Laser Reflect</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{min-height:100vh;background:#090d16;color:#fff;font-family:system-ui,-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;padding:12px}
+  .wrap{width:min(520px,100%);display:flex;flex-direction:column;gap:10px}
+  .hud{display:flex;justify-content:space-between;align-items:center;background:#131b2e;border:1px solid #2b3c66;padding:10px 14px;border-radius:12px;font-weight:800}
+  .hud span{color:#f43f5e}
+  canvas{width:100%;height:auto;aspect-ratio:480/480;background:#0e1424;border-radius:14px;border:2px solid #2b3c66;cursor:pointer;display:block}
+  .bar{display:flex;justify-content:space-between;align-items:center;color:#cbd5e1;font-size:.9rem}
+  button{padding:8px 16px;border:none;border-radius:9px;background:#f43f5e;color:#fff;font-weight:900;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hud">
+    <div>Level: <span id="lvl">1/4</span></div>
+    <div>Moves: <span id="moves">0</span></div>
+    <button id="resetBtn">Restart</button>
+  </div>
+  <canvas id="c" width="480" height="480"></canvas>
+  <div class="bar" id="msg">Click mirror tiles to rotate them 90° and guide the laser to the green crystal!</div>
+</div>
+<script>
+(() => {
+  const c = document.getElementById('c'), ctx = c.getContext('2d');
+  const N = 6, CELL = c.width / N;
+  const lvlEl = document.getElementById('lvl'), movesEl = document.getElementById('moves'), msgEl = document.getElementById('msg');
+
+  // dir: 0=right, 1=down, 2=left, 3=up
+  const LEVELS = [
+    {
+      emitter: { r: 1, c: 0, dir: 0 },
+      target:  { r: 4, c: 5 },
+      walls:   [[2,2],[2,3]],
+      mirrors: [{ r:1, c:4, t:'/' }, { r:4, c:4, t:'/' }] // solve: [1,4]='\', [4,4]='\'
+    },
+    {
+      emitter: { r: 0, c: 1, dir: 1 },
+      target:  { r: 5, c: 5 },
+      walls:   [[3,1],[2,3]],
+      mirrors: [{ r:4, c:1, t:'/' }, { r:4, c:4, t:'\\' }, { r:1, c:4, t:'/' }, { r:1, c:5, t:'/' }]
+    },
+    {
+      emitter: { r: 5, c: 0, dir: 0 },
+      target:  { r: 0, c: 5 },
+      walls:   [[4,2],[1,2],[3,4]],
+      mirrors: [{ r:5, c:3, t:'\\' }, { r:2, c:3, t:'/' }, { r:2, c:1, t:'\\' }, { r:0, c:1, t:'\\' }]
+    },
+    {
+      emitter: { r: 2, c: 0, dir: 0 },
+      target:  { r: 5, c: 2 },
+      walls:   [[2,2],[3,3],[1,4]],
+      mirrors: [{ r:2, c:1, t:'/' }, { r:0, c:1, t:'\\' }, { r:0, c:5, t:'/' }, { r:4, c:5, t:'\\' }, { r:4, c:2, t:'/' }]
+    }
+  ];
+
+  let lvlIdx = 0, moves = 0, gridMirrors = [], won = false, beamPath = [];
+
+  function loadLevel(i) {
+    lvlIdx = i;
+    const L = LEVELS[i];
+    gridMirrors = L.mirrors.map(m => ({ ...m }));
+    won = false;
+    lvlEl.textContent = (i+1) + '/' + LEVELS.length;
+    movesEl.textContent = moves;
+    msgEl.textContent = 'Click mirror tiles to rotate (/ or \) and hit the green target!';
+    traceBeam();
+    draw();
+  }
+
+  function traceBeam() {
+    const L = LEVELS[lvlIdx];
+    let { r, c: col, dir } = L.emitter;
+    const dr = [0, 1, 0, -1], dc = [1, 0, -1, 0];
+    beamPath = [[col*CELL + CELL/2, r*CELL + CELL/2]];
+    let hitTarget = false;
+
+    for (let step = 0; step < 50; step++) {
+      r += dr[dir]; col += dc[dir];
+      if (r < 0 || r >= N || col < 0 || col >= N) {
+        beamPath.push([(col - dc[dir]*0.5)*CELL + CELL/2, (r - dr[dir]*0.5)*CELL + CELL/2]);
+        break;
+      }
+      beamPath.push([col*CELL + CELL/2, r*CELL + CELL/2]);
+      if (L.walls.some(w => w[0] === r && w[1] === col)) break;
+      if (L.target.r === r && L.target.c === col) {
+        hitTarget = true;
+        break;
+      }
+      const m = gridMirrors.find(x => x.r === r && x.c === col);
+      if (m) {
+        if (m.t === '/') dir = [3, 2, 1, 0][dir];
+        else dir = [1, 0, 3, 2][dir];
+      }
+    }
+
+    if (hitTarget && !won) {
+      won = true;
+      if (lvlIdx + 1 < LEVELS.length) {
+        msgEl.textContent = 'Target hit! Loading next level...';
+        setTimeout(() => loadLevel(lvlIdx + 1), 900);
+      } else {
+        msgEl.textContent = `🎉 ALL LEVELS SOLVED in ${moves} moves! Click Restart to replay.`;
+      }
+    }
+  }
+
+  function draw() {
+    const L = LEVELS[lvlIdx];
+    ctx.fillStyle = '#0e1424';
+    ctx.fillRect(0, 0, c.width, c.height);
+
+    // Grid
+    ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 2;
+    for (let i = 0; i <= N; i++) {
+      ctx.beginPath(); ctx.moveTo(i*CELL, 0); ctx.lineTo(i*CELL, c.height); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, i*CELL); ctx.lineTo(c.width, i*CELL); ctx.stroke();
+    }
+
+    // Walls
+    ctx.fillStyle = '#334155';
+    for (const [wr, wc] of L.walls) {
+      ctx.fillRect(wc*CELL + 8, wr*CELL + 8, CELL - 16, CELL - 16);
+    }
+
+    // Emitter
+    const ex = L.emitter.c*CELL + CELL/2, ey = L.emitter.r*CELL + CELL/2;
+    ctx.fillStyle = '#f43f5e';
+    ctx.beginPath(); ctx.arc(ex, ey, 18, 0, Math.PI*2); ctx.fill();
+
+    // Target
+    const tx = L.target.c*CELL + CELL/2, ty = L.target.r*CELL + CELL/2;
+    ctx.fillStyle = won ? '#4ade80' : '#16a34a';
+    ctx.beginPath(); ctx.arc(tx, ty, 20, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = '#bbf7d0'; ctx.lineWidth = 3; ctx.stroke();
+
+    // Laser beam
+    ctx.strokeStyle = '#fb7185'; ctx.lineWidth = 5; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.beginPath();
+    beamPath.forEach(([x, y], idx) => idx === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y));
+    ctx.stroke();
+
+    // Mirrors
+    for (const m of gridMirrors) {
+      const cx = m.c*CELL + CELL/2, cy = m.r*CELL + CELL/2;
+      ctx.fillStyle = 'rgba(56,189,248,.12)';
+      ctx.fillRect(m.c*CELL + 6, m.r*CELL + 6, CELL - 12, CELL - 12);
+      ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 7; ctx.lineCap = 'round';
+      ctx.beginPath();
+      if (m.t === '/') { ctx.moveTo(cx - 24, cy + 24); ctx.lineTo(cx + 24, cy - 24); }
+      else { ctx.moveTo(cx - 24, cy - 24); ctx.lineTo(cx + 24, cy + 24); }
+      ctx.stroke();
+    }
+  }
+
+  c.addEventListener('pointerdown', e => {
+    if (won) return;
+    const r = c.getBoundingClientRect();
+    const col = Math.floor(((e.clientX - r.left) * c.width / r.width) / CELL);
+    const row = Math.floor(((e.clientY - r.top) * c.height / r.height) / CELL);
+    const m = gridMirrors.find(x => x.r === row && x.c === col);
+    if (m) {
+      m.t = m.t === '/' ? '\\' : '/';
+      moves++;
+      movesEl.textContent = moves;
+      traceBeam();
+      draw();
+    }
+  });
+
+  document.getElementById('resetBtn').onclick = () => { moves = 0; loadLevel(0); };
+  loadLevel(0);
+})();
+</script>
+</body>
+</html>

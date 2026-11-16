@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Ghost Catch</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{min-height:100vh;background:#070710;color:#fff;font-family:system-ui,-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;padding:12px}
+  .wrap{position:relative;width:min(580px,100%);display:flex;flex-direction:column;gap:8px}
+  .hud{display:flex;justify-content:space-between;background:#121226;border:1px solid #35356e;padding:9px 14px;border-radius:12px;font-weight:800;font-size:.95rem}
+  .hud span{color:#74c0fc}
+  canvas{width:100%;height:auto;aspect-ratio:560/480;border-radius:14px;border:2px solid #2c2c5a;cursor:none;display:block;touch-action:none}
+  .ov{position:absolute;inset:48px 0 0 0;background:rgba(6,6,16,.86);border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;gap:12px}
+  .ov.hidden{display:none}
+  .btn{padding:11px 28px;border:none;border-radius:999px;background:linear-gradient(135deg,#6366f1,#22d3ee);color:#060612;font-weight:900;font-size:1rem;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hud">
+    <div>Caught: <span id="score">0</span></div>
+    <div>Best: <span id="best">0</span></div>
+    <div>Time: <span id="time">45s</span></div>
+  </div>
+  <canvas id="c" width="560" height="480"></canvas>
+  <div class="ov" id="ov">
+    <h1 id="ovT" style="color:#74c0fc">GHOST CATCH</h1>
+    <p id="ovP" style="color:#cbd5e1;max-width:340px">Sweep your flashlight beam across the haunted room to reveal hidden ghosts, then click/tap them to capture before time runs out!</p>
+    <button class="btn" id="startBtn">Enter Room</button>
+  </div>
+</div>
+<script>
+(() => {
+  const c = document.getElementById('c'), ctx = c.getContext('2d');
+  const W = c.width, H = c.height;
+  const scoreEl = document.getElementById('score'), bestEl = document.getElementById('best'), timeEl = document.getElementById('time');
+  const ov = document.getElementById('ov'), ovT = document.getElementById('ovT'), ovP = document.getElementById('ovP'), startBtn = document.getElementById('startBtn');
+
+  let best = Number(localStorage.getItem('ghost_best') || 0);
+  bestEl.textContent = best;
+
+  let state = 'idle', light = { x: W/2, y: H/2 }, ghosts = [], pops = [], score = 0, timeLeft = 45;
+
+  function spawnGhost() {
+    const gold = Math.random() < 0.2;
+    ghosts.push({
+      x: 40 + Math.random()*(W - 80),
+      y: 40 + Math.random()*(H - 80),
+      vx: (Math.random()*2 - 1) * (gold ? 135 : 75),
+      vy: (Math.random()*2 - 1) * (gold ? 135 : 75),
+      r: gold ? 20 : 24,
+      pts: gold ? 3 : 1,
+      gold,
+      charge: 0
+    });
+  }
+
+  function reset() {
+    ghosts = []; pops = []; score = 0; timeLeft = 45;
+    for (let i = 0; i < 6; i++) spawnGhost();
+    scoreEl.textContent = '0'; timeEl.textContent = '45s';
+    state = 'play';
+    ov.classList.add('hidden');
+  }
+
+  let last = performance.now();
+  function loop(now) {
+    const dt = Math.min(0.04, (now - last) / 1000);
+    last = now;
+    if (state === 'play') update(dt);
+    draw(now / 1000);
+    requestAnimationFrame(loop);
+  }
+
+  function update(dt) {
+    timeLeft -= dt;
+    timeEl.textContent = Math.max(0, Math.ceil(timeLeft)) + 's';
+    if (timeLeft <= 0) {
+      state = 'over';
+      if (score > best) { best = score; bestEl.textContent = best; localStorage.setItem('ghost_best', String(best)); }
+      ovT.textContent = 'TIME UP!';
+      ovP.textContent = `You captured ${score} ghosts!`;
+      startBtn.textContent = 'Hunt Again';
+      ov.classList.remove('hidden');
+      return;
+    }
+
+    for (const g of ghosts) {
+      g.x += g.vx * dt; g.y += g.vy * dt;
+      if (g.x < 30 || g.x > W - 30) g.vx *= -1;
+      if (g.y < 30 || g.y > H - 30) g.vy *= -1;
+      const dist = Math.hypot(g.x - light.x, g.y - light.y);
+      g.lit = dist < 105;
+    }
+    for (let i = pops.length - 1; i >= 0; i--) {
+      pops[i].t -= dt;
+      if (pops[i].t <= 0) pops.splice(i, 1);
+    }
+  }
+
+  function draw(t) {
+    ctx.fillStyle = '#0d0d1d';
+    ctx.fillRect(0, 0, W, H);
+
+    // Subtle haunted floor tiles
+    ctx.strokeStyle = 'rgba(255,255,255,.04)';
+    for (let x = 0; x < W; x += 40) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+    for (let y = 0; y < H; y += 40) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+
+    // Flashlight glow
+    const grad = ctx.createRadialGradient(light.x, light.y, 12, light.x, light.y, 125);
+    grad.addColorStop(0, 'rgba(254, 249, 195, 0.36)');
+    grad.addColorStop(0.6, 'rgba(147, 197, 253, 0.14)');
+    grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+
+    for (const g of ghosts) {
+      const alpha = g.lit ? 0.95 : 0.08;
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.font = g.gold ? '32px sans-serif' : '36px sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(g.gold ? '👾' : '👻', g.x, g.y + Math.sin(t*5 + g.x)*4);
+      ctx.restore();
+    }
+
+    for (const p of pops) {
+      ctx.fillStyle = `rgba(116,192,252,${p.t*1.5})`;
+      ctx.font = 'bold 18px sans-serif';
+      ctx.fillText('+' + p.pts, p.x, p.y - (0.6 - p.t)*30);
+    }
+
+    // Crosshair
+    ctx.strokeStyle = 'rgba(255,255,255,.7)';
+    ctx.beginPath(); ctx.arc(light.x, light.y, 14, 0, Math.PI*2); ctx.stroke();
+  }
+
+  function setPos(e) {
+    const r = c.getBoundingClientRect();
+    light.x = (e.clientX - r.left) * W / r.width;
+    light.y = (e.clientY - r.top) * H / r.height;
+  }
+  c.addEventListener('pointermove', setPos);
+  c.addEventListener('pointerdown', e => {
+    setPos(e);
+    if (state !== 'play') return;
+    for (let i = ghosts.length - 1; i >= 0; i--) {
+      const g = ghosts[i];
+      if (Math.hypot(light.x - g.x, light.y - g.y) < g.r + 22) {
+        score += g.pts;
+        scoreEl.textContent = score;
+        pops.push({ x: g.x, y: g.y, pts: g.pts, t: 0.6 });
+        ghosts.splice(i, 1);
+        spawnGhost();
+        break;
+      }
+    }
+  });
+  startBtn.onclick = reset;
+  draw(0);
+})();
+</script>
+</body>
+</html>

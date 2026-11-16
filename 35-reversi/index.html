@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reversi</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle at 50% 30%, #2b3a4a, #141a22);
+    font-family: "Segoe UI", system-ui, sans-serif;
+    color: #e8eef4;
+    padding: 20px;
+  }
+  h1 { font-size: 28px; letter-spacing: 6px; font-weight: 300; margin-bottom: 14px; }
+  h1 b { font-weight: 700; }
+
+  #scorebar {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    margin-bottom: 14px;
+    font-size: 15px;
+  }
+  .score { display: flex; align-items: center; gap: 8px; }
+  .pip { width: 18px; height: 18px; border-radius: 50%; }
+  .pip.black { background: radial-gradient(circle at 35% 30%, #555, #000); }
+  .pip.white { background: radial-gradient(circle at 35% 30%, #fff, #b9c2cc); }
+  #turn { min-width: 150px; text-align: center; color: #9fd48a; font-weight: 600; }
+
+  #board {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    width: min(90vw, 480px);
+    height: min(90vw, 480px);
+    background: #0b6623;
+    border: 6px solid #5a3a1e;
+    border-radius: 6px;
+    box-shadow: 0 12px 40px rgba(0,0,0,.6);
+    overflow: hidden;
+  }
+  .cell {
+    position: relative;
+    border: 1px solid rgba(0,0,0,.35);
+    background: linear-gradient(135deg, #12833a, #0d6e2c);
+    cursor: default;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .cell.hint { cursor: pointer; }
+  .cell.hint:hover { background: linear-gradient(135deg, #1aa24a, #12833a); }
+  .cell.hint::after {
+    content: "";
+    width: 26%;
+    height: 26%;
+    border-radius: 50%;
+    background: rgba(255,255,255,.28);
+    box-shadow: 0 0 0 2px rgba(255,255,255,.15);
+  }
+  .cell.last { box-shadow: inset 0 0 0 3px rgba(255, 220, 80, .55); }
+
+  .disc {
+    width: 82%;
+    height: 82%;
+    border-radius: 50%;
+    animation: flip .28s ease-out;
+  }
+  .disc.b { background: radial-gradient(circle at 35% 30%, #666, #050505); box-shadow: inset 0 -3px 6px rgba(255,255,255,.12), 0 2px 4px rgba(0,0,0,.5); }
+  .disc.w { background: radial-gradient(circle at 35% 30%, #ffffff, #c4cdd6); box-shadow: inset 0 -3px 6px rgba(0,0,0,.15), 0 2px 4px rgba(0,0,0,.5); }
+  @keyframes flip { from { transform: scale(.4) rotateY(90deg); opacity: .3; } to { transform: scale(1) rotateY(0); opacity: 1; } }
+
+  #controls { margin-top: 16px; display: flex; gap: 12px; align-items: center; }
+  button {
+    background: #9fd48a;
+    color: #14202c;
+    border: none;
+    padding: 9px 22px;
+    font-size: 15px;
+    font-weight: 700;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: transform .1s, background .15s;
+  }
+  button:hover { background: #b4e5a2; transform: translateY(-1px); }
+  #msg { font-size: 15px; color: #ffd76e; min-height: 20px; font-weight: 600; }
+  .rules { margin-top: 10px; font-size: 12px; color: #7c8b9a; }
+</style>
+</head>
+<body>
+<h1><b>REVERSI</b></h1>
+<div id="scorebar">
+  <div class="score"><span class="pip black"></span><span>You: <b id="scoreB">2</b></span></div>
+  <div id="turn">Your turn</div>
+  <div class="score"><span class="pip white"></span><span>AI: <b id="scoreW">2</b></span></div>
+</div>
+<div id="board"></div>
+<div id="controls">
+  <button id="restart">Restart</button>
+  <div id="msg"></div>
+</div>
+<div class="rules">You are black. Click a highlighted square to place a disc and flip the AI's discs.</div>
+
+<script>
+(function () {
+  "use strict";
+  var N = 8, EMPTY = 0, BLACK = 1, WHITE = 2;
+  var DIRS = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
+  var WEIGHTS = [
+    100,-20, 10,  5,  5, 10,-20,100,
+    -20,-50, -2, -2, -2, -2,-50,-20,
+     10, -2,  5,  1,  1,  5, -2, 10,
+      5, -2,  1,  0,  0,  1, -2,  5,
+      5, -2,  1,  0,  0,  1, -2,  5,
+     10, -2,  5,  1,  1,  5, -2, 10,
+    -20,-50, -2, -2, -2, -2,-50,-20,
+    100,-20, 10,  5,  5, 10,-20,100
+  ];
+
+  var boardEl = document.getElementById("board");
+  var scoreBEl = document.getElementById("scoreB");
+  var scoreWEl = document.getElementById("scoreW");
+  var turnEl = document.getElementById("turn");
+  var msgEl = document.getElementById("msg");
+  var cells = [];
+  var board, gameOver, lastMove, thinking;
+
+  for (var i = 0; i < N * N; i++) {
+    var c = document.createElement("div");
+    c.className = "cell";
+    c.dataset.idx = i;
+    boardEl.appendChild(c);
+    cells.push(c);
+  }
+  boardEl.addEventListener("click", onCellClick);
+  document.getElementById("restart").addEventListener("click", reset);
+
+  function reset() {
+    board = new Array(N * N).fill(EMPTY);
+    board[27] = WHITE; board[28] = BLACK;
+    board[35] = BLACK; board[36] = WHITE;
+    gameOver = false;
+    thinking = false;
+    lastMove = -1;
+    msgEl.textContent = "";
+    render();
+    if (legalMoves(BLACK).length === 0) handleNoMoves(BLACK);
+  }
+
+  function flipsFor(b, idx, color) {
+    if (b[idx] !== EMPTY) return null;
+    var r = (idx / N) | 0, c = idx % N, opp = 3 - color, all = [];
+    for (var d = 0; d < DIRS.length; d++) {
+      var dr = DIRS[d][0], dc = DIRS[d][1], line = [], rr = r + dr, cc = c + dc;
+      while (rr >= 0 && rr < N && cc >= 0 && cc < N && b[rr * N + cc] === opp) {
+        line.push(rr * N + cc); rr += dr; cc += dc;
+      }
+      if (line.length && rr >= 0 && rr < N && cc >= 0 && cc < N && b[rr * N + cc] === color)
+        all = all.concat(line);
+    }
+    return all.length ? all : null;
+  }
+
+  function legalMoves(color) {
+    var m = [];
+    for (var i = 0; i < N * N; i++) if (flipsFor(board, i, color)) m.push(i);
+    return m;
+  }
+
+  function applyMove(b, idx, color) {
+    var f = flipsFor(b, idx, color);
+    b[idx] = color;
+    for (var i = 0; i < f.length; i++) b[f[i]] = color;
+    return f.length;
+  }
+
+  function counts() {
+    var bk = 0, wh = 0;
+    for (var i = 0; i < N * N; i++) {
+      if (board[i] === BLACK) bk++;
+      else if (board[i] === WHITE) wh++;
+    }
+    return [bk, wh];
+  }
+
+  function render() {
+    var hints = (!gameOver && !thinking) ? legalMoves(BLACK) : [];
+    var hintSet = {};
+    for (var i = 0; i < hints.length; i++) hintSet[hints[i]] = true;
+    for (var j = 0; j < N * N; j++) {
+      var cell = cells[j], v = board[j];
+      cell.innerHTML = "";
+      cell.className = "cell" + (hintSet[j] ? " hint" : "") + (j === lastMove ? " last" : "");
+      if (v !== EMPTY) {
+        var d = document.createElement("div");
+        d.className = "disc " + (v === BLACK ? "b" : "w");
+        cell.appendChild(d);
+      }
+    }
+    var ct = counts();
+    scoreBEl.textContent = ct[0];
+    scoreWEl.textContent = ct[1];
+    if (gameOver) {
+      turnEl.textContent = "Game over";
+    } else {
+      turnEl.textContent = thinking ? "AI thinking..." : "Your turn";
+      turnEl.style.color = thinking ? "#9fb4c8" : "#9fd48a";
+    }
+  }
+
+  function onCellClick(e) {
+    if (gameOver || thinking) return;
+    var t = e.target;
+    while (t && t !== boardEl && !t.dataset.idx) t = t.parentNode;
+    if (!t || t === boardEl) return;
+    var idx = +t.dataset.idx;
+    if (!flipsFor(board, idx, BLACK)) return;
+    applyMove(board, idx, BLACK);
+    lastMove = idx;
+    afterMove(WHITE);
+  }
+
+  function afterMove(next) {
+    render();
+    var moves = legalMoves(next);
+    if (moves.length === 0) { handleNoMoves(next); return; }
+    if (next === WHITE) {
+      thinking = true;
+      render();
+      setTimeout(aiTurn, 420);
+    }
+  }
+
+  function handleNoMoves(color) {
+    var other = 3 - color;
+    if (legalMoves(other).length === 0) { endGame(); return; }
+    msgEl.textContent = (color === BLACK ? "You have" : "AI has") + " no moves — turn passed.";
+    if (color === BLACK) { thinking = false; render(); }
+    else { thinking = false; setTimeout(function(){ render(); }, 300); }
+  }
+
+  function aiTurn() {
+    if (gameOver) return;
+    var moves = legalMoves(WHITE);
+    if (moves.length === 0) { thinking = false; handleNoMoves(WHITE); return; }
+    var best = -Infinity, top = [];
+    for (var i = 0; i < moves.length; i++) {
+      var copy = board.slice();
+      var n = applyMove(copy, moves[i], WHITE);
+      var s = WEIGHTS[moves[i]] + n * 2;
+      // penalize giving the player a corner
+      var pm = [0, 7, 56, 63];
+      for (var k = 0; k < pm.length; k++) {
+        if (board[pm[k]] === EMPTY && flipsFor(copy, pm[k], BLACK)) { s -= 60; break; }
+      }
+      if (s > best) { best = s; top = [moves[i]]; }
+      else if (s === best) top.push(moves[i]);
+    }
+    var pick = top[(Math.random() * top.length) | 0];
+    applyMove(board, pick, WHITE);
+    lastMove = pick;
+    thinking = false;
+    msgEl.textContent = "";
+    var pm2 = legalMoves(BLACK);
+    if (pm2.length === 0) {
+      render();
+      handleNoMoves(BLACK);
+      if (!gameOver && legalMoves(WHITE).length) {
+        thinking = true;
+        render();
+        setTimeout(aiTurn, 700);
+      }
+      return;
+    }
+    render();
+  }
+
+  function endGame() {
+    gameOver = true;
+    thinking = false;
+    var ct = counts();
+    if (ct[0] > ct[1]) msgEl.textContent = "You win " + ct[0] + "–" + ct[1] + "!";
+    else if (ct[1] > ct[0]) msgEl.textContent = "AI wins " + ct[1] + "–" + ct[0] + ".";
+    else msgEl.textContent = "Draw " + ct[0] + "–" + ct[1] + ".";
+    render();
+  }
+
+  reset();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guess the Number</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #eee;
+    padding: 20px;
+  }
+  h1 { font-size: 2rem; margin-bottom: 8px; letter-spacing: 2px; }
+  .subtitle { color: #8899aa; margin-bottom: 16px; font-size: 0.95rem; }
+  #game {
+    background: #0f1526;
+    border-radius: 14px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+    padding: 28px;
+    width: 100%;
+    max-width: 420px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+  }
+  #tries {
+    font-size: 0.9rem;
+    color: #8899aa;
+    letter-spacing: 1px;
+  }
+  #tries b { color: #ffd166; }
+  #inputRow { display: flex; gap: 10px; width: 100%; }
+  #guessInput {
+    flex: 1;
+    background: #223055;
+    border: 1px solid #445;
+    border-radius: 8px;
+    color: #eee;
+    font-size: 1.3rem;
+    padding: 10px 14px;
+    text-align: center;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  #guessInput:focus { border-color: #ffd166; }
+  #guessInput:disabled { opacity: 0.4; }
+  button {
+    background: #2a3a5a;
+    color: #eee;
+    border: 1px solid #445;
+    border-radius: 8px;
+    padding: 10px 18px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.05s;
+  }
+  button:hover { background: #3a4d75; }
+  button:active { transform: scale(0.97); }
+  #guessBtn { background: #2d6a4f; border-color: #40916c; font-weight: 600; }
+  #guessBtn:hover { background: #40916c; }
+  #guessBtn:disabled { background: #2a3a5a; border-color: #445; opacity: 0.4; cursor: default; }
+  #hint {
+    font-size: 1.15rem;
+    font-weight: 600;
+    min-height: 3.2em;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+  }
+  #hint .dir { font-size: 0.9rem; font-weight: 400; color: #8899aa; }
+  #history {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    min-height: 40px;
+  }
+  .chip {
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    animation: pop 0.15s ease-out;
+  }
+  @keyframes pop { from { transform: scale(0.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .chip small { font-weight: 400; opacity: 0.85; margin-left: 4px; }
+  .boiling  { background: #b91c1c; }
+  .veryhot  { background: #dc4a11; }
+  .hot      { background: #d97706; }
+  .warm     { background: #a3870a; }
+  .cool     { background: #1d6fa5; }
+  .cold     { background: #1e3a8a; }
+  .freezing { background: #312e81; }
+  .exact    { background: #15803d; }
+  .tempbar { width: 100%; height: 10px; background: #0a0f1f; border-radius: 6px; overflow: hidden; }
+  .tempbar > div {
+    height: 100%;
+    width: 0%;
+    border-radius: 6px;
+    background: linear-gradient(90deg, #3b82f6, #eab308, #ef4444);
+    transition: width 0.25s;
+  }
+  #restartBtn { display: none; background: #6d28d9; border-color: #8b5cf6; font-weight: 600; }
+  #restartBtn:hover { background: #8b5cf6; }
+  #restartBtn.visible { display: block; }
+  .shake { animation: shake 0.3s; }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-6px); }
+    75% { transform: translateX(6px); }
+  }
+</style>
+</head>
+<body>
+<h1>Guess the Number</h1>
+<p class="subtitle">I'm thinking of a number between 1 and 100</p>
+<div id="game">
+  <div id="tries">Guesses left: <b>10</b></div>
+  <div id="inputRow">
+    <input id="guessInput" type="number" min="1" max="100" placeholder="?" autocomplete="off">
+    <button id="guessBtn">Guess</button>
+  </div>
+  <div class="tempbar"><div id="tempFill"></div></div>
+  <div id="hint">Make your first guess!</div>
+  <div id="history"></div>
+  <button id="restartBtn">Play Again</button>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var MAX_TRIES = 10;
+  var RANGE_MIN = 1, RANGE_MAX = 100;
+
+  var target, triesLeft, guesses, gameOver;
+
+  var input = document.getElementById('guessInput');
+  var guessBtn = document.getElementById('guessBtn');
+  var restartBtn = document.getElementById('restartBtn');
+  var hintEl = document.getElementById('hint');
+  var triesEl = document.getElementById('tries');
+  var historyEl = document.getElementById('history');
+  var tempFill = document.getElementById('tempFill');
+
+  function newGame() {
+    target = Math.floor(Math.random() * (RANGE_MAX - RANGE_MIN + 1)) + RANGE_MIN;
+    triesLeft = MAX_TRIES;
+    guesses = [];
+    gameOver = false;
+    input.disabled = false;
+    guessBtn.disabled = false;
+    input.value = '';
+    historyEl.innerHTML = '';
+    tempFill.style.width = '0%';
+    hintEl.innerHTML = 'Make your first guess!';
+    restartBtn.classList.remove('visible');
+    updateTries();
+    input.focus();
+  }
+
+  function updateTries() {
+    triesEl.innerHTML = 'Guesses left: <b>' + triesLeft + '</b>';
+  }
+
+  // Closeness tier: name, css class, temperature bar % (100 = exact)
+  function tierFor(distance) {
+    if (distance === 0)  return { label: 'Exact!', cls: 'exact',    temp: 100 };
+    if (distance <= 3)   return { label: 'Boiling', cls: 'boiling',  temp: 95 };
+    if (distance <= 6)   return { label: 'Very hot', cls: 'veryhot', temp: 82 };
+    if (distance <= 10)  return { label: 'Hot', cls: 'hot',          temp: 68 };
+    if (distance <= 16)  return { label: 'Warm', cls: 'warm',        temp: 52 };
+    if (distance <= 25)  return { label: 'Cool', cls: 'cool',        temp: 36 };
+    if (distance <= 40)  return { label: 'Cold', cls: 'cold',        temp: 20 };
+    return { label: 'Freezing', cls: 'freezing', temp: 6 };
+  }
+
+  // Compare with previous guess to say warmer/colder
+  function trendFor(distance) {
+    if (guesses.length < 2) return '';
+    var prevDist = guesses[guesses.length - 2].distance;
+    if (distance < prevDist) return ' — getting warmer';
+    if (distance > prevDist) return ' — getting colder';
+    return ' — same distance';
+  }
+
+  function addChip(guess, tier) {
+    var chip = document.createElement('span');
+    chip.className = 'chip ' + tier.cls;
+    chip.innerHTML = guess + '<small>' + tier.label + '</small>';
+    historyEl.appendChild(chip);
+  }
+
+  function endGame(won) {
+    gameOver = true;
+    input.disabled = true;
+    guessBtn.disabled = true;
+    restartBtn.classList.add('visible');
+    if (won) {
+      var n = guesses.length;
+      hintEl.innerHTML = 'You got it! The number was ' + target + '.' +
+        '<span class="dir">Solved in ' + n + (n === 1 ? ' guess' : ' guesses') + '.</span>';
+    } else {
+      hintEl.innerHTML = 'Out of guesses! The number was ' + target + '.' +
+        '<span class="dir">Better luck next time.</span>';
+    }
+    restartBtn.focus();
+  }
+
+  function submitGuess() {
+    if (gameOver) return;
+    var raw = input.value.trim();
+    var guess = Number(raw);
+
+    if (raw === '' || !isFinite(guess) || Math.floor(guess) !== guess ||
+        guess < RANGE_MIN || guess > RANGE_MAX) {
+      hintEl.innerHTML = 'Enter a whole number between ' + RANGE_MIN + ' and ' + RANGE_MAX + '.';
+      input.classList.remove('shake');
+      void input.offsetWidth;
+      input.classList.add('shake');
+      input.select();
+      return;
+    }
+
+    var distance = Math.abs(guess - target);
+    var tier = tierFor(distance);
+    guesses.push({ value: guess, distance: distance });
+    triesLeft--;
+    updateTries();
+    addChip(guess, tier);
+    tempFill.style.width = tier.temp + '%';
+
+    if (guess === target) {
+      endGame(true);
+    } else if (triesLeft <= 0) {
+      endGame(false);
+    } else {
+      var dir = guess < target ? 'Go higher' : 'Go lower';
+      hintEl.innerHTML = tier.label + trendFor(distance) + '!' +
+        '<span class="dir">' + dir + ' &mdash; ' + triesLeft +
+        (triesLeft === 1 ? ' guess' : ' guesses') + ' left.</span>';
+    }
+
+    input.value = '';
+    input.focus();
+  }
+
+  guessBtn.addEventListener('click', submitGuess);
+  restartBtn.addEventListener('click', newGame);
+  input.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') submitGuess();
+  });
+
+  newGame();
+})();
+</script>
+</body>
+</html>

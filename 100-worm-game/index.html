@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Wrap-Around Worm</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{min-height:100vh;background:#0a1210;color:#fff;font-family:system-ui,-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;padding:12px}
+  .wrap{position:relative;width:min(520px,100%);display:flex;flex-direction:column;gap:8px}
+  .hud{display:flex;justify-content:space-between;background:#11221b;border:1px solid #264d3b;padding:9px 14px;border-radius:12px;font-weight:800}
+  .hud span{color:#4ade80}
+  canvas{width:100%;height:auto;aspect-ratio:480/480;background:#0c1914;border-radius:16px;border:2px solid #264d3b;display:block;touch-action:none}
+  .ov{position:absolute;inset:48px 0 0 0;background:rgba(8,16,13,.85);border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;gap:12px}
+  .ov.hidden{display:none}
+  .btn{padding:11px 28px;border:none;border-radius:999px;background:linear-gradient(135deg,#4ade80,#10b981);color:#052e16;font-weight:900;font-size:1rem;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hud">
+    <div>Length: <span id="len">4</span></div>
+    <div>Score: <span id="score">0</span></div>
+    <div>Best: <span id="best">0</span></div>
+  </div>
+  <canvas id="c" width="480" height="480"></canvas>
+  <div class="ov" id="ov">
+    <h1 id="ovT" style="color:#4ade80">WRAP-AROUND WORM</h1>
+    <p id="ovP" style="color:#bbf7d0;max-width:320px">Guide the worm with Arrow Keys / WASD (or swipe/tap). Arena walls wrap around—eat apples to grow and speed up, without biting yourself!</p>
+    <button class="btn" id="startBtn">Play Worm</button>
+  </div>
+</div>
+<script>
+(() => {
+  const c = document.getElementById('c'), ctx = c.getContext('2d');
+  const N = 24, SZ = c.width / N;
+  const lenEl = document.getElementById('len'), scoreEl = document.getElementById('score'), bestEl = document.getElementById('best');
+  const ov = document.getElementById('ov'), ovT = document.getElementById('ovT'), ovP = document.getElementById('ovP'), startBtn = document.getElementById('startBtn');
+
+  let best = Number(localStorage.getItem('worm_best') || 0);
+  bestEl.textContent = best;
+
+  let state = 'idle', worm = [], dir = {x:1,y:0}, nextDir = {x:1,y:0}, food = {x:15,y:12}, score = 0, stepMs = 135, acc = 0;
+
+  function placeFood() {
+    while (true) {
+      const fx = Math.floor(Math.random()*N), fy = Math.floor(Math.random()*N);
+      if (!worm.some(s => s.x === fx && s.y === fy)) { food = { x: fx, y: fy }; return; }
+    }
+  }
+
+  function reset() {
+    worm = [{x:10,y:12},{x:9,y:12},{x:8,y:12},{x:7,y:12}];
+    dir = {x:1,y:0}; nextDir = {x:1,y:0};
+    score = 0; stepMs = 135; acc = 0;
+    placeFood();
+    lenEl.textContent = '4'; scoreEl.textContent = '0';
+    state = 'play';
+    ov.classList.add('hidden');
+  }
+
+  let last = performance.now();
+  function loop(now) {
+    const dt = now - last; last = now;
+    if (state === 'play') {
+      acc += dt;
+      while (acc >= stepMs && state === 'play') {
+        acc -= stepMs;
+        step();
+      }
+    }
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  function step() {
+    dir = nextDir;
+    const head = { x: (worm[0].x + dir.x + N) % N, y: (worm[0].y + dir.y + N) % N };
+    if (worm.some((s, i) => i < worm.length - 1 && s.x === head.x && s.y === head.y)) {
+      state = 'over';
+      ovT.textContent = 'OUCH!';
+      ovP.textContent = `Score: ${score} • Length: ${worm.length}`;
+      startBtn.textContent = 'Play Again';
+      ov.classList.remove('hidden');
+      return;
+    }
+    worm.unshift(head);
+    if (head.x === food.x && head.y === food.y) {
+      score += 10;
+      stepMs = Math.max(62, 135 - Math.floor(score / 10) * 2.5);
+      lenEl.textContent = worm.length;
+      scoreEl.textContent = score;
+      if (score > best) { best = score; bestEl.textContent = best; localStorage.setItem('worm_best', String(best)); }
+      placeFood();
+    } else {
+      worm.pop();
+    }
+  }
+
+  function draw() {
+    ctx.fillStyle = '#0c1914';
+    ctx.fillRect(0, 0, c.width, c.height);
+
+    ctx.strokeStyle = 'rgba(74,222,128,.06)';
+    for (let i = 0; i <= N; i++) {
+      ctx.beginPath(); ctx.moveTo(i*SZ,0); ctx.lineTo(i*SZ,c.height); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0,i*SZ); ctx.lineTo(c.width,i*SZ); ctx.stroke();
+    }
+
+    // Apple
+    ctx.fillStyle = '#ef4444';
+    ctx.beginPath(); ctx.arc(food.x*SZ + SZ/2, food.y*SZ + SZ/2, SZ*0.38, 0, Math.PI*2); ctx.fill();
+
+    // Worm
+    worm.forEach((s, idx) => {
+      ctx.fillStyle = idx === 0 ? '#86efac' : idx % 2 === 0 ? '#22c55e' : '#16a34a';
+      ctx.beginPath();
+      ctx.arc(s.x*SZ + SZ/2, s.y*SZ + SZ/2, SZ*(idx === 0 ? 0.45 : 0.4), 0, Math.PI*2);
+      ctx.fill();
+    });
+  }
+
+  function setDir(nx, ny) {
+    if (nx === -dir.x && ny === -dir.y) return;
+    nextDir = { x: nx, y: ny };
+  }
+
+  window.addEventListener('keydown', e => {
+    if (e.code === 'ArrowUp' || e.code === 'KeyW') { e.preventDefault(); setDir(0,-1); }
+    else if (e.code === 'ArrowDown' || e.code === 'KeyS') { e.preventDefault(); setDir(0,1); }
+    else if (e.code === 'ArrowLeft' || e.code === 'KeyA') { e.preventDefault(); setDir(-1,0); }
+    else if (e.code === 'ArrowRight' || e.code === 'KeyD') { e.preventDefault(); setDir(1,0); }
+  });
+  c.addEventListener('pointerdown', e => {
+    if (state !== 'play') return;
+    const r = c.getBoundingClientRect();
+    const gx = ((e.clientX - r.left)*c.width/r.width) / SZ;
+    const gy = ((e.clientY - r.top)*c.height/r.height) / SZ;
+    const dx = gx - worm[0].x, dy = gy - worm[0].y;
+    if (Math.abs(dx) > Math.abs(dy)) setDir(dx > 0 ? 1 : -1, 0);
+    else setDir(0, dy > 0 ? 1 : -1);
+  });
+  startBtn.onclick = reset;
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

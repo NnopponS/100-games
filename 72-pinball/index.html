@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Neon Pinball</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{min-height:100vh;background:#090814;color:#fff;font-family:system-ui,-apple-system,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px;gap:8px}
+  .wrap{width:min(440px,100%);display:flex;flex-direction:column;gap:8px;position:relative}
+  .hud{display:flex;justify-content:space-between;background:#15122b;border:1px solid #3c347a;padding:8px 14px;border-radius:12px;font-weight:800}
+  .hud span{color:#f472b6}
+  canvas{width:100%;height:auto;max-height:74vh;aspect-ratio:400/620;background:#100d24;border-radius:16px;border:2px solid #4c1d95;display:block}
+  .touch{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+  .tbtn{padding:11px;border:none;border-radius:10px;background:#261f52;color:#fff;font-weight:900;cursor:pointer;user-select:none}
+  .tbtn:active{background:#ec4899}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hud">
+    <div>Score: <span id="score">0</span></div>
+    <div>Balls: <span id="balls">3</span></div>
+    <div>Best: <span id="best">0</span></div>
+  </div>
+  <canvas id="c" width="400" height="620"></canvas>
+  <div class="touch">
+    <button class="tbtn" id="lBtn">◀ Left (Z / ◀)</button>
+    <button class="tbtn" id="pBtn">Launch (Space)</button>
+    <button class="tbtn" id="rBtn">Right (M / ▶) ▶</button>
+  </div>
+</div>
+<script>
+(() => {
+  const c = document.getElementById('c'), ctx = c.getContext('2d');
+  const W = c.width, H = c.height;
+  const scoreEl = document.getElementById('score'), ballsEl = document.getElementById('balls'), bestEl = document.getElementById('best');
+
+  let best = Number(localStorage.getItem('pinball_best') || 0);
+  bestEl.textContent = best;
+
+  let score = 0, ballsLeft = 3, gameOver = false;
+  let ball = { x: 374, y: 540, vx: 0, vy: 0, r: 9, inLane: true };
+  let leftFlip = false, rightFlip = false, launchCharge = 0, charging = false;
+  let lAng = 0.42, rAng = Math.PI - 0.42;
+
+  const bumpers = [
+    { x: 130, y: 170, r: 24, pts: 100, col: '#f43f5e', hit: 0 },
+    { x: 240, y: 170, r: 24, pts: 100, col: '#3b82f6', hit: 0 },
+    { x: 185, y: 245, r: 26, pts: 150, col: '#eab308', hit: 0 },
+    { x: 105, y: 295, r: 18, pts: 75, col: '#10b981', hit: 0 },
+    { x: 265, y: 295, r: 18, pts: 75, col: '#a855f7', hit: 0 }
+  ];
+
+  function resetBall() {
+    ball = { x: 374, y: 550, vx: 0, vy: 0, r: 9, inLane: true };
+  }
+
+  function resetGame() {
+    score = 0; ballsLeft = 3; gameOver = false;
+    scoreEl.textContent = '0'; ballsEl.textContent = '3';
+    resetBall();
+  }
+
+  function launch(power) {
+    if (gameOver) { resetGame(); return; }
+    if (!ball.inLane) return;
+    ball.vy = -(760 + power * 420);
+    ball.vx = -25 - Math.random()*25;
+  }
+
+  function addScore(pts) {
+    score += pts;
+    scoreEl.textContent = score;
+    if (score > best) {
+      best = score; bestEl.textContent = best;
+      localStorage.setItem('pinball_best', String(best));
+    }
+  }
+
+  function flipperSegment(isLeft) {
+    const px = isLeft ? 112 : 248, py = 548, len = 62;
+    const ang = isLeft ? lAng : rAng;
+    return { x1: px, y1: py, x2: px + Math.cos(ang)*len, y2: py + Math.sin(ang)*len };
+  }
+
+  function collideSeg(x1, y1, x2, y2, boost = 0) {
+    const dx = x2 - x1, dy = y2 - y1;
+    const len2 = dx*dx + dy*dy;
+    const t = Math.max(0, Math.min(1, ((ball.x - x1)*dx + (ball.y - y1)*dy) / len2));
+    const cx = x1 + t*dx, cy = y1 + t*dy;
+    const dist = Math.hypot(ball.x - cx, ball.y - cy);
+    if (dist < ball.r + 6 && dist > 0.001) {
+      const nx = (ball.x - cx)/dist, ny = (ball.y - cy)/dist;
+      ball.x = cx + nx * (ball.r + 6.5);
+      ball.y = cy + ny * (ball.r + 6.5);
+      const dot = ball.vx * nx + ball.vy * ny;
+      if (dot < 0) {
+        ball.vx -= 1.82 * dot * nx;
+        ball.vy -= 1.82 * dot * ny;
+      }
+      if (boost > 0) {
+        ball.vy -= boost;
+        ball.vx += (Math.random() - 0.5) * 80;
+      }
+    }
+  }
+
+  let last = performance.now();
+  function loop(now) {
+    const dt = Math.min(0.025, (now - last) / 1000);
+    last = now;
+    update(dt);
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  function update(dt) {
+    const lTarget = leftFlip ? -0.42 : 0.42;
+    const rTarget = rightFlip ? Math.PI + 0.42 : Math.PI - 0.42;
+    const lVel = (lTarget - lAng) * 20;
+    const rVel = (rTarget - rAng) * 20;
+    lAng += lVel * dt;
+    rAng += rVel * dt;
+
+    if (charging && ball.inLane) launchCharge = Math.min(1, launchCharge + dt * 1.4);
+
+    if (gameOver) return;
+
+    // Sub-step physics for reliability
+    const steps = 3, sdt = dt / steps;
+    for (let s = 0; s < steps; s++) {
+      ball.vy += 640 * sdt;
+      ball.x += ball.vx * sdt;
+      ball.y += ball.vy * sdt;
+
+      if (ball.x < 355 && ball.y < 140) ball.inLane = false;
+
+      // Outer walls
+      if (ball.x < 16 + ball.r) { ball.x = 16 + ball.r; ball.vx = Math.abs(ball.vx)*0.85; }
+      if (ball.x > W - 16 - ball.r) { ball.x = W - 16 - ball.r; ball.vx = -Math.abs(ball.vx)*0.85; }
+      if (ball.y < 42 + ball.r) { ball.y = 42 + ball.r; ball.vy = Math.abs(ball.vy)*0.85; }
+
+      // Curved top arch redirect from launch lane
+      if (ball.y < 110 && ball.x > 330 && ball.vy < 0) {
+        ball.vx -= 420 * sdt;
+      }
+
+      // Shooter lane divider
+      if (ball.y > 140) {
+        if (ball.inLane) {
+          if (ball.x < 358 + ball.r) { ball.x = 358 + ball.r; ball.vx = Math.abs(ball.vx)*0.5; }
+          if (ball.y > 555) { ball.y = 555; ball.vy = 0; ball.vx = 0; }
+        } else {
+          if (ball.x > 352 - ball.r) { ball.x = 352 - ball.r; ball.vx = -Math.abs(ball.vx)*0.85; }
+        }
+      }
+
+      // Guide rails to flippers
+      collideSeg(16, 480, 112, 548);
+      collideSeg(352, 480, 248, 548);
+      // Slingshots
+      collideSeg(50, 390, 95, 455, 220);
+      collideSeg(310, 390, 265, 455, 220);
+
+      // Flippers
+      const lf = flipperSegment(true);
+      const rf = flipperSegment(false);
+      collideSeg(lf.x1, lf.y1, lf.x2, lf.y2, leftFlip ? 460 : 0);
+      collideSeg(rf.x1, rf.y1, rf.x2, rf.y2, rightFlip ? 460 : 0);
+
+      // Bumpers
+      for (const b of bumpers) {
+        const dx = ball.x - b.x, dy = ball.y - b.y;
+        const dist = Math.hypot(dx, dy);
+        if (dist < ball.r + b.r && dist > 0.001) {
+          const nx = dx / dist, ny = dy / dist;
+          ball.x = b.x + nx * (ball.r + b.r + 1);
+          ball.y = b.y + ny * (ball.r + b.r + 1);
+          ball.vx = nx * 420;
+          ball.vy = ny * 420;
+          b.hit = 0.18;
+          addScore(b.pts);
+        }
+      }
+    }
+
+    for (const b of bumpers) if (b.hit > 0) b.hit -= dt;
+
+    // Drain
+    if (ball.y > H + 20) {
+      ballsLeft--;
+      ballsEl.textContent = Math.max(0, ballsLeft);
+      if (ballsLeft <= 0) {
+        gameOver = true;
+      } else {
+        resetBall();
+      }
+    }
+  }
+
+  function draw() {
+    ctx.fillStyle = '#100d24';
+    ctx.fillRect(0, 0, W, H);
+
+    // Shooter divider
+    ctx.strokeStyle = '#6366f1'; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(355, 140); ctx.lineTo(355, H); ctx.stroke();
+
+    // Guide rails
+    ctx.strokeStyle = '#8b5cf6'; ctx.lineWidth = 6; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(16, 480); ctx.lineTo(112, 548); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(352, 480); ctx.lineTo(248, 548); ctx.stroke();
+
+    // Slingshots
+    ctx.strokeStyle = '#22d3ee'; ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.moveTo(50, 390); ctx.lineTo(95, 455); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(310, 390); ctx.lineTo(265, 455); ctx.stroke();
+
+    // Bumpers
+    for (const b of bumpers) {
+      ctx.fillStyle = b.hit > 0 ? '#ffffff' : b.col;
+      ctx.beginPath(); ctx.arc(b.x, b.y, b.r + (b.hit > 0 ? 4 : 0), 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#0f172a'; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(b.pts, b.x, b.y);
+    }
+
+    // Flippers
+    const lf = flipperSegment(true), rf = flipperSegment(false);
+    ctx.strokeStyle = '#f472b6'; ctx.lineWidth = 12;
+    ctx.beginPath(); ctx.moveTo(lf.x1, lf.y1); ctx.lineTo(lf.x2, lf.y2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(rf.x1, rf.y1); ctx.lineTo(rf.x2, rf.y2); ctx.stroke();
+
+    // Plunger meter
+    if (ball.inLane) {
+      ctx.fillStyle = '#facc15';
+      ctx.fillRect(366, 562, 18, 45 * (1 - launchCharge * 0.6));
+    }
+
+    // Ball
+    ctx.fillStyle = '#e2e8f0';
+    ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI*2); ctx.fill();
+
+    if (gameOver) {
+      ctx.fillStyle = 'rgba(9,8,20,.82)';
+      ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = '#f472b6'; ctx.font = '900 30px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText('GAME OVER', W/2, H/2 - 20);
+      ctx.fillStyle = '#fff'; ctx.font = '700 18px sans-serif';
+      ctx.fillText('Score: ' + score, W/2, H/2 + 16);
+      ctx.fillStyle = '#94a3b8'; ctx.font = '600 14px sans-serif';
+      ctx.fillText('Press Space or Launch to Restart', W/2, H/2 + 50);
+    }
+  }
+
+  window.addEventListener('keydown', e => {
+    if (e.code === 'KeyZ' || e.code === 'ArrowLeft') { leftFlip = true; e.preventDefault(); }
+    if (e.code === 'KeyM' || e.code === 'Slash' || e.code === 'ArrowRight') { rightFlip = true; e.preventDefault(); }
+    if (e.code === 'Space' || e.code === 'ArrowDown') { charging = true; e.preventDefault(); }
+  });
+  window.addEventListener('keyup', e => {
+    if (e.code === 'KeyZ' || e.code === 'ArrowLeft') leftFlip = false;
+    if (e.code === 'KeyM' || e.code === 'Slash' || e.code === 'ArrowRight') rightFlip = false;
+    if (e.code === 'Space' || e.code === 'ArrowDown') {
+      charging = false;
+      launch(Math.max(0.4, launchCharge));
+      launchCharge = 0;
+    }
+  });
+  document.getElementById('lBtn').onpointerdown = () => leftFlip = true;
+  document.getElementById('lBtn').onpointerup = () => leftFlip = false;
+  document.getElementById('rBtn').onpointerdown = () => rightFlip = true;
+  document.getElementById('rBtn').onpointerup = () => rightFlip = false;
+  document.getElementById('pBtn').onclick = () => launch(0.85);
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

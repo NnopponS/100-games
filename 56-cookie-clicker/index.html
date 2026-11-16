@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cookie Clicker</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Segoe UI", Verdana, sans-serif;
+    background: #1b1e27;
+    color: #eee;
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  #game { display: flex; height: 100vh; }
+
+  /* ---------- Left panel ---------- */
+  #left {
+    flex: 1.4;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background:
+      radial-gradient(ellipse at center 30%, rgba(120, 80, 30, .25), transparent 60%),
+      linear-gradient(180deg, #232733 0%, #171a22 100%);
+    border-right: 1px solid #333a4a;
+    overflow: hidden;
+  }
+  #stats { text-align: center; margin-bottom: 36px; z-index: 2; }
+  #cookieCount {
+    font-size: 42px;
+    font-weight: 700;
+    color: #f4d8a0;
+    text-shadow: 0 2px 8px rgba(0,0,0,.6);
+  }
+  #cpsLine { font-size: 16px; color: #9aa3b5; margin-top: 6px; }
+  #frenzy {
+    font-size: 14px; font-weight: 600; color: #ffd54a;
+    margin-top: 4px; min-height: 18px; visibility: hidden;
+  }
+  #bigCookie {
+    width: 220px; height: 220px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 28%, #dda85e, #a76b2a 58%, #7c4a16 100%);
+    box-shadow: 0 10px 40px rgba(0,0,0,.55), inset -12px -16px 45px rgba(0,0,0,.35), inset 8px 10px 30px rgba(255,220,160,.18);
+    cursor: pointer; position: relative; z-index: 2;
+    transition: transform .07s ease-out;
+    animation: wobble 6s ease-in-out infinite;
+  }
+  #bigCookie:active { transform: scale(.92); }
+  @keyframes wobble {
+    0%, 100% { transform: rotate(-1.5deg); }
+    50% { transform: rotate(1.5deg); }
+  }
+  .chip {
+    position: absolute; width: 24px; height: 24px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #5f3614, #3a1f0a);
+    box-shadow: inset -2px -3px 5px rgba(0,0,0,.5);
+  }
+  #totalLine { margin-top: 30px; font-size: 13px; color: #6f7889; z-index: 2; }
+  .float {
+    position: absolute; pointer-events: none; z-index: 3;
+    font-size: 20px; font-weight: 700; color: #ffe9b8;
+    text-shadow: 0 1px 4px rgba(0,0,0,.7);
+    animation: rise 1s ease-out forwards;
+  }
+  @keyframes rise {
+    from { opacity: 1; transform: translateY(0); }
+    to { opacity: 0; transform: translateY(-90px); }
+  }
+
+  /* ---------- Golden cookie ---------- */
+  #golden {
+    position: fixed; width: 70px; height: 70px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #ffe98a, #e0a92c 60%, #a97b12);
+    box-shadow: 0 0 30px 8px rgba(255, 210, 70, .55);
+    display: none; z-index: 20; cursor: pointer;
+    animation: pulse .8s ease-in-out infinite alternate;
+  }
+  @keyframes pulse {
+    from { transform: scale(1); }
+    to { transform: scale(1.12); }
+  }
+
+  /* ---------- Right panel / store ---------- */
+  #right {
+    width: 380px; min-width: 320px;
+    display: flex; flex-direction: column;
+    background: #20242f;
+  }
+  #right h1 {
+    font-size: 20px; padding: 14px 16px 10px; color: #f4d8a0;
+    border-bottom: 1px solid #333a4a; flex-shrink: 0;
+  }
+  #right h2 {
+    font-size: 13px; text-transform: uppercase; letter-spacing: 1px;
+    color: #8a93a5; padding: 12px 16px 6px; flex-shrink: 0;
+  }
+  #storeWrap { overflow-y: auto; flex: 1; padding: 0 12px 16px; }
+  #storeWrap::-webkit-scrollbar { width: 8px; }
+  #storeWrap::-webkit-scrollbar-thumb { background: #3a4150; border-radius: 4px; }
+
+  .bld {
+    display: flex; align-items: center; gap: 10px; width: 100%;
+    padding: 9px 10px; margin: 5px 0;
+    background: #2a2f3a; border: 1px solid #3a4150; border-radius: 8px;
+    color: #eee; cursor: pointer; text-align: left; font-family: inherit;
+    transition: background .12s, border-color .12s, transform .05s;
+  }
+  .bld.afford:hover { background: #343b4a; border-color: #c99a4e; }
+  .bld.afford:active { transform: scale(.98); }
+  .bld.cant { opacity: .45; cursor: default; }
+  .bld .icon {
+    width: 42px; height: 42px; border-radius: 8px; flex-shrink: 0;
+    background: #1d2129; border: 1px solid #3a4150;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 700; color: #c99a4e;
+  }
+  .bld .info { flex: 1; min-width: 0; }
+  .bld .bname { font-size: 14px; font-weight: 600; }
+  .bld .bname .owned { color: #8a93a5; font-weight: 400; margin-left: 6px; }
+  .bld .bcost { font-size: 13px; color: #e8c078; margin-top: 2px; }
+  .bld .bdesc { font-size: 11px; color: #7a8294; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bld .bcps { font-size: 11px; color: #9aa3b5; flex-shrink: 0; }
+
+  .upg {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 46px; height: 46px; margin: 0 6px 6px 0;
+    background: #2a2f3a; border: 1px solid #3a4150; border-radius: 8px;
+    font-size: 20px; cursor: pointer; font-family: inherit;
+    transition: border-color .12s, background .12s;
+  }
+  .upg.afford:hover { background: #343b4a; border-color: #ffd54a; }
+  .upg.cant { opacity: .45; cursor: default; }
+  #upgWrap { padding: 0 16px 8px; flex-shrink: 0; min-height: 20px; }
+  #upgWrap:empty::after { content: "No upgrades available yet — keep baking!"; font-size: 12px; color: #6f7889; }
+
+  /* ---------- Buttons / misc ---------- */
+  #footer { display: flex; gap: 8px; padding: 10px 16px; border-top: 1px solid #333a4a; flex-shrink: 0; }
+  .btn {
+    flex: 1; padding: 8px; border-radius: 6px; border: 1px solid #3a4150;
+    background: #2a2f3a; color: #cfd5e0; font-family: inherit; font-size: 13px;
+    cursor: pointer;
+  }
+  .btn:hover { background: #343b4a; }
+  #toast {
+    position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);
+    background: rgba(20, 23, 30, .95); border: 1px solid #c99a4e; color: #f4d8a0;
+    padding: 10px 18px; border-radius: 8px; font-size: 14px; z-index: 30;
+    opacity: 0; transition: opacity .3s; pointer-events: none;
+    max-width: 80%; text-align: center;
+  }
+  #saveDot {
+    position: fixed; bottom: 10px; right: 12px; font-size: 11px;
+    color: #5a6274; z-index: 30; opacity: 0; transition: opacity .3s;
+  }
+</style>
+</head>
+<body>
+<div id="game">
+  <div id="left">
+    <div id="stats">
+      <div id="cookieCount">0 cookies</div>
+      <div id="cpsLine">per second: 0</div>
+      <div id="frenzy"></div>
+    </div>
+    <div id="bigCookie" title="Click me!">
+      <div class="chip" style="top:18%;left:30%"></div>
+      <div class="chip" style="top:30%;left:62%"></div>
+      <div class="chip" style="top:48%;left:22%"></div>
+      <div class="chip" style="top:58%;left:55%"></div>
+      <div class="chip" style="top:72%;left:38%"></div>
+      <div class="chip" style="top:38%;left:44%"></div>
+      <div class="chip" style="top:20%;left:55%;width:18px;height:18px"></div>
+      <div class="chip" style="top:66%;left:70%;width:16px;height:16px"></div>
+    </div>
+    <div id="totalLine">All-time baked: 0 &middot; Clicks: 0</div>
+  </div>
+
+  <div id="right">
+    <h1>Cookie Clicker</h1>
+    <h2>Upgrades</h2>
+    <div id="upgWrap"></div>
+    <h2>Store</h2>
+    <div id="storeWrap"><div id="buildings"></div></div>
+    <div id="footer">
+      <button class="btn" id="saveBtn">Save</button>
+      <button class="btn" id="resetBtn">Wipe save</button>
+    </div>
+  </div>
+</div>
+
+<div id="golden" title="Golden cookie!"></div>
+<div id="toast"></div>
+<div id="saveDot">saved</div>
+
+<script>
+"use strict";
+
+/* ==================== Data ==================== */
+const BUILDINGS = [
+  { id: "cursor",   name: "Cursor",       baseCost: 15,        cps: 0.1,   desc: "Autoclicks once every 10 seconds." },
+  { id: "grandma",  name: "Grandma",      baseCost: 100,       cps: 1,     desc: "A nice grandma to bake more cookies." },
+  { id: "farm",     name: "Farm",         baseCost: 1100,      cps: 8,     desc: "Grows cookie plants from cookie seeds." },
+  { id: "mine",     name: "Mine",         baseCost: 12000,     cps: 47,    desc: "Mines out cookie dough and chocolate chips." },
+  { id: "factory",  name: "Factory",      baseCost: 130000,    cps: 260,   desc: "Mass-produces cookies." },
+  { id: "bank",     name: "Bank",         baseCost: 1400000,   cps: 1400,  desc: "Generates cookies from interest." },
+  { id: "temple",   name: "Temple",       baseCost: 20000000,  cps: 7800,  desc: "Full of precious, ancient chocolate." },
+  { id: "wizard",   name: "Wizard tower", baseCost: 330000000, cps: 44000, desc: "Summons cookies with magic spells." }
+];
+
+const UPGRADES = [
+  { id: "click1", icon: "\u261D", name: "Reinforced index finger", cost: 100,
+    desc: "Clicking gains +1 cookie.", req: () => state.totalBaked >= 50,
+    apply: () => { state.clickFlat += 1; } },
+  { id: "click2", icon: "\u261D", name: "Carpal tunnel prevention cream", cost: 500,
+    desc: "Clicking is twice as efficient.", req: () => state.totalBaked >= 400,
+    apply: () => { state.clickMult *= 2; } },
+  { id: "click3", icon: "\u261D", name: "Ambidextrous", cost: 10000,
+    desc: "Clicking is twice as efficient again.", req: () => state.totalBaked >= 8000,
+    apply: () => { state.clickMult *= 2; } },
+  { id: "click4", icon: "\u261D", name: "Thousand fingers", cost: 100000,
+    desc: "Clicking also gains +5% of your CpS.", req: () => state.totalBaked >= 50000,
+    apply: () => { state.clickCpsPct += 0.05; } },
+  { id: "click5", icon: "\u261D", name: "Million fingers", cost: 10000000,
+    desc: "Clicking also gains another +10% of your CpS.", req: () => state.totalBaked >= 5000000,
+    apply: () => { state.clickCpsPct += 0.10; } },
+  { id: "g1", icon: "\u2605", name: "Lucky day", cost: 77777,
+    desc: "Golden cookies appear twice as often.", req: () => state.goldenClicked >= 1,
+    apply: () => { state.goldenRate = 0.5; } },
+  { id: "g2", icon: "\u2605", name: "Serendipity", cost: 7777777,
+    desc: "Golden cookies appear twice as often again.", req: () => state.goldenClicked >= 7,
+    apply: () => { state.goldenRate = 0.25; } }
+];
+
+BUILDINGS.forEach(b => {
+  UPGRADES.push(
+    { id: b.id + "_a", icon: "\u2716", name: "Polished " + b.name.toLowerCase(), cost: b.baseCost * 15,
+      desc: b.name + "s are twice as efficient.", req: () => count(b.id) >= 10,
+      apply: () => { state.bmult[b.id] = (state.bmult[b.id] || 1) * 2; } },
+    { id: b.id + "_b", icon: "\u2716", name: "Turbo " + b.name.toLowerCase(), cost: b.baseCost * 150,
+      desc: b.name + "s are twice as efficient again.", req: () => count(b.id) >= 50,
+      apply: () => { state.bmult[b.id] = (state.bmult[b.id] || 1) * 2; } }
+  );
+});
+
+const SAVE_KEY = "cookieClicker56_save";
+const PRICE_GROWTH = 1.15;
+
+/* ==================== State ==================== */
+function freshState() {
+  return {
+    cookies: 0, totalBaked: 0, clicks: 0,
+    buildings: {}, purchased: {},
+    clickFlat: 0, clickMult: 1, clickCpsPct: 0,
+    bmult: {},
+    goldenClicked: 0, goldenRate: 1,
+    frenzyUntil: 0,
+    lastSave: Date.now()
+  };
+}
+let state = freshState();
+
+function count(id) { return state.buildings[id] || 0; }
+function bldCost(b) { return Math.ceil(b.baseCost * Math.pow(PRICE_GROWTH, count(b.id))); }
+function baseCps() {
+  let s = 0;
+  for (const b of BUILDINGS) s += count(b.id) * b.cps * (state.bmult[b.id] || 1);
+  return s;
+}
+function frenzyMult() { return Date.now() < state.frenzyUntil ? 7 : 1; }
+function cps() { return baseCps() * frenzyMult(); }
+function clickValue() { return (1 + state.clickFlat) * state.clickMult + baseCps() * state.clickCpsPct; }
+
+/* ==================== Formatting ==================== */
+const SUFFIXES = ["k", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc"];
+function fmt(n, dec) {
+  if (!isFinite(n)) return "a lot";
+  const neg = n < 0 ? "-" : "";
+  n = Math.abs(n);
+  if (n < 1000) {
+    return neg + (dec && n < 100 && n % 1 !== 0 ? n.toFixed(1) : Math.floor(n).toLocaleString("en-US"));
+  }
+  let tier = -1;
+  while (n >= 1000 && tier < SUFFIXES.length - 1) { n /= 1000; tier++; }
+  return neg + (n >= 100 ? n.toFixed(0) : n.toFixed(n >= 10 ? 1 : 2)) + SUFFIXES[tier];
+}
+function fmtCookies(n) {
+  return fmt(n) + (Math.floor(n) === 1 ? " cookie" : " cookies");
+}
+
+/* ==================== DOM ==================== */
+const $ = id => document.getElementById(id);
+const left = $("left"), bigCookie = $("bigCookie"), buildingsEl = $("buildings"),
+      upgWrap = $("upgWrap"), goldenEl = $("golden"), toastEl = $("toast");
+
+const bldRows = {};
+BUILDINGS.forEach(b => {
+  const btn = document.createElement("button");
+  btn.className = "bld cant";
+  btn.innerHTML =
+    '<div class="icon">' + b.name[0] + '</div>' +
+    '<div class="info">' +
+      '<div class="bname">' + b.name + '<span class="owned"></span></div>' +
+      '<div class="bcost"></div>' +
+      '<div class="bdesc">' + b.desc + '</div>' +
+    '</div>' +
+    '<div class="bcps"></div>';
+  btn.title = b.desc;
+  btn.addEventListener("click", () => buyBuilding(b));
+  buildingsEl.appendChild(btn);
+  bldRows[b.id] = {
+    btn,
+    owned: btn.querySelector(".owned"),
+    cost: btn.querySelector(".bcost"),
+    bcps: btn.querySelector(".bcps")
+  };
+});
+
+/* ==================== Actions ==================== */
+function bake(n) {
+  state.cookies += n;
+  state.totalBaked += n;
+}
+
+function clickCookie(e) {
+  const v = clickValue();
+  bake(v);
+  state.clicks++;
+  spawnFloat("+" + fmt(v, true), e.clientX, e.clientY);
+}
+
+function spawnFloat(text, x, y) {
+  const r = left.getBoundingClientRect();
+  const el = document.createElement("div");
+  el.className = "float";
+  el.textContent = text;
+  el.style.left = (x - r.left - 10 + (Math.random() * 30 - 15)) + "px";
+  el.style.top = (y - r.top - 20) + "px";
+  left.appendChild(el);
+  setTimeout(() => el.remove(), 1000);
+}
+
+function buyBuilding(b) {
+  const cost = bldCost(b);
+  if (state.cookies < cost) return;
+  state.cookies -= cost;
+  state.buildings[b.id] = count(b.id) + 1;
+  refreshUpgrades();
+}
+
+function buyUpgrade(u) {
+  if (state.purchased[u.id] || state.cookies < u.cost || !u.req()) return;
+  state.cookies -= u.cost;
+  state.purchased[u.id] = true;
+  u.apply();
+  toast(u.name + " purchased!");
+  refreshUpgrades();
+}
+
+/* ==================== Upgrades UI ==================== */
+const upgEls = {};
+function refreshUpgrades() {
+  for (const u of UPGRADES) {
+    if (state.purchased[u.id] || !u.req()) {
+      if (upgEls[u.id]) { upgEls[u.id].remove(); delete upgEls[u.id]; }
+      continue;
+    }
+    if (!upgEls[u.id]) {
+      const el = document.createElement("button");
+      el.className = "upg";
+      el.textContent = u.icon;
+      el.title = u.name + " \u2014 " + fmt(u.cost) + " cookies\n" + u.desc;
+      el.addEventListener("click", () => buyUpgrade(u));
+      upgWrap.appendChild(el);
+      upgEls[u.id] = el;
+    }
+    upgEls[u.id].className = "upg " + (state.cookies >= u.cost ? "afford" : "cant");
+  }
+}
+
+/* ==================== Golden cookie ==================== */
+let goldenTimer = null;
+function scheduleGolden() {
+  clearTimeout(goldenTimer);
+  const base = (60 + Math.random() * 90) * 1000; // 60-150s
+  goldenTimer = setTimeout(showGolden, base * state.goldenRate);
+}
+function showGolden() {
+  const r = left.getBoundingClientRect();
+  goldenEl.style.left = (r.left + 40 + Math.random() * (r.width - 140)) + "px";
+  goldenEl.style.top = (r.top + 60 + Math.random() * (r.height - 160)) + "px";
+  goldenEl.style.display = "block";
+  setTimeout(() => {
+    if (goldenEl.style.display === "block") {
+      goldenEl.style.display = "none";
+      scheduleGolden();
+    }
+  }, 11000);
+}
+goldenEl.addEventListener("click", e => {
+  goldenEl.style.display = "none";
+  state.goldenClicked++;
+  const c = baseCps();
+  if (c >= 5 && Math.random() < 0.5) {
+    state.frenzyUntil = Date.now() + 20000;
+    toast("Frenzy! Cookie production x7 for 20 seconds!");
+  } else {
+    const reward = Math.max(13, Math.min(state.cookies * 0.13, c * 900));
+    bake(reward);
+    toast("Lucky! +" + fmt(reward) + " cookies!");
+    spawnFloat("+" + fmt(reward), e.clientX, e.clientY);
+  }
+  refreshUpgrades();
+  scheduleGolden();
+});
+
+/* ==================== Save / load ==================== */
+function save(silent) {
+  state.lastSave = Date.now();
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+    const dot = $("saveDot");
+    dot.style.opacity = "1";
+    setTimeout(() => dot.style.opacity = "0", 1200);
+    if (!silent) toast("Game saved.");
+  } catch (err) { /* storage may be unavailable; play session-only */ }
+}
+
+function load() {
+  let raw;
+  try { raw = localStorage.getItem(SAVE_KEY); } catch (err) { return; }
+  if (!raw) return;
+  let data;
+  try { data = JSON.parse(raw); } catch (err) { return; }
+  if (!data || typeof data !== "object") return;
+
+  const purchased = data.purchased || {};
+  const buildings = data.buildings || {};
+  state = freshState();
+  state.cookies = +data.cookies || 0;
+  state.totalBaked = +data.totalBaked || 0;
+  state.clicks = +data.clicks || 0;
+  state.goldenClicked = +data.goldenClicked || 0;
+  for (const k in buildings) state.buildings[k] = +buildings[k] || 0;
+  state.purchased = purchased;
+  for (const u of UPGRADES) {
+    if (purchased[u.id]) u.apply();
+  }
+
+  // Offline progress: up to 4 hours at full CpS.
+  const away = Math.min(Math.max(0, (Date.now() - (+data.lastSave || Date.now())) / 1000), 4 * 3600);
+  const gained = baseCps() * away;
+  if (gained >= 1 && away > 60) {
+    bake(gained);
+    setTimeout(() => toast("While you were away, your bakery made " + fmt(gained) + " cookies."), 400);
+  }
+}
+
+/* ==================== Toast ==================== */
+let toastTimer = null;
+function toast(msg) {
+  toastEl.textContent = msg;
+  toastEl.style.opacity = "1";
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toastEl.style.opacity = "0", 2600);
+}
+
+/* ==================== Main loop ==================== */
+let lastTick = Date.now();
+function tick() {
+  const now = Date.now();
+  const dt = (now - lastTick) / 1000;
+  lastTick = now;
+
+  const income = cps() * dt;
+  if (income > 0) bake(income);
+
+  $("cookieCount").textContent = fmtCookies(state.cookies);
+  $("cpsLine").textContent = "per second: " + fmt(cps(), true);
+  $("totalLine").innerHTML =
+    "All-time baked: " + fmt(state.totalBaked) + " &middot; Clicks: " + fmt(state.clicks);
+
+  const f = $("frenzy");
+  if (now < state.frenzyUntil) {
+    f.style.visibility = "visible";
+    f.textContent = "FRENZY x7 \u2014 " + Math.ceil((state.frenzyUntil - now) / 1000) + "s";
+  } else {
+    f.style.visibility = "hidden";
+  }
+
+  for (const b of BUILDINGS) {
+    const row = bldRows[b.id];
+    const cost = bldCost(b);
+    row.owned.textContent = count(b.id) > 0 ? "x" + count(b.id) : "";
+    row.cost.textContent = fmt(cost);
+    row.bcps.textContent = "+" + fmt(b.cps * (state.bmult[b.id] || 1), true) + " cps";
+    row.btn.className = "bld " + (state.cookies >= cost ? "afford" : "cant");
+  }
+  refreshUpgrades();
+}
+
+/* ==================== Events ==================== */
+bigCookie.addEventListener("click", clickCookie);
+$("saveBtn").addEventListener("click", () => save(false));
+$("resetBtn").addEventListener("click", () => {
+  if (!confirm("Wipe your save and start over?")) return;
+  try { localStorage.removeItem(SAVE_KEY); } catch (err) {}
+  state = freshState();
+  lastTick = Date.now();
+  refreshUpgrades();
+  toast("Save wiped. Fresh start!");
+});
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") save(true);
+});
+window.addEventListener("beforeunload", () => save(true));
+
+/* ==================== Boot ==================== */
+load();
+scheduleGolden();
+setInterval(() => save(true), 5000);
+setInterval(tick, 100);
+tick();
+</script>
+</body>
+</html>

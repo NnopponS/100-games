@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lunar Lander</title>
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; background: #050508; overflow: hidden; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<script>
+(function () {
+  "use strict";
+
+  var canvas = document.getElementById("game");
+  var ctx = canvas.getContext("2d");
+
+  var W = 0, H = 0;
+  function resize() {
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+    buildTerrain();
+  }
+  window.addEventListener("resize", resize);
+
+  // ---------- Constants ----------
+  var GRAVITY = 30;          // px/s^2
+  var THRUST = 90;           // px/s^2
+  var ROT_SPEED = 2.6;       // rad/s
+  var FUEL_MAX = 100;
+  var FUEL_BURN = 22;        // per second of thrust
+  var SAFE_VX = 22;          // px/s max horizontal speed
+  var SAFE_VY = 30;          // px/s max vertical speed
+  var SAFE_ANGLE = 0.35;     // rad from upright
+  var LANDER_R = 11;         // half-size for collision
+
+  // ---------- Input ----------
+  var keys = {};
+  window.addEventListener("keydown", function (e) {
+    keys[e.code] = true;
+    if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space"].indexOf(e.code) >= 0) e.preventDefault();
+    if (e.code === "KeyR" || e.code === "Space") {
+      if (state !== "flying") reset();
+    }
+    if (e.code === "Space" && state === "flying" && lander.landed) {
+      lander.landed = false;
+      lander.vy = -5;
+    }
+  });
+  window.addEventListener("keyup", function (e) { keys[e.code] = false; });
+  canvas.addEventListener("mousedown", function () {
+    if (state !== "flying") reset();
+  });
+
+  // ---------- Terrain ----------
+  var terrain = [];        // [{x, y}]
+  var pad = { x1: 0, x2: 0, y: 0 };
+
+  function buildTerrain() {
+    terrain = [];
+    var seg = 24;
+    var groundBase = H * 0.82;
+    // pad position: somewhere in middle 70% of screen
+    var padW = Math.max(80, W * 0.09);
+    var padCenter = W * 0.15 + Math.random() * W * 0.7;
+    pad.x1 = padCenter - padW / 2;
+    pad.x2 = padCenter + padW / 2;
+    pad.y = groundBase + (Math.random() - 0.5) * H * 0.06;
+
+    var seed = Math.random() * 1000;
+    for (var x = -seg; x <= W + seg; x += seg) {
+      var y;
+      if (x >= pad.x1 - seg * 0.5 && x <= pad.x2 + seg * 0.5) {
+        y = pad.y;
+      } else {
+        var n = Math.sin(x * 0.011 + seed) * 0.5 +
+                Math.sin(x * 0.027 + seed * 2.7) * 0.3 +
+                Math.sin(x * 0.053 + seed * 5.1) * 0.2;
+        y = groundBase + n * H * 0.13;
+        // keep terrain above 55% of height
+        if (y < H * 0.55) y = H * 0.55;
+      }
+      terrain.push({ x: x, y: y });
+    }
+    // flatten terrain under pad exactly
+    for (var i = 0; i < terrain.length; i++) {
+      var p = terrain[i];
+      if (p.x > pad.x1 - seg && p.x < pad.x2 + seg) p.y = pad.y;
+    }
+  }
+
+  function terrainYAt(x) {
+    if (x <= terrain[0].x) return terrain[0].y;
+    for (var i = 0; i < terrain.length - 1; i++) {
+      var a = terrain[i], b = terrain[i + 1];
+      if (x >= a.x && x <= b.x) {
+        var t = (x - a.x) / (b.x - a.x);
+        return a.y + (b.y - a.y) * t;
+      }
+    }
+    return terrain[terrain.length - 1].y;
+  }
+
+  // ---------- Stars ----------
+  var stars = [];
+  for (var i = 0; i < 140; i++) {
+    stars.push({ x: Math.random(), y: Math.random() * 0.7, r: Math.random() * 1.4 + 0.3, tw: Math.random() * 6 });
+  }
+
+  // ---------- Lander ----------
+  var lander = {};
+  var state = "flying"; // flying | landed | crashed
+  var stateTimer = 0;
+  var particles = [];
+
+  function reset() {
+    lander = {
+      x: W * 0.5 + (Math.random() - 0.5) * W * 0.3,
+      y: H * 0.12,
+      vx: (Math.random() - 0.5) * 30,
+      vy: 0,
+      angle: (Math.random() - 0.5) * 0.4,
+      fuel: FUEL_MAX,
+      landed: false,
+      thrusting: false
+    };
+    particles = [];
+    state = "flying";
+    stateTimer = 0;
+    buildTerrain();
+    // make sure pad isn't under spawn column
+  }
+
+  function explode() {
+    for (var i = 0; i < 60; i++) {
+      var a = Math.random() * Math.PI * 2;
+      var s = 30 + Math.random() * 140;
+      particles.push({
+        x: lander.x, y: lander.y,
+        vx: Math.cos(a) * s, vy: Math.sin(a) * s,
+        life: 0.6 + Math.random() * 0.9,
+        max: 1.5,
+        color: Math.random() < 0.5 ? "#ff8c3a" : (Math.random() < 0.5 ? "#ffd23a" : "#ff4444")
+      });
+    }
+  }
+
+  // ---------- Update ----------
+  function update(dt) {
+    if (state === "flying") {
+      var left = keys.ArrowLeft || keys.KeyA;
+      var right = keys.ArrowRight || keys.KeyD;
+      var up = keys.ArrowUp || keys.KeyW;
+
+      if (left) lander.angle -= ROT_SPEED * dt;
+      if (right) lander.angle += ROT_SPEED * dt;
+
+      lander.thrusting = false;
+      if (up && lander.fuel > 0) {
+        lander.thrusting = true;
+        lander.fuel = Math.max(0, lander.fuel - FUEL_BURN * dt);
+        lander.vx -= Math.sin(lander.angle) * THRUST * dt;
+        lander.vy -= Math.cos(lander.angle) * THRUST * dt;
+        // exhaust particles
+        for (var i = 0; i < 3; i++) {
+          var spread = (Math.random() - 0.5) * 0.5;
+          particles.push({
+            x: lander.x + Math.sin(lander.angle) * (LANDER_R + 4),
+            y: lander.y + Math.cos(lander.angle) * (LANDER_R + 4),
+            vx: Math.sin(lander.angle + spread) * 60 + lander.vx * 0.3,
+            vy: Math.cos(lander.angle + spread) * 60 + lander.vy * 0.3,
+            life: 0.25 + Math.random() * 0.2,
+            max: 0.45,
+            color: Math.random() < 0.6 ? "#ffb03a" : "#ff6633"
+          });
+        }
+      }
+
+      lander.vy += GRAVITY * dt;
+      lander.x += lander.vx * dt;
+      lander.y += lander.vy * dt;
+
+      // wrap horizontally
+      if (lander.x < -LANDER_R) lander.x = W + LANDER_R;
+      if (lander.x > W + LANDER_R) lander.x = -LANDER_R;
+
+      // terrain collision (check feet point)
+      var footY = lander.y + LANDER_R;
+      var gy = terrainYAt(lander.x);
+      if (footY >= gy) {
+        lander.y = gy - LANDER_R;
+        var onPad = lander.x >= pad.x1 && lander.x <= pad.x2 && Math.abs(gy - pad.y) < 1;
+        var upright = Math.abs(((lander.angle % (Math.PI * 2)) + Math.PI * 3) % (Math.PI * 2) - Math.PI) < SAFE_ANGLE ||
+                      Math.abs(lander.angle % (Math.PI * 2)) < SAFE_ANGLE;
+        // normalize angle check
+        var a = lander.angle % (Math.PI * 2);
+        if (a > Math.PI) a -= Math.PI * 2;
+        if (a < -Math.PI) a += Math.PI * 2;
+        upright = Math.abs(a) < SAFE_ANGLE;
+
+        if (onPad && upright && Math.abs(lander.vx) <= SAFE_VX && lander.vy <= SAFE_VY) {
+          state = "landed";
+          lander.vx = 0; lander.vy = 0; lander.angle = a;
+        } else {
+          state = "crashed";
+          explode();
+        }
+        stateTimer = 0;
+      }
+      if (lander.y > H + 60 && state === "flying") { state = "crashed"; explode(); }
+    }
+
+    stateTimer += dt;
+
+    // particles
+    for (var i = particles.length - 1; i >= 0; i--) {
+      var p = particles[i];
+      p.life -= dt;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.vy += GRAVITY * 0.4 * dt;
+      if (p.life <= 0) particles.splice(i, 1);
+    }
+  }
+
+  // ---------- Draw ----------
+  function draw() {
+    // sky
+    ctx.fillStyle = "#050508";
+    ctx.fillRect(0, 0, W, H);
+
+    // stars
+    var t = performance.now() / 1000;
+    for (var i = 0; i < stars.length; i++) {
+      var s = stars[i];
+      var alpha = 0.4 + 0.6 * Math.abs(Math.sin(t * 0.7 + s.tw));
+      ctx.fillStyle = "rgba(255,255,255," + alpha.toFixed(2) + ")";
+      ctx.fillRect(s.x * W, s.y * H, s.r, s.r);
+    }
+
+    // earth
+    ctx.fillStyle = "#2a6fbf";
+    ctx.beginPath();
+    ctx.arc(W * 0.85, H * 0.12, 22, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "rgba(90,170,255,0.35)";
+    ctx.beginPath();
+    ctx.arc(W * 0.85, H * 0.12, 26, 0, Math.PI * 2);
+    ctx.fill();
+
+    // terrain
+    ctx.beginPath();
+    ctx.moveTo(terrain[0].x, H + 4);
+    for (i = 0; i < terrain.length; i++) ctx.lineTo(terrain[i].x, terrain[i].y);
+    ctx.lineTo(terrain[terrain.length - 1].x, H + 4);
+    ctx.closePath();
+    ctx.fillStyle = "#3d3d4d";
+    ctx.fill();
+    ctx.strokeStyle = "#8a8aa0";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(terrain[0].x, terrain[0].y);
+    for (i = 1; i < terrain.length; i++) ctx.lineTo(terrain[i].x, terrain[i].y);
+    ctx.stroke();
+
+    // landing pad
+    ctx.strokeStyle = "#37e05a";
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(pad.x1, pad.y);
+    ctx.lineTo(pad.x2, pad.y);
+    ctx.stroke();
+    // pad legs
+    ctx.strokeStyle = "#229644";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(pad.x1 + 4, pad.y); ctx.lineTo(pad.x1 + 4, pad.y + 10);
+    ctx.moveTo(pad.x2 - 4, pad.y); ctx.lineTo(pad.x2 - 4, pad.y + 10);
+    ctx.stroke();
+
+    // particles
+    for (i = 0; i < particles.length; i++) {
+      var p = particles[i];
+      ctx.globalAlpha = Math.max(0, p.life / p.max);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(p.x - 1.5, p.y - 1.5, 3, 3);
+    }
+    ctx.globalAlpha = 1;
+
+    // lander
+    if (state !== "crashed") drawLander();
+
+    drawHUD();
+
+    if (state === "landed") {
+      banner("TOUCHDOWN!", "Safe landing. Press R or Space to fly again.", "#37e05a");
+    } else if (state === "crashed") {
+      banner("CRASHED!", "Press R or Space to try again.", "#ff4444");
+    }
+  }
+
+  function drawLander() {
+    ctx.save();
+    ctx.translate(lander.x, lander.y);
+    ctx.rotate(lander.angle);
+
+    // thrust flame
+    if (lander.thrusting) {
+      var fl = 10 + Math.random() * 10;
+      ctx.fillStyle = "#ffb03a";
+      ctx.beginPath();
+      ctx.moveTo(-4, LANDER_R - 2);
+      ctx.lineTo(0, LANDER_R + fl);
+      ctx.lineTo(4, LANDER_R - 2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = "#ff5533";
+      ctx.beginPath();
+      ctx.moveTo(-2.5, LANDER_R - 2);
+      ctx.lineTo(0, LANDER_R + fl * 0.6);
+      ctx.lineTo(2.5, LANDER_R - 2);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // legs
+    ctx.strokeStyle = "#aab";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-7, 2); ctx.lineTo(-11, LANDER_R);
+    ctx.moveTo(7, 2); ctx.lineTo(11, LANDER_R);
+    ctx.stroke();
+
+    // body
+    ctx.fillStyle = "#d8d8e8";
+    ctx.beginPath();
+    ctx.moveTo(0, -LANDER_R);
+    ctx.lineTo(-8, -2);
+    ctx.lineTo(-8, 6);
+    ctx.lineTo(8, 6);
+    ctx.lineTo(8, -2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = "#8888aa";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // window
+    ctx.fillStyle = "#66c8ff";
+    ctx.beginPath();
+    ctx.arc(0, -2, 3, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  function drawHUD() {
+    var alt = Math.max(0, Math.round(terrainYAt(lander.x) - (lander.y + LANDER_R)));
+    var hs = Math.round(Math.abs(lander.vx));
+    var vs = Math.round(lander.vy);
+
+    ctx.font = "14px Consolas, monospace";
+    ctx.textAlign = "left";
+    ctx.fillStyle = "#cfd2e0";
+    ctx.fillText("ALT  " + alt + " m", 18, 28);
+    ctx.fillText("H-SPD  " + hs + (hs > SAFE_VX ? " !" : ""), 18, 48);
+    ctx.fillStyle = vs > SAFE_VY ? "#ff6655" : "#cfd2e0";
+    ctx.fillText("V-SPD  " + vs + (vs > SAFE_VY ? " !" : ""), 18, 68);
+    ctx.fillStyle = "#cfd2e0";
+
+    // fuel gauge
+    var gx = 18, gy = 84, gw = 140, gh = 12;
+    ctx.strokeStyle = "#777";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(gx, gy, gw, gh);
+    var frac = lander.fuel / FUEL_MAX;
+    ctx.fillStyle = frac > 0.3 ? "#37e05a" : (frac > 0.12 ? "#ffcc33" : "#ff4444");
+    ctx.fillRect(gx + 1, gy + 1, (gw - 2) * frac, gh - 2);
+    ctx.fillStyle = "#cfd2e0";
+    ctx.fillText("FUEL", gx + gw + 10, gy + gh - 2);
+
+    // controls hint
+    ctx.fillStyle = "rgba(200,205,220,0.55)";
+    ctx.font = "12px Consolas, monospace";
+    ctx.textAlign = "right";
+    ctx.fillText("\u2190 \u2192 rotate   \u2191 thrust   R restart", W - 16, 24);
+  }
+
+  function banner(title, sub, color) {
+    ctx.fillStyle = "rgba(0,0,0,0.55)";
+    ctx.fillRect(0, H * 0.34, W, 110);
+    ctx.textAlign = "center";
+    ctx.fillStyle = color;
+    ctx.font = "bold 44px Consolas, monospace";
+    ctx.fillText(title, W / 2, H * 0.34 + 52);
+    ctx.fillStyle = "#e8e8f0";
+    ctx.font = "16px Consolas, monospace";
+    ctx.fillText(sub, W / 2, H * 0.34 + 84);
+  }
+
+  // ---------- Main loop ----------
+  var last = performance.now();
+  function frame(now) {
+    var dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+    update(dt);
+    draw();
+    requestAnimationFrame(frame);
+  }
+
+  resize();
+  reset();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Volcano Escape</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{min-height:100vh;background:#14090b;color:#fff;font-family:system-ui,-apple-system,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px;overflow:hidden}
+  .wrap{position:relative;width:min(460px,100%);display:flex;flex-direction:column;align-items:center;gap:8px}
+  .hud{width:100%;display:flex;justify-content:space-between;background:rgba(40,14,16,.9);border:1px solid rgba(255,120,60,.35);padding:8px 14px;border-radius:12px;font-weight:800;font-size:.95rem}
+  .hud span{color:#ff9d47}
+  canvas{width:100%;height:auto;max-height:76vh;aspect-ratio:440/600;border-radius:14px;border:2px solid #592018;background:#1c0c10;display:block;touch-action:none}
+  .touch{display:flex;gap:12px;width:100%;justify-content:center}
+  .tbtn{flex:1;max-width:130px;padding:12px;border:none;border-radius:10px;background:#3a1816;color:#ffd0b0;font-weight:800;font-size:1rem;cursor:pointer;user-select:none}
+  .tbtn:active{background:#ff6b35;color:#14090b}
+  .overlay{position:absolute;inset:44px 0 48px 0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(16,6,8,.82);border-radius:14px;text-align:center;padding:20px;gap:12px}
+  .overlay.hidden{display:none}
+  .overlay h1{font-size:1.8rem;color:#ff8c42}
+  .overlay p{color:#e6c4b8;font-size:.95rem;max-width:300px}
+  .btn{padding:12px 28px;border:none;border-radius:999px;background:linear-gradient(135deg,#ff7b29,#ff3b3b);color:#fff;font-weight:900;font-size:1rem;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hud">
+    <div>Height: <span id="score">0m</span></div>
+    <div>Best: <span id="best">0m</span></div>
+  </div>
+  <canvas id="c" width="440" height="600"></canvas>
+  <div class="touch">
+    <button class="tbtn" id="btnLeft">◀ Left</button>
+    <button class="tbtn" id="btnJump">▲ Jump</button>
+    <button class="tbtn" id="btnRight">Right ▶</button>
+  </div>
+  <div class="overlay" id="ov">
+    <h1 id="ovTitle">VOLCANO ESCAPE</h1>
+    <p id="ovSub">Climb the basalt ledges before the rising magma swallows you! Use Arrow Keys / WASD.</p>
+    <button class="btn" id="startBtn">Climb Now</button>
+  </div>
+</div>
+<script>
+(() => {
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const scoreEl = document.getElementById('score');
+  const bestEl = document.getElementById('best');
+  const ov = document.getElementById('ov');
+  const ovTitle = document.getElementById('ovTitle');
+  const ovSub = document.getElementById('ovSub');
+  const startBtn = document.getElementById('startBtn');
+
+  let best = Number(localStorage.getItem('volcano_best') || 0);
+  bestEl.textContent = best + 'm';
+
+  let state = 'idle', player, plats, camY, lavaY, maxHeight, embers, keys = {};
+
+  function reset() {
+    camY = 0;
+    lavaY = H - 25;
+    maxHeight = 0;
+    player = { x: W/2 - 13, y: H - 100, w: 26, h: 30, vx: 0, vy: 0, onGround: false };
+    plats = [{ x: W/2 - 70, y: H - 60, w: 140, h: 14, type: 'solid', vx: 0 }];
+    for (let y = H - 135; y > -2000; y -= 75) {
+      addPlat(y);
+    }
+    embers = Array.from({length: 30}, () => ({
+      x: Math.random()*W, y: Math.random()*H, r: 1.5+Math.random()*2.5, s: 25+Math.random()*45
+    }));
+    state = 'play';
+    ov.classList.add('hidden');
+    scoreEl.textContent = '0m';
+  }
+
+  function addPlat(y) {
+    const w = 72 + Math.random()*44;
+    const x = 16 + Math.random()*(W - w - 32);
+    const r = Math.random();
+    const type = r < 0.2 ? 'moving' : r < 0.34 ? 'spring' : 'solid';
+    plats.push({ x, y, w, h: 14, type, vx: type === 'moving' ? (Math.random() < 0.5 ? 75 : -75) : 0 });
+  }
+
+  let last = performance.now();
+  function loop(now) {
+    const dt = Math.min(0.035, (now - last) / 1000);
+    last = now;
+    if (state === 'play') update(dt);
+    draw(now / 1000);
+    requestAnimationFrame(loop);
+  }
+
+  function update(dt) {
+    const left = keys.ArrowLeft || keys.KeyA || keys.left;
+    const right = keys.ArrowRight || keys.KeyD || keys.right;
+    const jump = keys.ArrowUp || keys.KeyW || keys.Space || keys.jump;
+
+    if (left) player.vx = -255;
+    else if (right) player.vx = 255;
+    else player.vx *= 0.8;
+
+    if (jump && player.onGround) {
+      player.vy = -530;
+      player.onGround = false;
+    }
+
+    player.vy += 1180 * dt;
+    const prevBottom = player.y + player.h;
+    player.x += player.vx * dt;
+    player.y += player.vy * dt;
+
+    if (player.x < -player.w/2) player.x = W - player.w/2;
+    if (player.x > W - player.w/2) player.x = -player.w/2;
+
+    player.onGround = false;
+    for (const p of plats) {
+      if (p.vx) {
+        p.x += p.vx * dt;
+        if (p.x < 10 || p.x + p.w > W - 10) p.vx *= -1;
+      }
+      if (player.vy >= 0 && prevBottom <= p.y + 8 && player.y + player.h >= p.y &&
+          player.x + player.w - 4 > p.x && player.x + 4 < p.x + p.w) {
+        player.y = p.y - player.h;
+        if (p.type === 'spring') {
+          player.vy = -720;
+        } else {
+          player.vy = 0;
+          player.onGround = true;
+        }
+      }
+    }
+
+    const screenY = player.y - camY;
+    if (screenY < H * 0.42) {
+      camY = player.y - H * 0.42;
+    }
+
+    let topY = plats.reduce((m, p) => Math.min(m, p.y), Infinity);
+    while (topY > camY - 300) {
+      topY -= 72 + Math.random()*14;
+      addPlat(topY);
+    }
+    plats = plats.filter(p => p.y < camY + H + 120);
+
+    const hMeters = Math.max(0, Math.floor((H - 100 - player.y) / 15));
+    if (hMeters > maxHeight) {
+      maxHeight = hMeters;
+      scoreEl.textContent = maxHeight + 'm';
+      if (maxHeight > best) {
+        best = maxHeight;
+        bestEl.textContent = best + 'm';
+        localStorage.setItem('volcano_best', String(best));
+      }
+    }
+
+    const lavaSpeed = 48 + Math.min(95, maxHeight * 0.45);
+    lavaY -= lavaSpeed * dt;
+    if (lavaY > camY + H + 40) lavaY = camY + H + 40;
+
+    if (player.y + player.h > lavaY + 6) {
+      state = 'over';
+      ovTitle.textContent = 'MELTED!';
+      ovSub.textContent = `You climbed ${maxHeight}m before the magma got you!`;
+      startBtn.textContent = 'Try Again';
+      ov.classList.remove('hidden');
+    }
+
+    for (const e of embers) {
+      e.y -= e.s * dt;
+      if (e.y < 0) { e.y = H; e.x = Math.random()*W; }
+    }
+  }
+
+  function draw(t) {
+    const grad = ctx.createLinearGradient(0, 0, 0, H);
+    grad.addColorStop(0, '#1a0a10');
+    grad.addColorStop(1, '#3b110d');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+
+    if (embers) {
+      ctx.fillStyle = 'rgba(255,160,60,.65)';
+      for (const e of embers) {
+        ctx.beginPath(); ctx.arc(e.x, e.y, e.r, 0, Math.PI*2); ctx.fill();
+      }
+    }
+
+    if (plats) {
+      for (const p of plats) {
+        const sy = p.y - camY;
+        if (sy < -20 || sy > H + 20) continue;
+        ctx.fillStyle = p.type === 'spring' ? '#38d9a9' : p.type === 'moving' ? '#ffb74d' : '#6c4f4b';
+        ctx.beginPath();
+        ctx.roundRect(p.x, sy, p.w, p.h, 6);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,.2)';
+        ctx.fillRect(p.x + 4, sy + 2, p.w - 8, 3);
+      }
+    }
+
+    if (player) {
+      const py = player.y - camY;
+      ctx.fillStyle = '#4dabf7';
+      ctx.beginPath(); ctx.roundRect(player.x, py, player.w, player.h, 7); ctx.fill();
+      ctx.fillStyle = '#ffd43b';
+      ctx.fillRect(player.x + 4, py + 6, player.w - 8, 9);
+    }
+
+    const ly = (lavaY ?? H - 25) - (camY ?? 0);
+    const lgrad = ctx.createLinearGradient(0, ly, 0, H + 40);
+    lgrad.addColorStop(0, '#ffdf4d');
+    lgrad.addColorStop(0.2, '#ff621f');
+    lgrad.addColorStop(1, '#a8120c');
+    ctx.fillStyle = lgrad;
+    ctx.beginPath();
+    ctx.moveTo(0, H + 10);
+    for (let x = 0; x <= W; x += 16) {
+      const wave = Math.sin(x * 0.05 + t * 5) * 5;
+      ctx.lineTo(x, ly + wave);
+    }
+    ctx.lineTo(W, H + 10);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  window.addEventListener('keydown', e => {
+    keys[e.code] = true;
+    if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
+  });
+  window.addEventListener('keyup', e => { keys[e.code] = false; });
+
+  const bindTouch = (id, key) => {
+    const el = document.getElementById(id);
+    el.addEventListener('pointerdown', e => { e.preventDefault(); keys[key] = true; });
+    el.addEventListener('pointerup', () => keys[key] = false);
+    el.addEventListener('pointerleave', () => keys[key] = false);
+  };
+  bindTouch('btnLeft', 'left');
+  bindTouch('btnRight', 'right');
+  bindTouch('btnJump', 'jump');
+  startBtn.onclick = reset;
+  draw(0);
+})();
+</script>
+</body>
+</html>

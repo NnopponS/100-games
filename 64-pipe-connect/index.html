@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pipe Connect</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-height:100vh;padding:16px;gap:12px;
+  font-family:'Segoe UI',system-ui,-apple-system,sans-serif;color:#dbe4ff;
+  background:radial-gradient(1000px 700px at 50% 15%,#17223f 0%,#0b1020 65%);
+}
+h1{font-size:clamp(20px,3.5vw,30px);letter-spacing:3px;font-weight:600;color:#8fd8ff;text-shadow:0 0 18px rgba(80,200,255,.45)}
+.hint{font-size:13px;color:#7f8fbe;text-align:center}
+.hud{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:center}
+.stat{background:#141c33;border:1px solid #263457;border-radius:8px;padding:6px 14px;font-size:14px;min-width:92px;text-align:center}
+.stat b{color:#8fd8ff;font-variant-numeric:tabular-nums}
+button{background:#141c33;color:#c8d6ff;border:1px solid #2c3c66;border-radius:8px;padding:6px 14px;font-size:14px;cursor:pointer;transition:border-color .15s,color .15s,background .15s}
+button:hover{border-color:#4fd6ff;color:#fff}
+button.active{background:#1d5f80;border-color:#4fd6ff;color:#eaffff}
+#board{display:grid;gap:4px;width:min(92vmin,560px);aspect-ratio:1;padding:6px;background:#0e1528;border:1px solid #223058;border-radius:12px;user-select:none}
+.tile{background:#131b31;border-radius:6px;cursor:pointer;transition:background .25s;overflow:hidden}
+.tile:hover{background:#1a2440}
+.tile svg{display:block;width:100%;height:100%;transition:transform .16s ease}
+.tile line{stroke:#46557f;stroke-width:14;stroke-linecap:round}
+.tile .core{fill:#46557f}
+.tile.on line{stroke:#45e0ff;filter:drop-shadow(0 0 5px rgba(69,224,255,.9))}
+.tile.on .core{fill:#45e0ff}
+.tile.src .srcdot{fill:#ffd54a}
+.tile.src .core{fill:#fff3c4}
+#win{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(5,8,18,.72);backdrop-filter:blur(3px);z-index:10}
+#win .card{background:#131d38;border:1px solid #2c4a77;border-radius:14px;padding:34px 48px;text-align:center;box-shadow:0 0 60px rgba(69,224,255,.25)}
+#win h2{color:#45e0ff;font-size:26px;margin-bottom:8px}
+#win p{color:#a9b8e6;margin-bottom:20px}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+<h1>PIPE CONNECT</h1>
+<div class="hint">Click a tile to rotate it clockwise &middot; right-click rotates it back &middot; light every pipe</div>
+<div class="hud">
+  <div class="stat">Moves <b id="moves">0</b></div>
+  <div class="stat">Time <b id="time">0:00</b></div>
+  <div class="stat">Lit <b id="lit">0/0</b></div>
+</div>
+<div class="hud">
+  <button id="d5">Easy 5&times;5</button>
+  <button id="d7" class="active">Medium 7&times;7</button>
+  <button id="d9">Hard 9&times;9</button>
+  <button id="restart">&#8635; New board</button>
+</div>
+<div id="board"></div>
+<div id="win" class="hidden">
+  <div class="card">
+    <h2>All pipes connected!</h2>
+    <p id="winStats"></p>
+    <button id="again">Play again</button>
+  </div>
+</div>
+<script>
+'use strict';
+var DIRS=[[-1,0],[0,1],[1,0],[0,-1]];      // N,E,S,W
+var EDGE=[[50,5],[95,50],[50,95],[5,50]];  // svg edge endpoints per dir
+var NS='http://www.w3.org/2000/svg';
+var board=document.getElementById('board');
+var movesEl=document.getElementById('moves');
+var timeEl=document.getElementById('time');
+var litEl=document.getElementById('lit');
+var winEl=document.getElementById('win');
+var winStats=document.getElementById('winStats');
+var size=7,cells=[],moves=0,won=false,started=false,t0=0,timerId=null;
+
+function idx(r,c){return r*size+c}
+// effective connection in direction d = base connection rotated by cell.rot
+function hasConn(cell,d){return cell.base[(d-cell.rot+40)%4]}
+function fmt(s){return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
+function elapsed(){return Math.floor((Date.now()-t0)/1000)}
+function tick(){timeEl.textContent=fmt(elapsed())}
+
+// Build a connected solution: randomized Prim spanning tree from the source.
+function generate(){
+  var n=size*size,sr=size>>1,sc=size>>1;
+  cells=[];
+  for(var i=0;i<n;i++)
+    cells.push({r:(i/size)|0,c:i%size,base:[false,false,false,false],rot:0,angle:0,src:i===idx(sr,sc)});
+  var inTree={};inTree[idx(sr,sc)]=true;
+  var inCount=1,frontier=[];
+  function pushEdges(r,c){
+    for(var d=0;d<4;d++){
+      var nr=r+DIRS[d][0],nc=c+DIRS[d][1];
+      if(nr<0||nc<0||nr>=size||nc>=size)continue;
+      frontier.push([r,c,nr,nc,d]);
+    }
+  }
+  pushEdges(sr,sc);
+  while(inCount<n){
+    var live=frontier.filter(function(e){return !inTree[idx(e[2],e[3])]});
+    var e=live[(Math.random()*live.length)|0];
+    cells[idx(e[0],e[1])].base[e[4]]=true;
+    cells[idx(e[2],e[3])].base[(e[4]+2)%4]=true;
+    inTree[idx(e[2],e[3])]=true;inCount++;
+    pushEdges(e[2],e[3]);
+  }
+}
+
+function build(){
+  board.innerHTML='';
+  board.style.gridTemplateColumns='repeat('+size+',1fr)';
+  board.style.gridTemplateRows='repeat('+size+',1fr)';
+  for(var i=0;i<cells.length;i++)(function(cell){
+    var el=document.createElement('div');
+    el.className='tile'+(cell.src?' src':'');
+    var svg=document.createElementNS(NS,'svg');
+    svg.setAttribute('viewBox','0 0 100 100');
+    for(var d=0;d<4;d++)if(cell.base[d]){
+      var ln=document.createElementNS(NS,'line');
+      ln.setAttribute('x1',50);ln.setAttribute('y1',50);
+      ln.setAttribute('x2',EDGE[d][0]);ln.setAttribute('y2',EDGE[d][1]);
+      svg.appendChild(ln);
+    }
+    if(cell.src){
+      var s=document.createElementNS(NS,'circle');
+      s.setAttribute('class','srcdot');
+      s.setAttribute('cx',50);s.setAttribute('cy',50);s.setAttribute('r',15);
+      svg.appendChild(s);
+    }
+    var core=document.createElementNS(NS,'circle');
+    core.setAttribute('class','core');
+    core.setAttribute('cx',50);core.setAttribute('cy',50);core.setAttribute('r',9);
+    svg.appendChild(core);
+    el.appendChild(svg);
+    el.addEventListener('click',function(){turn(cell,1)});
+    el.addEventListener('contextmenu',function(e){e.preventDefault();turn(cell,-1)});
+    cell.el=el;cell.svg=svg;
+    board.appendChild(el);
+  })(cells[i]);
+}
+
+function scramble(){
+  var any=false;
+  for(var i=0;i<cells.length;i++){
+    var c=cells[i];
+    c.rot=(Math.random()*4)|0;c.angle=c.rot*90;
+    c.svg.style.transform='rotate('+c.angle+'deg)';
+    if(c.rot)any=true;
+  }
+  if(!any){
+    var c=cells[0];c.rot=1;c.angle=90;
+    c.svg.style.transform='rotate(90deg)';
+  }
+}
+
+// BFS from the source through matching connections; lights up powered tiles.
+function flow(){
+  var on={};
+  var src=cells.find(function(c){return c.src});
+  var q=[src];on[idx(src.r,src.c)]=true;
+  var count=1;
+  while(q.length){
+    var c=q.pop();
+    for(var d=0;d<4;d++){
+      if(!hasConn(c,d))continue;
+      var nr=c.r+DIRS[d][0],nc=c.c+DIRS[d][1];
+      if(nr<0||nc<0||nr>=size||nc>=size)continue;
+      var k=idx(nr,nc);
+      if(on[k])continue;
+      var nb=cells[k];
+      if(hasConn(nb,(d+2)%4)){on[k]=true;count++;q.push(nb);}
+    }
+  }
+  for(var i=0;i<cells.length;i++)
+    cells[i].el.classList.toggle('on',!!on[idx(cells[i].r,cells[i].c)]);
+  litEl.textContent=count+'/'+cells.length;
+  return count;
+}
+
+function turn(cell,dir){
+  if(won)return;
+  if(!started){started=true;t0=Date.now();timerId=setInterval(tick,1000);}
+  cell.rot=(cell.rot+dir+4)%4;
+  cell.angle+=dir*90;
+  cell.svg.style.transform='rotate('+cell.angle+'deg)';
+  moves++;movesEl.textContent=moves;
+  if(flow()===cells.length){
+    won=true;clearInterval(timerId);
+    winStats.textContent='Solved in '+moves+' moves \u00B7 '+fmt(elapsed());
+    winEl.classList.remove('hidden');
+  }
+}
+
+function newGame(sz){
+  size=sz;moves=0;won=false;started=false;
+  clearInterval(timerId);
+  movesEl.textContent='0';timeEl.textContent='0:00';
+  winEl.classList.add('hidden');
+  generate();
+  build();
+  // reshuffle in the (vanishingly rare) case the scramble comes out solved
+  do{scramble()}while(flow()===cells.length);
+  ['d5','d7','d9'].forEach(function(id){
+    document.getElementById(id).classList.toggle('active',id==='d'+sz);
+  });
+}
+
+document.getElementById('d5').addEventListener('click',function(){newGame(5)});
+document.getElementById('d7').addEventListener('click',function(){newGame(7)});
+document.getElementById('d9').addEventListener('click',function(){newGame(9)});
+document.getElementById('restart').addEventListener('click',function(){newGame(size)});
+document.getElementById('again').addEventListener('click',function(){newGame(size)});
+
+newGame(7);
+</script>
+</body>
+</html>

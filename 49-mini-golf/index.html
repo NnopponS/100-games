@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mini Golf — 9 Holes</title>
+<style>
+  :root{--bg:#0e1512;--panel:#1a2520;--ink:#e8f0ea;--mut:#9db3a6;--acc:#ffd34d}
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
+       background:radial-gradient(1200px 700px at 50% -10%,#1c2b24,var(--bg));
+       font:14px/1.4 "Segoe UI",system-ui,sans-serif;color:var(--ink);padding:16px}
+  #wrap{width:min(960px,100%)}
+  #hud{display:flex;align-items:center;justify-content:space-between;gap:12px;
+      background:var(--panel);border:1px solid #2c3d34;border-radius:10px 10px 0 0;
+      padding:10px 14px;flex-wrap:wrap}
+  #info{font-weight:600;letter-spacing:.3px}
+  #info b{color:var(--acc)}
+  #hint{color:var(--mut);font-size:12px}
+  .btns{display:flex;gap:8px}
+  button{cursor:pointer;border:1px solid #3a5044;background:#24352c;color:var(--ink);
+         border-radius:8px;padding:6px 12px;font:inherit;font-size:13px}
+  button:hover{background:#2e4437;border-color:#4c6b58}
+  #stage{position:relative}
+  canvas{display:block;width:100%;height:auto;background:#2f8f57;border:1px solid #2c3d34;
+         border-top:none;border-radius:0 0 10px 10px;touch-action:none;cursor:crosshair}
+  #overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+           background:rgba(8,14,11,.72);border-radius:0 0 10px 10px;backdrop-filter:blur(2px)}
+  #overlay.hidden{display:none}
+  .card{background:var(--panel);border:1px solid #3a5044;border-radius:12px;
+        padding:22px 28px;text-align:center;min-width:300px;box-shadow:0 12px 40px rgba(0,0,0,.5)}
+  .card h2{margin:0 0 6px;font-size:20px}
+  .card p{margin:4px 0 14px;color:var(--mut)}
+  .card table{margin:0 auto 14px;border-collapse:collapse;font-size:13px}
+  .card td,.card th{padding:3px 9px;border-bottom:1px solid #2c3d34}
+  .card th{color:var(--mut);font-weight:600}
+  .card .tot td{font-weight:700;color:var(--acc)}
+  .primary{background:#2f7a4d!important;border-color:#3f9c65!important}
+  .primary:hover{background:#37905b!important}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="hud">
+    <div>
+      <div id="info"></div>
+      <div id="hint">Drag back from the ball to aim &amp; set power — release to putt. Bank shots off walls!</div>
+    </div>
+    <div class="btns">
+      <button id="btnHole" title="Reset this hole">↺ Hole</button>
+      <button id="btnGame" title="Restart all 9 holes">Restart Game</button>
+    </div>
+  </div>
+  <div id="stage">
+    <canvas id="cv" width="960" height="640"></canvas>
+    <div id="overlay" class="hidden"></div>
+  </div>
+</div>
+
+<script>
+"use strict";
+const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+const infoEl=document.getElementById("info"), overlay=document.getElementById("overlay");
+const W=960,H=640,M=20;
+const BALL_R=8, CUP_R=11, WALL_T=12, REST=0.72;
+const FRICTION=0.986, SAND_FR=0.90, MAX_DRAG=230, PWR_K=0.055, MAX_V=15;
+const BOUNDARY=[[M,M,W-M,M],[W-M,M,W-M,H-M],[W-M,H-M,M,H-M],[M,H-M,M,M]];
+const PAR_NAMES=s=>s<=-3?"Albatross":s===-2?"Eagle":s===-1?"Birdie":s===0?"Par":s===1?"Bogey":s===2?"Double bogey":"+"+s;
+
+// w: wall segments [x1,y1,x2,y2] | s: sand rects [x,y,w,h] | c: circular obstacles [x,y,r]
+const HOLES=[
+ {par:2,tee:[140,320],cup:[820,320],w:[[480,170,480,460]],s:[],c:[]},
+ {par:3,tee:[140,520],cup:[820,140],w:[[620,260,620,620]],s:[[690,300,160,90]],c:[]},
+ {par:3,tee:[140,320],cup:[810,320],w:[[340,140,640,270],[340,500,640,370]],s:[],c:[]},
+ {par:4,tee:[120,120],cup:[840,540],w:[[20,220,620,220],[340,420,940,420]],s:[],c:[]},
+ {par:3,tee:[140,320],cup:[820,320],w:[],s:[[380,520,200,60]],c:[[480,238,34],[480,402,34]]},
+ {par:3,tee:[140,540],cup:[480,335],w:[[360,220,360,420],[360,420,600,420],[600,220,600,420]],s:[],c:[]},
+ {par:3,tee:[140,320],cup:[820,320],w:[[680,120,680,520]],s:[],c:[]},
+ {par:4,tee:[120,540],cup:[840,540],w:[[320,20,320,380],[560,260,560,620],[780,20,780,300]],s:[],c:[]},
+ {par:4,tee:[130,320],cup:[870,320],w:[[330,120,610,290],[330,520,610,350]],s:[[540,430,170,70]],c:[[770,320,26]]},
+];
+
+let hi=0, strokes=0, scores=[], state="play";
+let ball={x:0,y:0,vx:0,vy:0}, sinkAnim=0;
+let drag={on:false,x:0,y:0};
+let walls=[], lastT=0, overlayTimer=null;
+
+const hole=()=>HOLES[hi];
+const totalStrokes=()=>scores.reduce((a,s)=>a+s,0)+strokes;
+const totalPar=()=>HOLES.slice(0,scores.length).reduce((a,h)=>a+h.par,0)+hole().par;
+
+function loadHole(i){
+  hi=i; strokes=0; state="play"; sinkAnim=0; drag.on=false;
+  const h=hole();
+  ball={x:h.tee[0],y:h.tee[1],vx:0,vy:0};
+  walls=BOUNDARY.concat(h.w);
+  updateInfo(); hideOverlay();
+}
+function updateInfo(){
+  infoEl.innerHTML=`Hole <b>${hi+1}/9</b> · Par ${hole().par} · Strokes <b>${strokes}</b> · Total <b>${totalStrokes()}</b>`;
+}
+function restartHole(){
+  const keep=scores.slice(); // completed-hole scores stay
+  loadHole(hi); scores=keep; updateInfo();
+}
+function restartGame(){ scores=[]; clearTimeout(overlayTimer); loadHole(0); }
+
+// ---------- physics ----------
+function closestOnSeg(x1,y1,x2,y2,px,py){
+  const dx=x2-x1,dy=y2-y1,l2=dx*dx+dy*dy;
+  let t=l2?((px-x1)*dx+(py-y1)*dy)/l2:0; t=Math.max(0,Math.min(1,t));
+  return [x1+dx*t,y1+dy*t];
+}
+function collide(px,py,vx,vy,nx,ny){
+  const dot=vx*nx+vy*ny;
+  if(dot<0){ vx-=2*dot*nx; vy-=2*dot*ny; vx*=REST; vy*=REST; }
+  return [px,py,vx,vy];
+}
+function physStep(f){
+  const h=hole();
+  let vx=ball.vx*f, vy=ball.vy*f;
+  // gentle cup attraction when close
+  const cdx=h.cup[0]-ball.x, cdy=h.cup[1]-ball.y, cd=Math.hypot(cdx,cdy);
+  if(cd<26&&cd>0.01){vx+=cdx/cd*0.05*f;vy+=cdy/cd*0.05*f;}
+  ball.x+=vx; ball.y+=vy;
+  // walls
+  for(const s of walls){
+    const[px,py]=closestOnSeg(s[0],s[1],s[2],s[3],ball.x,ball.y);
+    const dx=ball.x-px,dy=ball.y-py,d=Math.hypot(dx,dy),min=BALL_R+WALL_T/2;
+    if(d<min){
+      let nx,ny;
+      if(d>1e-4){nx=dx/d;ny=dy/d;}else{const l=Math.hypot(s[2]-s[0],s[3]-s[1])||1;nx=-(s[3]-s[1])/l;ny=(s[2]-s[0])/l;}
+      ball.x=px+nx*min; ball.y=py+ny*min;
+      const r=collide(ball.x,ball.y,ball.vx,ball.vy,nx,ny);
+      ball.vx=r[2]; ball.vy=r[3];
+    }
+  }
+  // circular obstacles
+  for(const c of h.c){
+    const dx=ball.x-c[0],dy=ball.y-c[1],d=Math.hypot(dx,dy),min=BALL_R+c[2];
+    if(d<min){
+      const nx=d>1e-4?dx/d:1, ny=d>1e-4?dy/d:0;
+      ball.x=c[0]+nx*min; ball.y=c[1]+ny*min;
+      const r=collide(ball.x,ball.y,ball.vx,ball.vy,nx,ny);
+      ball.vx=r[2]; ball.vy=r[3];
+    }
+  }
+}
+function update(dt){
+  if(state==="sunk"){sinkAnim+=dt;return;}
+  const f=Math.min(dt/16.667,3);
+  const sp=Math.hypot(ball.vx,ball.vy);
+  if(sp>0.001){
+    const steps=Math.max(1,Math.ceil(sp*f/6)); // substep to avoid tunneling
+    for(let i=0;i<steps;i++) physStep(f/steps);
+    const inSand=hole().s.some(r=>ball.x>r[0]&&ball.x<r[0]+r[2]&&ball.y>r[1]&&ball.y<r[1]+r[3]);
+    const fr=Math.pow(inSand?SAND_FR:FRICTION,f);
+    ball.vx*=fr; ball.vy*=fr;
+    if(Math.hypot(ball.vx,ball.vy)<0.07){ball.vx=ball.vy=0;}
+    // cup capture: must be slow enough, else lips out
+    const cd=Math.hypot(hole().cup[0]-ball.x,hole().cup[1]-ball.y);
+    if(cd<CUP_R-1&&Math.hypot(ball.vx,ball.vy)<3.4){
+      ball.vx=ball.vy=0; state="sunk"; sinkAnim=0; onSunk();
+    }
+  }
+}
+
+// ---------- scoring / flow ----------
+function onSunk(){
+  scores[hi]=strokes;
+  const diff=strokes-hole().par;
+  if(hi<HOLES.length-1){
+    showOverlay(`<div class="card"><h2>Hole ${hi+1} — ${PAR_NAMES(diff)}</h2>
+      <p>${strokes} stroke${strokes===1?"":"s"} (par ${hole().par})</p>
+      <button class="primary" id="nextBtn">Next Hole ▸</button></div>`);
+    document.getElementById("nextBtn").onclick=nextHole;
+    overlayTimer=setTimeout(nextHole,1800);
+  }else showScorecard();
+}
+function nextHole(){ clearTimeout(overlayTimer); const keep=scores.slice(); loadHole(hi+1); scores=keep; updateInfo(); }
+function showScorecard(){
+  const tot=scores.reduce((a,b)=>a+b,0), par=HOLES.reduce((a,h)=>a+h.par,0);
+  let rows=HOLES.map((h,i)=>`<tr><td>${i+1}</td><td>${h.par}</td><td>${scores[i]}</td></tr>`).join("");
+  showOverlay(`<div class="card"><h2>Round complete!</h2>
+    <table><tr><th>Hole</th><th>Par</th><th>You</th></tr>${rows}
+    <tr class="tot"><td>Total</td><td>${par}</td><td>${tot} (${PAR_NAMES(tot-par)})</td></tr></table>
+    <button class="primary" id="againBtn">Play Again</button></div>`);
+  document.getElementById("againBtn").onclick=restartGame;
+}
+function showOverlay(html){overlay.innerHTML=html;overlay.classList.remove("hidden");}
+function hideOverlay(){overlay.classList.add("hidden");overlay.innerHTML="";}
+overlay.addEventListener("click",e=>{if(e.target===overlay&&hi<HOLES.length-1&&state==="sunk")nextHole();});
+
+// ---------- input ----------
+function toCanvas(e){
+  const r=cv.getBoundingClientRect();
+  return [(e.clientX-r.left)*W/r.width,(e.clientY-r.top)*H/r.height];
+}
+cv.addEventListener("pointerdown",e=>{
+  if(state!=="play"||Math.hypot(ball.vx,ball.vy)>0.001)return;
+  const[x,y]=toCanvas(e);
+  if(Math.hypot(x-ball.x,y-ball.y)<46){drag.on=true;drag.x=x;drag.y=y;cv.setPointerCapture(e.pointerId);}
+});
+cv.addEventListener("pointermove",e=>{if(drag.on){const[x,y]=toCanvas(e);drag.x=x;drag.y=y;}});
+cv.addEventListener("pointerup",e=>{
+  if(!drag.on)return; drag.on=false;
+  const dx=ball.x-drag.x, dy=ball.y-drag.y, d=Math.hypot(dx,dy);
+  if(d<8)return; // too small, cancel
+  const p=Math.min(d,MAX_DRAG)*PWR_K;
+  ball.vx=dx/d*p; ball.vy=dy/d*p;
+  const sp=Math.hypot(ball.vx,ball.vy);
+  if(sp>MAX_V){ball.vx*=MAX_V/sp;ball.vy*=MAX_V/sp;}
+  strokes++; updateInfo();
+});
+document.getElementById("btnHole").onclick=restartHole;
+document.getElementById("btnGame").onclick=restartGame;
+document.addEventListener("keydown",e=>{if(e.key==="r"||e.key==="R")document.getElementById("btnHole").click();});
+
+// ---------- render ----------
+function drawCourse(){
+  // felt
+  ctx.fillStyle="#2f8f57";ctx.fillRect(0,0,W,H);
+  ctx.save();ctx.globalAlpha=0.06;ctx.fillStyle="#fff";
+  for(let y=0;y<H;y+=40)for(let x=(y/40%2)*20;x<W;x+=40)ctx.fillRect(x,y,20,20);
+  ctx.restore();
+  const h=hole();
+  // sand traps
+  for(const r of h.s){
+    ctx.fillStyle="#d8c58a";
+    ctx.beginPath();ctx.roundRect(r[0],r[1],r[2],r[3],14);ctx.fill();
+    ctx.strokeStyle="#b6a26a";ctx.lineWidth=2;ctx.stroke();
+  }
+  // tee marker
+  ctx.strokeStyle="rgba(255,255,255,.35)";ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.arc(h.tee[0],h.tee[1],12,0,7);ctx.stroke();
+  // cup
+  ctx.fillStyle="#0d1410";
+  ctx.beginPath();ctx.arc(h.cup[0],h.cup[1],CUP_R,0,7);ctx.fill();
+  ctx.strokeStyle="#cfe8d8";ctx.lineWidth=2;ctx.stroke();
+  // flag
+  ctx.strokeStyle="#e8e8e8";ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(h.cup[0],h.cup[1]);ctx.lineTo(h.cup[0],h.cup[1]-34);ctx.stroke();
+  ctx.fillStyle="#e2443b";
+  ctx.beginPath();ctx.moveTo(h.cup[0],h.cup[1]-34);ctx.lineTo(h.cup[0]+20,h.cup[1]-28);ctx.lineTo(h.cup[0],h.cup[1]-22);ctx.fill();
+  // walls
+  ctx.lineCap="round";ctx.lineWidth=WALL_T;
+  for(const s of walls){
+    ctx.strokeStyle="#5a3d22";ctx.beginPath();ctx.moveTo(s[0],s[1]);ctx.lineTo(s[2],s[3]);ctx.stroke();
+    ctx.strokeStyle="#8a6236";ctx.lineWidth=WALL_T-5;ctx.beginPath();ctx.moveTo(s[0],s[1]);ctx.lineTo(s[2],s[3]);ctx.stroke();
+    ctx.lineWidth=WALL_T;
+  }
+  // circular obstacles
+  for(const c of h.c){
+    ctx.fillStyle="#5a3d22";ctx.beginPath();ctx.arc(c[0],c[1],c[2],0,7);ctx.fill();
+    ctx.fillStyle="#8a6236";ctx.beginPath();ctx.arc(c[0],c[1],c[2]-4,0,7);ctx.fill();
+  }
+}
+function drawBall(){
+  const r=state==="sunk"?Math.max(0,BALL_R*(1-sinkAnim/300)):BALL_R;
+  if(r<=0)return;
+  ctx.fillStyle="rgba(0,0,0,.25)";
+  ctx.beginPath();ctx.ellipse(ball.x+2,ball.y+3,r,r*0.8,0,0,7);ctx.fill();
+  const g=ctx.createRadialGradient(ball.x-2.5,ball.y-2.5,1,ball.x,ball.y,r);
+  g.addColorStop(0,"#ffffff");g.addColorStop(1,"#c9ccd2");
+  ctx.fillStyle=g;ctx.beginPath();ctx.arc(ball.x,ball.y,r,0,7);ctx.fill();
+  ctx.strokeStyle="#9aa0a8";ctx.lineWidth=1;ctx.stroke();
+}
+function drawAim(){
+  if(!drag.on)return;
+  const dx=ball.x-drag.x,dy=ball.y-drag.y,d=Math.hypot(dx,dy);
+  if(d<8)return;
+  const p=Math.min(d,MAX_DRAG),vx=dx/d,vy=dy/d;
+  // pull-back line
+  ctx.strokeStyle="rgba(255,255,255,.4)";ctx.lineWidth=1.5;ctx.setLineDash([4,4]);
+  ctx.beginPath();ctx.moveTo(ball.x,ball.y);ctx.lineTo(drag.x,drag.y);ctx.stroke();
+  ctx.setLineDash([]);
+  // aim arrow (dotted, scales with power)
+  const len=40+p*1.1;
+  ctx.strokeStyle="#ffd34d";ctx.lineWidth=3;ctx.setLineDash([2,9]);ctx.lineCap="round";
+  ctx.beginPath();ctx.moveTo(ball.x+vx*14,ball.y+vy*14);
+  ctx.lineTo(ball.x+vx*len,ball.y+vy*len);ctx.stroke();ctx.setLineDash([]);
+  // arrowhead
+  const ax=ball.x+vx*len,ay=ball.y+vy*len,px=-vy,py=vx;
+  ctx.fillStyle="#ffd34d";
+  ctx.beginPath();ctx.moveTo(ax+vx*10,ay+vy*10);
+  ctx.lineTo(ax+px*6,ay+py*6);ctx.lineTo(ax-px*6,ay-py*6);ctx.fill();
+  // power bar
+  const pw=p/MAX_DRAG;
+  ctx.fillStyle="rgba(0,0,0,.45)";ctx.fillRect(W/2-110,H-26,220,12);
+  ctx.fillStyle=pw<.5?"#7bd88a":pw<.8?"#ffd34d":"#ff6b57";
+  ctx.fillRect(W/2-108,H-24,216*pw,8);
+  ctx.strokeStyle="rgba(255,255,255,.4)";ctx.lineWidth=1;
+  ctx.strokeRect(W/2-110,H-26,220,12);
+}
+function frame(t){
+  const dt=lastT?Math.min(t-lastT,50):16.667; lastT=t;
+  update(dt);
+  drawCourse(); drawBall(); drawAim();
+  requestAnimationFrame(frame);
+}
+ctx.roundRect=ctx.roundRect||function(x,y,w,h,r){this.moveTo(x+r,y);this.arcTo(x+w,y,x+w,y+h,r);this.arcTo(x+w,y+h,x,y+h,r);this.arcTo(x,y+h,x,y,r);this.arcTo(x,y,x+w,y,r);};
+loadHole(0);
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Kite Flyer</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{min-height:100vh;background:#0c2d48;color:#fff;font-family:system-ui,-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;padding:12px}
+  .wrap{position:relative;width:min(620px,100%);display:flex;flex-direction:column;gap:8px}
+  .hud{display:flex;justify-content:space-between;background:#143d5e;border:1px solid #2e6b9e;padding:9px 14px;border-radius:12px;font-weight:800}
+  .hud span{color:#fde047}
+  canvas{width:100%;height:auto;aspect-ratio:600/420;border-radius:14px;border:2px solid #2e6b9e;display:block;touch-action:none}
+  .ov{position:absolute;inset:48px 0 0 0;background:rgba(9,25,42,.82);border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;gap:12px}
+  .ov.hidden{display:none}
+  .btn{padding:11px 28px;border:none;border-radius:999px;background:linear-gradient(135deg,#fde047,#f97316);color:#0f172a;font-weight:900;font-size:1rem;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hud">
+    <div>Score: <span id="score">0</span></div>
+    <div>Best: <span id="best">0</span></div>
+  </div>
+  <canvas id="c" width="600" height="420"></canvas>
+  <div class="ov" id="ov">
+    <h1 id="ovT" style="color:#fde047">KITE FLYER</h1>
+    <p id="ovP" style="color:#e0f2fe;max-width:340px">Steer your kite with Arrow Keys / WASD or Drag! Ride wind gusts, fly through golden rings, and dodge incoming birds.</p>
+    <button class="btn" id="startBtn">Fly Kite</button>
+  </div>
+</div>
+<script>
+(() => {
+  const c = document.getElementById('c'), ctx = c.getContext('2d');
+  const W = c.width, H = c.height;
+  const scoreEl = document.getElementById('score'), bestEl = document.getElementById('best');
+  const ov = document.getElementById('ov'), ovT = document.getElementById('ovT'), ovP = document.getElementById('ovP'), startBtn = document.getElementById('startBtn');
+
+  let best = Number(localStorage.getItem('kite_best') || 0);
+  bestEl.textContent = best;
+
+  let state = 'idle', kite = { x: 120, y: H/2 }, rings = [], birds = [], clouds = [], score = 0, spawnT = 0, keys = {}, dragPos = null;
+  for (let i = 0; i < 6; i++) clouds.push({ x: Math.random()*W, y: 40 + Math.random()*280, s: 25 + Math.random()*30 });
+
+  function reset() {
+    kite = { x: 120, y: H/2 };
+    rings = []; birds = []; score = 0; spawnT = 0.5;
+    scoreEl.textContent = '0';
+    state = 'play';
+    ov.classList.add('hidden');
+  }
+
+  let last = performance.now();
+  function loop(now) {
+    const dt = Math.min(0.04, (now - last) / 1000);
+    last = now;
+    if (state === 'play') update(dt, now/1000);
+    draw(now/1000);
+    requestAnimationFrame(loop);
+  }
+
+  function update(dt) {
+    let dx = 0, dy = 0;
+    if (keys.ArrowLeft || keys.KeyA) dx -= 1;
+    if (keys.ArrowRight || keys.KeyD) dx += 1;
+    if (keys.ArrowUp || keys.KeyW) dy -= 1;
+    if (keys.ArrowDown || keys.KeyS) dy += 1;
+    if (dragPos) {
+      kite.x += (dragPos.x - kite.x) * Math.min(1, dt * 10);
+      kite.y += (dragPos.y - kite.y) * Math.min(1, dt * 10);
+    } else if (dx || dy) {
+      const m = Math.hypot(dx, dy);
+      kite.x += (dx/m) * 260 * dt;
+      kite.y += (dy/m) * 260 * dt;
+    }
+    kite.x = Math.max(30, Math.min(W - 30, kite.x));
+    kite.y = Math.max(30, Math.min(H - 30, kite.y));
+
+    score += dt * 5;
+    const disp = Math.floor(score);
+    scoreEl.textContent = disp;
+    if (disp > best) { best = disp; bestEl.textContent = best; localStorage.setItem('kite_best', String(best)); }
+
+    spawnT -= dt;
+    if (spawnT <= 0) {
+      if (Math.random() < 0.45) {
+        rings.push({ x: W + 25, y: 45 + Math.random()*(H - 90), r: 18, spd: 165 });
+      } else {
+        birds.push({ x: W + 25, y: 40 + Math.random()*(H - 80), r: 14, spd: 195 + Math.min(120, score * 0.6) });
+      }
+      spawnT = 0.65;
+    }
+
+    for (const cl of clouds) {
+      cl.x -= cl.s * dt;
+      if (cl.x < -70) { cl.x = W + 70; cl.y = 40 + Math.random()*280; }
+    }
+
+    for (let i = rings.length - 1; i >= 0; i--) {
+      const rg = rings[i];
+      rg.x -= rg.spd * dt;
+      if (Math.hypot(kite.x - rg.x, kite.y - rg.y) < rg.r + 16) {
+        score += 25;
+        rings.splice(i, 1);
+      } else if (rg.x < -30) rings.splice(i, 1);
+    }
+
+    for (let i = birds.length - 1; i >= 0; i--) {
+      const b = birds[i];
+      b.x -= b.spd * dt;
+      if (Math.hypot(kite.x - b.x, kite.y - b.y) < b.r + 14) {
+        state = 'over';
+        ovT.textContent = 'KITE TANGLED!';
+        ovP.textContent = `Final Score: ${Math.floor(score)}`;
+        startBtn.textContent = 'Fly Again';
+        ov.classList.remove('hidden');
+        return;
+      }
+      if (b.x < -30) birds.splice(i, 1);
+    }
+  }
+
+  function draw(t) {
+    const sky = ctx.createLinearGradient(0, 0, 0, H);
+    sky.addColorStop(0, '#0ea5e9'); sky.addColorStop(1, '#bae6fd');
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, W, H);
+
+    // Clouds
+    ctx.fillStyle = 'rgba(255,255,255,.75)';
+    for (const cl of clouds) {
+      ctx.beginPath(); ctx.arc(cl.x, cl.y, 22, 0, Math.PI*2); ctx.arc(cl.x+20, cl.y-6, 18, 0, Math.PI*2); ctx.arc(cl.x+38, cl.y+2, 16, 0, Math.PI*2); ctx.fill();
+    }
+
+    // Rings
+    for (const rg of rings) {
+      ctx.strokeStyle = '#facc15'; ctx.lineWidth = 5;
+      ctx.beginPath(); ctx.arc(rg.x, rg.y, rg.r, 0, Math.PI*2); ctx.stroke();
+    }
+
+    // Birds
+    for (const b of birds) {
+      ctx.font = '26px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('🦅', b.x, b.y);
+    }
+
+    // Kite tail + diamond
+    ctx.strokeStyle = 'rgba(255,255,255,.8)'; ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(kite.x - 16, kite.y + 8);
+    ctx.quadraticCurveTo(kite.x - 45, kite.y + 18 + Math.sin(t*8)*10, kite.x - 75, kite.y + 24 + Math.cos(t*7)*12);
+    ctx.stroke();
+
+    ctx.fillStyle = '#f43f5e';
+    ctx.beginPath();
+    ctx.moveTo(kite.x + 18, kite.y);
+    ctx.lineTo(kite.x, kite.y - 16);
+    ctx.lineTo(kite.x - 20, kite.y);
+    ctx.lineTo(kite.x, kite.y + 16);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = '#fef08a'; ctx.lineWidth = 2; ctx.stroke();
+  }
+
+  window.addEventListener('keydown', e => {
+    keys[e.code] = true;
+    if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)) e.preventDefault();
+  });
+  window.addEventListener('keyup', e => { keys[e.code] = false; });
+  c.addEventListener('pointerdown', e => {
+    const r = c.getBoundingClientRect();
+    dragPos = { x: (e.clientX - r.left)*W/r.width, y: (e.clientY - r.top)*H/r.height };
+  });
+  c.addEventListener('pointermove', e => {
+    if (!dragPos) return;
+    const r = c.getBoundingClientRect();
+    dragPos = { x: (e.clientX - r.left)*W/r.width, y: (e.clientY - r.top)*H/r.height };
+  });
+  window.addEventListener('pointerup', () => dragPos = null);
+  startBtn.onclick = reset;
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

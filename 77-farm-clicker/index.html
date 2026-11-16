@@ -1,0 +1,1323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Farm Clicker 🌻</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='0.9em' font-size='90'%3E%F0%9F%8C%BB%3C/text%3E%3C/svg%3E">
+<style>
+  :root{
+    --ink:#2f2418;
+    --muted:#7b6a55;
+    --card:rgba(255,255,255,.82);
+    --green:#3f7d3a;
+    --green-dark:#2c5c2a;
+    --gold:#f6b73c;
+    --gold-dark:#c9821c;
+    --radius:18px;
+    --shadow:0 12px 30px rgba(74,52,28,.16);
+  }
+  *{box-sizing:border-box}
+  html,body{min-height:100%}
+  body{
+    margin:0;
+    color:var(--ink);
+    font-family:"Segoe UI","Trebuchet MS",system-ui,-apple-system,sans-serif;
+    background:
+      radial-gradient(900px 420px at 12% -10%, #fff2b8 0%, rgba(255,242,184,0) 60%),
+      radial-gradient(700px 380px at 95% 0%, #c9ecff 0%, rgba(201,236,255,0) 55%),
+      linear-gradient(180deg,#d9f0ff 0%, #eef8da 38%, #fdf3e0 100%);
+    background-attachment:fixed;
+    min-height:100vh;
+    overflow-x:hidden;
+    -webkit-tap-highlight-color:transparent;
+  }
+  :focus-visible{outline:3px solid #ffd75e;outline-offset:2px}
+
+  /* ---------- Scenery ---------- */
+  .scene{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:0}
+  .sun{
+    position:absolute;top:-70px;right:3%;width:230px;height:230px;border-radius:50%;
+    background:radial-gradient(circle at 40% 40%,#fff8c8,#ffd75e 55%,rgba(255,215,94,0) 72%);
+    filter:blur(1px);opacity:.8;animation:sunGlow 9s ease-in-out infinite;
+  }
+  @keyframes sunGlow{0%,100%{transform:scale(1);opacity:.72}50%{transform:scale(1.07);opacity:.95}}
+  .cloud{position:absolute;background:#fff;border-radius:999px;opacity:.7;filter:blur(.5px)}
+  .cloud::before,.cloud::after{content:"";position:absolute;background:#fff;border-radius:50%}
+  .cloud-a{width:140px;height:38px;top:70px;left:-180px;animation:drift 70s linear infinite}
+  .cloud-a::before{width:60px;height:60px;top:-26px;left:22px}
+  .cloud-a::after{width:44px;height:44px;top:-16px;left:74px}
+  .cloud-b{width:100px;height:28px;top:170px;left:-140px;opacity:.45;animation:drift 95s linear infinite;animation-delay:-35s}
+  .cloud-b::before{width:44px;height:44px;top:-20px;left:16px}
+  .cloud-b::after{width:32px;height:32px;top:-12px;left:52px}
+  @keyframes drift{from{transform:translateX(0)}to{transform:translateX(calc(100vw + 320px))}}
+  .hills{
+    position:absolute;bottom:-90px;left:-10%;right:-10%;height:260px;opacity:.32;
+    background:
+      radial-gradient(60% 100% at 18% 100%,#a9d47f 0%,#a9d47f 60%,transparent 61%),
+      radial-gradient(55% 100% at 52% 100%,#8ec767 0%,#8ec767 60%,transparent 61%),
+      radial-gradient(60% 100% at 88% 100%,#b7dd90 0%,#b7dd90 60%,transparent 61%);
+  }
+
+  /* ---------- Layout ---------- */
+  .app{position:relative;z-index:1;max-width:1120px;margin:0 auto;padding:22px 18px 44px}
+  .topbar{
+    display:flex;align-items:center;gap:18px;flex-wrap:wrap;justify-content:space-between;
+    background:var(--card);backdrop-filter:blur(10px);
+    border:1px solid rgba(255,255,255,.9);border-radius:var(--radius);
+    padding:14px 18px;box-shadow:var(--shadow);
+  }
+  .brand{display:flex;align-items:center;gap:12px;min-width:0}
+  .brand .logo{font-size:40px;line-height:1;filter:drop-shadow(0 4px 6px rgba(0,0,0,.15))}
+  .brand h1{margin:0;font-size:24px;letter-spacing:-.4px}
+  .brand p{margin:1px 0 0;font-size:12px;color:var(--muted)}
+  .stats{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .coin-pill{
+    display:flex;align-items:center;gap:8px;
+    background:linear-gradient(180deg,#fff4cf,#ffe49b);
+    border:1px solid #e9c463;padding:8px 14px;border-radius:999px;
+    font-weight:800;font-size:18px;box-shadow:inset 0 -2px 0 rgba(0,0,0,.06);
+    min-width:104px;justify-content:center;
+  }
+  .coin-pill.pop{animation:coinPop .3s ease}
+  @keyframes coinPop{50%{transform:scale(1.12)}}
+  .level-box{min-width:175px}
+  .level-line{display:flex;justify-content:space-between;gap:12px;font-size:11.5px;font-weight:700;color:#5d4a30;margin-bottom:4px}
+  .level-line b{color:var(--green-dark)}
+  .xpbar{height:10px;background:#e7dcc8;border-radius:999px;overflow:hidden;box-shadow:inset 0 1px 2px rgba(0,0,0,.12)}
+  .xpbar i{display:block;height:100%;width:0%;background:linear-gradient(90deg,#7ec850,#4d9e3f);border-radius:999px;transition:width .25s}
+  .icon-btn{
+    width:42px;height:42px;border-radius:12px;border:1px solid #e2d3b8;background:#fffdf7;
+    font-size:19px;cursor:pointer;transition:transform .15s,box-shadow .15s;
+  }
+  .icon-btn:hover{transform:translateY(-2px);box-shadow:0 6px 12px rgba(0,0,0,.08)}
+  .icon-btn.muted{opacity:.55}
+
+  .help{
+    margin:14px 4px 16px;font-size:12.5px;line-height:1.5;color:#6f5c43;
+    background:rgba(255,255,255,.55);border:1px dashed rgba(111,92,67,.28);
+    padding:9px 14px;border-radius:12px;
+  }
+  .help .keys{display:block;margin-top:3px;font-size:11px;opacity:.8;font-weight:600}
+
+  main{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(330px,.85fr);gap:18px;align-items:start}
+  @media (max-width:900px){main{grid-template-columns:1fr}}
+
+  .farm-card,.shop-card{
+    background:var(--card);backdrop-filter:blur(10px);
+    border:1px solid rgba(255,255,255,.9);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:16px;
+  }
+  .farm-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+  .farm-head h2{margin:0;font-size:18px}
+  .farm-actions{display:flex;gap:8px}
+  .ghost{
+    border:1px solid #dcc9a8;background:#fffdf6;color:#5b4a32;border-radius:10px;
+    padding:7px 11px;font-size:12px;font-weight:700;cursor:pointer;
+    transition:.15s;font-family:inherit;
+  }
+  .ghost:hover{background:#fff4dd;transform:translateY(-1px)}
+  .ghost:active{transform:translateY(1px)}
+
+  /* ---------- Farm grid ---------- */
+  .farm{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  @media (max-width:520px){.farm{grid-template-columns:repeat(3,1fr);gap:8px}}
+  .plot{
+    position:relative;aspect-ratio:1/1.02;border-radius:16px;
+    border:2px solid rgba(70,42,18,.35);
+    background:linear-gradient(180deg,#a8713c 0%,#8a5a2c 40%,#6c431f 100%);
+    box-shadow:inset 0 6px 0 rgba(255,255,255,.08),inset 0 -10px 18px rgba(0,0,0,.25),0 4px 10px rgba(0,0,0,.12);
+    color:#fff;cursor:pointer;padding:0;overflow:hidden;font-family:inherit;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+    transition:transform .12s,box-shadow .2s,border-color .2s,filter .15s;
+    user-select:none;
+  }
+  .plot::before{
+    content:"";position:absolute;inset:0;pointer-events:none;
+    background-image:radial-gradient(rgba(0,0,0,.18) 1.5px,transparent 1.5px);
+    background-size:14px 14px;opacity:.55;
+  }
+  .plot::after{
+    content:"";position:absolute;top:-2px;left:-2px;right:-2px;height:11px;pointer-events:none;
+    background:linear-gradient(90deg,#5fa548,#7bc35e);
+    border-radius:14px 14px 0 0;opacity:.85;
+  }
+  .plot > *{position:relative;z-index:1}
+  .plot:hover{filter:brightness(1.06)}
+  .plot:active{transform:scale(.975)}
+  .plot-art{
+    font-size:42px;line-height:1;transform:scale(var(--s,1));
+    transition:transform .2s ease;filter:drop-shadow(0 3px 2px rgba(0,0,0,.35));
+  }
+  .plot-name{font-size:11px;font-weight:800;letter-spacing:.2px;text-shadow:0 1px 2px rgba(0,0,0,.45);min-height:13px}
+  .plot-timer{font-size:10.5px;font-weight:700;color:#ffe9b8;text-shadow:0 1px 2px rgba(0,0,0,.45);min-height:13px}
+  .plot-bar{
+    position:absolute;left:10px;right:10px;bottom:9px;height:6px;border-radius:999px;
+    background:rgba(0,0,0,.38);overflow:hidden;z-index:2;
+  }
+  .plot-bar i{display:block;height:100%;width:0%;border-radius:999px;background:linear-gradient(90deg,#a8e063,#56ab2f);transition:width .18s linear}
+
+  .plot.empty{
+    background:linear-gradient(180deg,#9c6a39,#7a4c22 55%,#5e3a19);
+    border-style:dashed;border-color:rgba(255,236,190,.38);
+  }
+  .plot.empty .plot-art{font-size:34px;color:rgba(255,236,190,.85);font-weight:300;text-shadow:none;filter:none}
+  .plot.empty:hover{background:linear-gradient(180deg,#a97544,#84552a 55%,#68411c)}
+
+  .plot.ripe{
+    border-color:#ffd75e;
+    animation:ripePulse 1.5s ease-in-out infinite;
+  }
+  .plot.ripe .plot-art{animation:readyBounce .9s ease-in-out infinite}
+  .plot.ripe .plot-name{color:#ffe066}
+  .plot.ripe .plot-timer{color:#fff3c4}
+  .plot.ripe .plot-bar i{background:linear-gradient(90deg,#ffe066,#f6b73c)}
+  @keyframes readyBounce{0%,100%{transform:scale(1.02) translateY(0)}50%{transform:scale(1.13) translateY(-4px)}}
+  @keyframes ripePulse{
+    0%,100%{box-shadow:0 0 0 3px rgba(255,215,94,.45),0 0 20px rgba(255,199,54,.4),inset 0 -10px 18px rgba(0,0,0,.2)}
+    50%{box-shadow:0 0 0 4px rgba(255,215,94,.7),0 0 32px rgba(255,199,54,.65),inset 0 -10px 18px rgba(0,0,0,.2)}
+  }
+
+  .plot.locked{
+    background:linear-gradient(180deg,#6f675e,#4d4740);
+    border-color:rgba(255,255,255,.16);
+    box-shadow:inset 0 -8px 14px rgba(0,0,0,.3);
+  }
+  .plot.locked::after{opacity:.22}
+  .plot.locked.next-plot{
+    background:linear-gradient(180deg,#7d6a52,#5d4a35);
+    border-color:rgba(255,215,94,.42);
+  }
+  .plot.locked.next-plot:hover{filter:brightness(1.1)}
+  .plot-lock{
+    position:absolute;inset:0;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:6px;z-index:2;
+  }
+  .lock-icon{font-size:26px;opacity:.7;filter:grayscale(1)}
+  .lock-cost{
+    font-size:10.5px;font-weight:800;color:#ffe9b8;background:rgba(0,0,0,.32);
+    padding:3px 8px;border-radius:999px;display:none;white-space:nowrap;
+  }
+  .plot.locked.next-plot .lock-cost{display:inline-block}
+
+  .farm-foot{
+    display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;
+    font-size:11.5px;color:#6f5c43;margin-top:12px;font-weight:600;
+  }
+  .farm-foot b{color:#4f3d26}
+
+  /* ---------- Shop ---------- */
+  .tabs{display:flex;gap:6px;background:#efe5d2;border-radius:12px;padding:4px;margin-bottom:12px}
+  .tab{
+    flex:1;border:none;background:transparent;border-radius:9px;padding:8px;
+    font-weight:800;font-size:13px;color:#7a6649;cursor:pointer;font-family:inherit;
+    transition:.15s;
+  }
+  .tab.active{background:#fff;color:#3f3a2f;box-shadow:0 2px 6px rgba(0,0,0,.08)}
+  .panel{max-height:540px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding-right:4px}
+  .panel.hidden{display:none}
+  .panel::-webkit-scrollbar{width:8px}
+  .panel::-webkit-scrollbar-thumb{background:#d9c9ae;border-radius:99px}
+  @media (max-width:900px){.panel{max-height:none;overflow:visible}}
+
+  .seed{
+    display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+    padding:10px 12px;border-radius:13px;border:1.5px solid #e8dcc7;
+    background:#fffdf8;cursor:pointer;font-family:inherit;color:var(--ink);
+    transition:.15s;
+  }
+  .seed:hover{border-color:#cdbb9a;transform:translateY(-1px);box-shadow:0 4px 10px rgba(0,0,0,.06)}
+  .seed.selected{border-color:#5aa14b;background:#f3fbe9;box-shadow:0 0 0 2px rgba(90,161,75,.18)}
+  .seed.locked{opacity:.55;cursor:not-allowed;filter:grayscale(.6);transform:none}
+  .seed.poor{opacity:.78}
+  .seed-emoji{font-size:26px;width:32px;text-align:center;flex:none;line-height:1}
+  .seed-main{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
+  .seed-name{font-weight:800;font-size:14px}
+  .seed-meta{font-size:10.5px;color:#8a7357;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .seed-side{
+    font-size:10.5px;font-weight:800;color:#7c6a51;background:#f2e9d8;
+    border-radius:999px;padding:4px 9px;flex:none;white-space:nowrap;
+  }
+  .seed.selected .seed-side{background:#5aa14b;color:#fff}
+
+  .upg{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1.5px solid #e8dcc7;border-radius:13px;background:#fffdf8}
+  .upg-icon{font-size:24px;width:32px;text-align:center;flex:none;line-height:1}
+  .upg-main{flex:1;min-width:0}
+  .upg-title{display:flex;justify-content:space-between;gap:8px;font-size:13.5px;align-items:center}
+  .upg-lvl{font-size:10px;font-weight:800;color:#8a7357;background:#f2e9d8;padding:2px 7px;border-radius:999px;white-space:nowrap}
+  .upg-desc{font-size:10.5px;color:#8a7357;font-weight:600;line-height:1.35;margin-top:1px}
+  .dots{display:flex;gap:3px;margin-top:5px}
+  .dots i{width:16px;height:5px;border-radius:99px;background:#e4d8c4}
+  .dots i.on{background:linear-gradient(90deg,#7ec850,#4d9e3f)}
+  .buy-btn{
+    flex:none;border:none;border-radius:10px;padding:9px 10px;font-weight:800;
+    font-size:11.5px;font-family:inherit;cursor:pointer;
+    background:linear-gradient(180deg,#ffd764,#f0a92c);color:#5a3a05;
+    box-shadow:0 3px 0 #c9821c,0 4px 8px rgba(0,0,0,.12);
+    transition:.12s;white-space:nowrap;
+  }
+  .buy-btn:hover{transform:translateY(-1px);filter:brightness(1.03)}
+  .buy-btn:active{transform:translateY(1px);box-shadow:0 1px 0 #c9821c}
+  .buy-btn.poor{background:linear-gradient(180deg,#efe7d7,#d9cbb3);color:#8b7a61;box-shadow:0 3px 0 #bfb098}
+  .buy-btn.locked{background:#eee6d8;color:#9a8a72;box-shadow:0 3px 0 #d5c8b4;font-size:10px}
+  .buy-btn.owned{background:#e7f3dc;color:#4a7a3d;box-shadow:none;cursor:default}
+  .buy-btn.maxed{background:#e7f3dc;color:#4a7a3d;box-shadow:none;cursor:default}
+
+  .shop-foot{
+    display:flex;justify-content:space-between;align-items:center;gap:10px;
+    margin-top:12px;padding-top:10px;border-top:1px dashed #e0d2ba;
+    font-size:11px;color:#8a7357;
+  }
+  .danger-ghost{
+    border:1px solid #e6c4bd;background:#fff7f5;color:#a55345;border-radius:9px;
+    padding:5px 9px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;
+  }
+  .danger-ghost:hover{background:#ffefe9}
+  #saveState{font-weight:700}
+  #saveState.flash{color:#4d9e3f}
+
+  /* ---------- Toasts & FX ---------- */
+  .toasts{
+    position:fixed;right:16px;bottom:16px;display:flex;flex-direction:column;
+    gap:8px;z-index:80;max-width:min(370px,90vw);
+  }
+  .toast{
+    background:rgba(47,36,24,.93);color:#fff8ea;padding:10px 14px;border-radius:12px;
+    font-size:12.5px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.25);
+    animation:toastIn .25s ease;line-height:1.4;border-left:4px solid #f6b73c;
+  }
+  .toast.good{border-left-color:#6fc75a}
+  .toast.warn{border-left-color:#e5735a}
+  .toast.level{border-left-color:#ffd75e;background:rgba(72,47,12,.96)}
+  .toast.out{animation:toastOut .35s ease forwards}
+  @keyframes toastIn{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:none}}
+  @keyframes toastOut{to{opacity:0;transform:translateX(24px)}}
+
+  .fx-layer{position:fixed;inset:0;pointer-events:none;z-index:50;overflow:hidden}
+  .float-text{
+    position:absolute;transform:translate(-50%,-50%);font-weight:900;font-size:19px;
+    color:#fff;text-shadow:0 2px 0 #7a4b12,0 0 12px rgba(0,0,0,.35);
+    animation:floatUp .95s ease-out forwards;white-space:nowrap;
+  }
+  .float-text.gold{color:#ffe066;font-size:25px;text-shadow:0 2px 0 #8a5a00,0 0 16px rgba(255,215,94,.8)}
+  .float-text.small{font-size:13px;letter-spacing:1px}
+  @keyframes floatUp{
+    0%{opacity:0;transform:translate(-50%,-50%) scale(.6)}
+    15%{opacity:1;transform:translate(-50%,-90%) scale(1.15)}
+    100%{opacity:0;transform:translate(-50%,-230%) scale(1)}
+  }
+  .spark{
+    position:absolute;font-size:16px;opacity:0;
+    animation:sparkFly .8s ease-out forwards;
+  }
+  @keyframes sparkFly{
+    0%{opacity:1;transform:translate(-50%,-50%) scale(.4)}
+    100%{opacity:0;transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(1.15)}
+  }
+
+  @media (max-width:640px){
+    .app{padding:12px 10px 32px}
+    .topbar{padding:12px}
+    .brand h1{font-size:20px}
+    .brand p{display:none}
+    .stats{width:100%;justify-content:space-between}
+    .level-box{min-width:140px;flex:1}
+    .farm-card,.shop-card{padding:12px}
+    .plot-art{font-size:34px}
+    .plot-name,.plot-timer{font-size:10px}
+    .farm-head h2{font-size:16px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .sun,.cloud,.plot.ripe,.plot.ripe .plot-art{animation:none}
+  }
+</style>
+</head>
+<body>
+
+<div class="scene" aria-hidden="true">
+  <div class="sun"></div>
+  <div class="cloud cloud-a"></div>
+  <div class="cloud cloud-b"></div>
+  <div class="hills"></div>
+</div>
+
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">🌻</span>
+      <div>
+        <h1>Farm Clicker</h1>
+        <p>Plant. Grow. Harvest. Repeat.</p>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="coin-pill" id="coinPill"><span>🪙</span><strong id="coins">12</strong></div>
+      <div class="level-box">
+        <div class="level-line"><span>Level <b id="level">1</b></span><span id="xpText">0 / 10 XP</span></div>
+        <div class="xpbar"><i id="xpFill"></i></div>
+      </div>
+      <button id="soundBtn" class="icon-btn" title="Toggle sound" aria-label="Toggle sound">🔊</button>
+    </div>
+  </header>
+
+  <p class="help">
+    🌱 Pick a seed → click empty soil to plant → click the crop when it’s ripe. Keep clicking a growing crop to water it. Your farm saves automatically and crops keep growing while you’re away.
+    <span class="keys">Shortcuts: 1–6 select seeds · P plant all · H harvest all</span>
+  </p>
+
+  <main>
+    <section class="farm-card">
+      <div class="farm-head">
+        <h2>🌾 Your Farm</h2>
+        <div class="farm-actions">
+          <button id="plantAll" class="ghost" title="Plant the selected seed on every empty plot">🌱 Plant All</button>
+          <button id="harvestAll" class="ghost" title="Harvest every ripe crop">🧺 Harvest All</button>
+        </div>
+      </div>
+      <div id="farm" class="farm"></div>
+      <div class="farm-foot">
+        <span id="farmHint"></span>
+        <span id="statLine"></span>
+      </div>
+    </section>
+
+    <aside class="shop-card">
+      <div class="tabs">
+        <button class="tab active" data-tab="seeds">🌱 Seeds</button>
+        <button class="tab" data-tab="upgrades">⚙️ Upgrades</button>
+      </div>
+      <div id="seedsPanel" class="panel"></div>
+      <div id="upgradesPanel" class="panel hidden"></div>
+      <div class="shop-foot">
+        <button id="resetBtn" class="danger-ghost">Reset save</button>
+        <span id="saveState">Saved locally</span>
+      </div>
+    </aside>
+  </main>
+</div>
+
+<div id="toasts" class="toasts" aria-live="polite"></div>
+<div id="fx" class="fx-layer" aria-hidden="true"></div>
+
+<script>
+(function(){
+  'use strict';
+
+  /* ============================== Config ============================== */
+  const SAVE_KEY = 'farm-clicker-save-v1';
+  const SLOTS = 16;
+  const START_PLOTS = 9;
+  const PLOT_COSTS = [200, 700, 2000, 5000, 12000, 26000, 55000];
+  const LEVEL_STEPS = [10, 18, 32, 60, 100, 160, 240, 360, 520, 700, 900, 1200, 1500, 2000, 2600];
+  const GOLDEN_CHANCE = 0.08;
+  const GOLDEN_MULT = 3;
+  const SPRINKLER_COSTS = [50, 130, 320, 800, 1900];
+  const FERTILIZER_COSTS = [60, 150, 380, 900, 2200];
+  const AUTO_HARVEST_COST = 1500;
+  const AUTO_REPLANT_COST = 900;
+  const WATER_CLICK_MS = 300;
+  const WATER_MAX_FRACTION = 0.3;
+
+  const CROPS = [
+    { id:'wheat',      name:'Wheat',      emoji:'🌾', seed:2,   sell:6,    grow:5000,   xp:2,  unlockLevel:1  },
+    { id:'carrot',     name:'Carrot',     emoji:'🥕', seed:8,   sell:24,   grow:12000,  xp:4,  unlockLevel:2  },
+    { id:'strawberry', name:'Strawberry', emoji:'🍓', seed:25,  sell:80,   grow:25000,  xp:7,  unlockLevel:3  },
+    { id:'corn',       name:'Corn',       emoji:'🌽', seed:70,  sell:240,  grow:45000,  xp:12, unlockLevel:5  },
+    { id:'pumpkin',    name:'Pumpkin',    emoji:'🎃', seed:180, sell:700,  grow:80000,  xp:20, unlockLevel:7  },
+    { id:'pineapple',  name:'Pineapple',  emoji:'🍍', seed:500, sell:2200, grow:150000, xp:40, unlockLevel:10 }
+  ];
+  const CROP_MAP = {};
+  CROPS.forEach(function(c){ CROP_MAP[c.id] = c; });
+
+  /* ============================== DOM ============================== */
+  function $(sel){ return document.querySelector(sel); }
+  const els = {
+    coins: $('#coins'),
+    coinPill: $('#coinPill'),
+    level: $('#level'),
+    xpText: $('#xpText'),
+    xpFill: $('#xpFill'),
+    soundBtn: $('#soundBtn'),
+    farm: $('#farm'),
+    farmHint: $('#farmHint'),
+    statLine: $('#statLine'),
+    plantAll: $('#plantAll'),
+    harvestAll: $('#harvestAll'),
+    seedsPanel: $('#seedsPanel'),
+    upgradesPanel: $('#upgradesPanel'),
+    resetBtn: $('#resetBtn'),
+    saveState: $('#saveState'),
+    toasts: $('#toasts'),
+    fx: $('#fx'),
+    tabs: Array.prototype.slice.call(document.querySelectorAll('.tab'))
+  };
+
+  /* ============================== State ============================== */
+  function defaultState(){
+    const now = Date.now();
+    return {
+      coins: 12,
+      xp: 0,
+      selected: 'wheat',
+      plots: Array.from({ length: SLOTS }, function(_, i){
+        return { unlocked: i < START_PLOTS, crop: null, plantedAt: 0, watered: 0 };
+      }),
+      upgrades: { sprinkler: 0, fertilizer: 0, autoHarvest: false, autoReplant: false },
+      sound: true,
+      stats: { harvests: 0, earned: 0, planted: 0 },
+      lastSeen: now,
+      created: now
+    };
+  }
+
+  let state = defaultState();
+  let lastLevel = 1;
+  let dirty = false;
+  let saveTimer = null;
+  let actx = null;
+
+  /* ============================== Helpers ============================== */
+  function xpForLevel(l){
+    return l <= LEVEL_STEPS.length
+      ? LEVEL_STEPS[l - 1]
+      : 2600 + (l - LEVEL_STEPS.length - 1) * 800;
+  }
+
+  function levelInfo(total){
+    total = Math.max(0, Number(total) || 0);
+    let level = 1;
+    let rem = total;
+    while (rem >= xpForLevel(level)){
+      rem -= xpForLevel(level);
+      level++;
+    }
+    return { level: level, into: rem, need: xpForLevel(level) };
+  }
+
+  function growMs(crop){
+    return Math.round(crop.grow * Math.pow(0.88, state.upgrades.sprinkler));
+  }
+
+  function sellFor(crop, level, golden){
+    const base = crop.sell
+      * (1 + 0.2 * state.upgrades.fertilizer)
+      * (1 + 0.02 * (level - 1));
+    return Math.round(base * (golden ? GOLDEN_MULT : 1));
+  }
+
+  function fmtNum(n){
+    n = Math.max(0, Number(n) || 0);
+    if (n < 1000) return String(Math.round(n));
+    if (n < 1e6) return trim((n / 1e3).toFixed(n < 1e4 ? 1 : 0)) + 'K';
+    if (n < 1e9) return trim((n / 1e6).toFixed(n < 1e7 ? 2 : 1)) + 'M';
+    return trim((n / 1e9).toFixed(2)) + 'B';
+  }
+  function trim(s){
+    return s.replace(/\.0+$/, '').replace(/(\.\d*?)0+$/, '$1');
+  }
+
+  function fmtTime(ms){
+    const s = Math.max(0, Math.ceil(ms / 1000));
+    if (s < 60) return s + 's';
+    const m = Math.floor(s / 60);
+    const rs = s % 60;
+    if (m < 60) return m + 'm ' + String(rs).padStart(2, '0') + 's';
+    return Math.floor(m / 60) + 'h ' + String(m % 60).padStart(2, '0') + 'm';
+  }
+
+  function unlockedCount(){
+    return state.plots.filter(function(p){ return p.unlocked; }).length;
+  }
+  function nextPlotCost(){
+    const bought = unlockedCount() - START_PLOTS;
+    return bought < PLOT_COSTS.length ? PLOT_COSTS[bought] : null;
+  }
+  function firstLockedIndex(){
+    return state.plots.findIndex(function(p){ return !p.unlocked; });
+  }
+
+  /* ============================== Audio ============================== */
+  function audio(){
+    if (!state.sound) return null;
+    try {
+      if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+      if (actx.state === 'suspended') actx.resume().catch(function(){});
+      return actx;
+    } catch (err){
+      return null;
+    }
+  }
+
+  function tone(freq, dur, type, vol, when){
+    const ctx = audio();
+    if (!ctx) return;
+    try {
+      const t0 = ctx.currentTime + (when || 0);
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = type || 'sine';
+      osc.frequency.setValueAtTime(freq, t0);
+      gain.gain.setValueAtTime(0.0001, t0);
+      gain.gain.exponentialRampToValueAtTime(vol || 0.05, t0 + 0.012);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(t0);
+      osc.stop(t0 + dur + 0.03);
+    } catch (err){ /* audio is best-effort */ }
+  }
+
+  const sfx = {
+    plant: function(){ tone(320, 0.09, 'triangle', 0.05); tone(480, 0.09, 'triangle', 0.04, 0.05); },
+    water: function(){ tone(760, 0.05, 'sine', 0.022); },
+    harvest: function(){ tone(660, 0.08, 'triangle', 0.05); tone(990, 0.12, 'triangle', 0.05, 0.06); },
+    golden: function(){ [523, 659, 784, 1046].forEach(function(f, i){ tone(f, 0.14, 'triangle', 0.05, i * 0.06); }); },
+    buy: function(){ [440, 554, 659].forEach(function(f, i){ tone(f, 0.1, 'square', 0.03, i * 0.05); }); },
+    error: function(){ tone(140, 0.12, 'square', 0.04); },
+    level: function(){ [523, 659, 784, 1046, 1318].forEach(function(f, i){ tone(f, 0.16, 'sine', 0.05, i * 0.08); }); }
+  };
+
+  /* ============================== Toasts & FX ============================== */
+  function toast(msg, kind){
+    const el = document.createElement('div');
+    el.className = 'toast' + (kind ? ' ' + kind : '');
+    el.textContent = msg;
+    els.toasts.appendChild(el);
+    setTimeout(function(){
+      el.classList.add('out');
+      setTimeout(function(){ el.remove(); }, 350);
+    }, 3000);
+    while (els.toasts.children.length > 4) els.toasts.firstElementChild.remove();
+  }
+
+  function floatText(x, y, text, cls){
+    const el = document.createElement('div');
+    el.className = 'float-text' + (cls ? ' ' + cls : '');
+    el.textContent = text;
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+    els.fx.appendChild(el);
+    setTimeout(function(){ el.remove(); }, 1000);
+  }
+
+  function sparkle(x, y, emojis, count){
+    for (let i = 0; i < count; i++){
+      const s = document.createElement('span');
+      s.className = 'spark';
+      s.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+      s.style.left = x + 'px';
+      s.style.top = y + 'px';
+      s.style.setProperty('--dx', (Math.random() * 130 - 65).toFixed(0) + 'px');
+      s.style.setProperty('--dy', (-30 - Math.random() * 80).toFixed(0) + 'px');
+      els.fx.appendChild(s);
+      setTimeout(function(){ s.remove(); }, 850);
+    }
+  }
+
+  function plotCenter(i){
+    const r = plotEls[i].el.getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+  }
+
+  function popCoins(){
+    els.coinPill.classList.remove('pop');
+    void els.coinPill.offsetWidth;
+    els.coinPill.classList.add('pop');
+  }
+
+  /* ============================== Farm DOM ============================== */
+  const plotEls = [];
+
+  function buildFarm(){
+    els.farm.innerHTML = '';
+    plotEls.length = 0;
+    for (let i = 0; i < SLOTS; i++){
+      const el = document.createElement('button');
+      el.type = 'button';
+      el.className = 'plot';
+      el.dataset.i = String(i);
+      el.setAttribute('aria-label', 'Farm plot ' + (i + 1));
+      el.innerHTML =
+        '<div class="plot-art"></div>' +
+        '<div class="plot-name"></div>' +
+        '<div class="plot-timer"></div>' +
+        '<div class="plot-bar"><i></i></div>' +
+        '<div class="plot-lock"></div>';
+      els.farm.appendChild(el);
+      plotEls.push({
+        el: el,
+        art: el.querySelector('.plot-art'),
+        name: el.querySelector('.plot-name'),
+        timer: el.querySelector('.plot-timer'),
+        fill: el.querySelector('.plot-bar i'),
+        lock: el.querySelector('.plot-lock')
+      });
+    }
+  }
+
+  function updatePlot(i){
+    const p = state.plots[i];
+    const ui = plotEls[i];
+    const el = ui.el;
+
+    if (!p.unlocked){
+      el.className = 'plot locked';
+      const cost = nextPlotCost();
+      const isNext = i === firstLockedIndex();
+      ui.lock.style.display = '';
+      if (isNext && cost != null){
+        el.classList.add('next-plot');
+        ui.lock.innerHTML = '<span class="lock-icon">🔒</span><span class="lock-cost">' + fmtNum(cost) + ' 🪙</span>';
+      } else {
+        ui.lock.innerHTML = '<span class="lock-icon">🔒</span>';
+      }
+      ui.art.textContent = '';
+      ui.name.textContent = '';
+      ui.timer.textContent = '';
+      ui.fill.style.width = '0%';
+      return;
+    }
+
+    ui.lock.style.display = 'none';
+
+    if (!p.crop){
+      el.className = 'plot empty';
+      const sel = CROP_MAP[state.selected];
+      ui.art.textContent = '＋';
+      ui.art.style.setProperty('--s', '1');
+      ui.name.textContent = 'Plant';
+      ui.timer.textContent = sel ? (sel.emoji + ' ' + sel.name) : '';
+      ui.fill.style.width = '0%';
+      return;
+    }
+
+    const crop = CROP_MAP[p.crop];
+    if (!crop){
+      p.crop = null;
+      p.plantedAt = 0;
+      p.watered = 0;
+      updatePlot(i);
+      return;
+    }
+
+    const total = growMs(crop);
+    const elapsed = Date.now() - p.plantedAt;
+    const prog = Math.max(0, Math.min(1, elapsed / total));
+
+    if (prog >= 1){
+      el.className = 'plot ripe';
+      ui.art.textContent = crop.emoji;
+      ui.art.style.setProperty('--s', '1.08');
+      ui.name.textContent = 'Harvest!';
+      ui.timer.textContent = 'Ready';
+      ui.fill.style.width = '100%';
+    } else {
+      el.className = 'plot growing';
+      ui.art.textContent = crop.emoji;
+      ui.art.style.setProperty('--s', (0.42 + 0.6 * prog).toFixed(2));
+      ui.name.textContent = crop.name;
+      ui.timer.textContent = fmtTime(total - elapsed);
+      ui.fill.style.width = (prog * 100).toFixed(1) + '%';
+    }
+  }
+
+  function renderFarm(){
+    for (let i = 0; i < SLOTS; i++) updatePlot(i);
+    renderFarmMeta();
+  }
+
+  function renderFarmMeta(){
+    const sel = CROP_MAP[state.selected];
+    const li = levelInfo(state.xp);
+    if (sel){
+      els.farmHint.innerHTML =
+        'Selected: <b>' + sel.emoji + ' ' + sel.name + '</b> · seed ' + fmtNum(sel.seed) +
+        ' 🪙 · sells ' + fmtNum(sellFor(sel, li.level, false)) + ' 🪙';
+    } else {
+      els.farmHint.textContent = '';
+    }
+    els.statLine.textContent =
+      'Harvests ' + fmtNum(state.stats.harvests) + ' · Earned ' + fmtNum(state.stats.earned) + ' 🪙';
+  }
+
+  /* ============================== Header ============================== */
+  function renderHeader(){
+    const li = levelInfo(state.xp);
+    els.coins.textContent = fmtNum(state.coins);
+    els.level.textContent = li.level;
+    els.xpText.textContent = fmtNum(li.into) + ' / ' + fmtNum(li.need) + ' XP';
+    els.xpFill.style.width = Math.min(100, (li.into / li.need) * 100).toFixed(1) + '%';
+    els.soundBtn.textContent = state.sound ? '🔊' : '🔇';
+    els.soundBtn.classList.toggle('muted', !state.sound);
+  }
+
+  /* ============================== Shop ============================== */
+  function upgradeCard(o){
+    let action;
+    if (o.maxed){
+      action = '<span class="buy-btn maxed">MAX</span>';
+    } else if (o.owned){
+      action = '<span class="buy-btn owned">✓ Owned</span>';
+    } else if (o.locked){
+      action = '<span class="buy-btn locked">🔒 ' + o.lockedText + '</span>';
+    } else {
+      const afford = state.coins >= o.cost;
+      action = '<button class="buy-btn' + (afford ? '' : ' poor') + '" data-upg="' + o.id + '">' +
+        fmtNum(o.cost) + ' 🪙</button>';
+    }
+    const levelLine = o.max
+      ? 'Lv ' + o.level + '/' + o.max
+      : (o.owned ? 'Owned' : '');
+    const dots = o.max
+      ? '<div class="dots">' + Array.from({ length: o.max }, function(_, i){
+          return '<i class="' + (i < o.level ? 'on' : '') + '"></i>';
+        }).join('') + '</div>'
+      : '';
+    return '<div class="upg">' +
+      '<div class="upg-icon">' + o.icon + '</div>' +
+      '<div class="upg-main">' +
+        '<div class="upg-title"><b>' + o.name + '</b><span class="upg-lvl">' + levelLine + '</span></div>' +
+        '<div class="upg-desc">' + o.desc + '</div>' + dots +
+      '</div>' + action +
+    '</div>';
+  }
+
+  function renderShop(){
+    const li = levelInfo(state.xp);
+
+    els.seedsPanel.innerHTML = CROPS.map(function(c){
+      const locked = li.level < c.unlockLevel;
+      const selected = state.selected === c.id;
+      const poor = state.coins < c.seed;
+      const sell = sellFor(c, li.level, false);
+      return '<button class="seed' + (selected ? ' selected' : '') +
+        (locked ? ' locked' : '') + (poor && !locked ? ' poor' : '') + '"' +
+        ' data-seed="' + c.id + '"' + (locked ? ' disabled' : '') + '>' +
+        '<span class="seed-emoji">' + c.emoji + '</span>' +
+        '<span class="seed-main">' +
+          '<span class="seed-name">' + c.name + '</span>' +
+          '<span class="seed-meta">' + fmtTime(growMs(c)) + ' · seed ' + fmtNum(c.seed) +
+            ' 🪙 · sells ' + fmtNum(sell) + ' 🪙</span>' +
+        '</span>' +
+        '<span class="seed-side">' + (locked ? '🔒 Lv ' + c.unlockLevel : (selected ? 'Selected' : 'Select')) + '</span>' +
+      '</button>';
+    }).join('');
+
+    const cards = [];
+    cards.push(upgradeCard({
+      id: 'sprinkler', icon: '💧', name: 'Sprinkler',
+      desc: 'Crops grow 12% faster per level.',
+      level: state.upgrades.sprinkler, max: 5,
+      cost: SPRINKLER_COSTS[state.upgrades.sprinkler],
+      maxed: state.upgrades.sprinkler >= 5
+    }));
+    cards.push(upgradeCard({
+      id: 'fertilizer', icon: '🧪', name: 'Fertilizer',
+      desc: 'Crops sell for 20% more per level.',
+      level: state.upgrades.fertilizer, max: 5,
+      cost: FERTILIZER_COSTS[state.upgrades.fertilizer],
+      maxed: state.upgrades.fertilizer >= 5
+    }));
+    cards.push(upgradeCard({
+      id: 'autoHarvest', icon: '🤖', name: 'Auto-Harvester',
+      desc: 'Automatically harvests ripe crops every second.',
+      owned: state.upgrades.autoHarvest,
+      cost: AUTO_HARVEST_COST
+    }));
+    cards.push(upgradeCard({
+      id: 'autoReplant', icon: '🌱', name: 'Replanting Drone',
+      desc: 'Auto-harvester replants the same crop when it can afford the seed.',
+      owned: state.upgrades.autoReplant,
+      cost: AUTO_REPLANT_COST,
+      locked: !state.upgrades.autoHarvest,
+      lockedText: 'Need Harvester'
+    }));
+    els.upgradesPanel.innerHTML = cards.join('');
+  }
+
+  function renderAll(){
+    renderHeader();
+    renderFarm();
+    renderShop();
+  }
+
+  /* ============================== Saving ============================== */
+  function save(){
+    state.lastSeen = Date.now();
+    try {
+      localStorage.setItem(SAVE_KEY, JSON.stringify({ v: 1, state: state }));
+      els.saveState.textContent = 'Saved ✓';
+      els.saveState.classList.add('flash');
+      setTimeout(function(){ els.saveState.classList.remove('flash'); }, 600);
+      dirty = false;
+    } catch (err){
+      els.saveState.textContent = 'Saving unavailable';
+    }
+  }
+
+  function scheduleSave(){
+    dirty = true;
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(save, 800);
+  }
+
+  function load(){
+    let raw;
+    try { raw = localStorage.getItem(SAVE_KEY); } catch (err){ return false; }
+    if (!raw) return false;
+
+    let data;
+    try { data = JSON.parse(raw); } catch (err){ return false; }
+    const s = data && data.state ? data.state : data;
+    if (!s || typeof s !== 'object') return false;
+
+    const def = defaultState();
+    const merged = Object.assign({}, def, s);
+
+    merged.plots = def.plots.map(function(dp, i){
+      const sp = Array.isArray(s.plots) ? s.plots[i] : null;
+      if (!sp || typeof sp !== 'object') return dp;
+      const out = { unlocked: !!sp.unlocked, crop: null, plantedAt: 0, watered: 0 };
+      if (out.unlocked && sp.crop && CROP_MAP[sp.crop] && Number.isFinite(sp.plantedAt)){
+        out.crop = sp.crop;
+        out.plantedAt = sp.plantedAt;
+        out.watered = Number.isFinite(sp.watered) ? Math.max(0, sp.watered) : 0;
+      }
+      return out;
+    });
+    merged.plots[0].unlocked = true;
+
+    merged.upgrades = Object.assign({}, def.upgrades, s.upgrades || {});
+    merged.upgrades.sprinkler = Math.max(0, Math.min(5, Math.floor(Number(merged.upgrades.sprinkler) || 0)));
+    merged.upgrades.fertilizer = Math.max(0, Math.min(5, Math.floor(Number(merged.upgrades.fertilizer) || 0)));
+    merged.upgrades.autoHarvest = !!merged.upgrades.autoHarvest;
+    merged.upgrades.autoReplant = !!merged.upgrades.autoReplant;
+
+    merged.stats = Object.assign({}, def.stats, s.stats || {});
+    merged.stats.harvests = Math.max(0, Number(merged.stats.harvests) || 0);
+    merged.stats.earned = Math.max(0, Number(merged.stats.earned) || 0);
+    merged.stats.planted = Math.max(0, Number(merged.stats.planted) || 0);
+
+    merged.coins = Math.max(0, Number(s.coins) || 0);
+    merged.xp = Math.max(0, Number(s.xp) || 0);
+    merged.selected = CROP_MAP[s.selected] ? s.selected : 'wheat';
+    merged.sound = s.sound !== false;
+    merged.lastSeen = Number(s.lastSeen) || Date.now();
+    merged.created = Number(s.created) || def.created;
+
+    state = merged;
+    return true;
+  }
+
+  /* ============================== Actions ============================== */
+  function plantAt(i, opts){
+    opts = opts || {};
+    const p = state.plots[i];
+    if (!p || !p.unlocked || p.crop) return false;
+    const crop = CROP_MAP[state.selected];
+    if (!crop) return false;
+    const li = levelInfo(state.xp);
+    if (li.level < crop.unlockLevel){
+      if (!opts.silent){
+        toast('Reach level ' + crop.unlockLevel + ' to plant ' + crop.name + '.', 'warn');
+        sfx.error();
+      }
+      return false;
+    }
+    if (state.coins < crop.seed){
+      if (!opts.silent){
+        toast('Not enough coins for ' + crop.name + ' seeds.', 'warn');
+        sfx.error();
+      }
+      return false;
+    }
+
+    state.coins -= crop.seed;
+    p.crop = crop.id;
+    p.plantedAt = Date.now();
+    p.watered = 0;
+    state.stats.planted++;
+    if (!opts.silent) sfx.plant();
+
+    updatePlot(i);
+    renderHeader();
+    renderFarmMeta();
+    renderShop();
+    scheduleSave();
+    return true;
+  }
+
+  function waterAt(i){
+    const p = state.plots[i];
+    if (!p || !p.crop) return;
+    const crop = CROP_MAP[p.crop];
+    if (!crop) return;
+    const total = growMs(crop);
+    const maxWater = total * WATER_MAX_FRACTION;
+    p.watered = p.watered || 0;
+    if (p.watered >= maxWater) return;
+
+    const remaining = total - (Date.now() - p.plantedAt);
+    if (remaining <= 0) return;
+    const delta = Math.min(WATER_CLICK_MS, maxWater - p.watered, remaining);
+    if (delta <= 0) return;
+
+    p.plantedAt -= delta;
+    p.watered += delta;
+    sfx.water();
+    const c = plotCenter(i);
+    sparkle(c.x, c.y, ['💧'], 2);
+    updatePlot(i);
+    scheduleSave();
+  }
+
+  function harvestAt(i, opts){
+    opts = opts || {};
+    const p = state.plots[i];
+    if (!p || !p.crop) return false;
+    const crop = CROP_MAP[p.crop];
+    if (!crop) return false;
+    if (Date.now() - p.plantedAt < growMs(crop)) return false;
+
+    const li = levelInfo(state.xp);
+    const golden = Math.random() < GOLDEN_CHANCE;
+    const amount = sellFor(crop, li.level, golden);
+    const xpGain = crop.xp * (golden ? 2 : 1);
+
+    state.coins += amount;
+    state.xp += xpGain;
+    state.stats.harvests++;
+    state.stats.earned += amount;
+
+    const cropId = crop.id;
+    p.crop = null;
+    p.plantedAt = 0;
+    p.watered = 0;
+
+    const c = plotCenter(i);
+    floatText(c.x, c.y - 6, '+' + fmtNum(amount) + ' 🪙', golden ? 'gold' : '');
+    if (golden){
+      floatText(c.x, c.y - 40, 'GOLDEN!', 'gold small');
+      sparkle(c.x, c.y, ['✨', '🌟', '🪙'], 10);
+      sfx.golden();
+    } else {
+      sparkle(c.x, c.y, ['✨', '🪙'], 4);
+      if (!opts.quiet) sfx.harvest();
+    }
+    popCoins();
+
+    if (opts.auto && state.upgrades.autoReplant){
+      const nextCrop = CROP_MAP[cropId];
+      if (nextCrop && state.coins >= nextCrop.seed && state.plots[i].unlocked && !state.plots[i].crop){
+        state.coins -= nextCrop.seed;
+        state.plots[i].crop = nextCrop.id;
+        state.plots[i].plantedAt = Date.now();
+        state.plots[i].watered = 0;
+        state.stats.planted++;
+      }
+    }
+
+    checkLevelUp();
+    updatePlot(i);
+    renderHeader();
+    renderFarmMeta();
+    renderShop();
+    scheduleSave();
+    return true;
+  }
+
+  function checkLevelUp(){
+    const li = levelInfo(state.xp);
+    if (li.level > lastLevel){
+      const unlocked = CROPS.filter(function(c){
+        return c.unlockLevel > lastLevel && c.unlockLevel <= li.level;
+      });
+      lastLevel = li.level;
+      toast('🎉 Level ' + li.level + '!' +
+        (unlocked.length ? ' Unlocked: ' + unlocked.map(function(c){ return c.emoji + ' ' + c.name; }).join(', ') : ''),
+        'level');
+      sfx.level();
+      sparkle(window.innerWidth / 2, window.innerHeight * 0.22, ['🎉', '✨', '🌟'], 12);
+    } else {
+      lastLevel = li.level;
+    }
+  }
+
+  function buyUpgrade(id){
+    const u = state.upgrades;
+
+    if (id === 'sprinkler' || id === 'fertilizer'){
+      const costs = id === 'sprinkler' ? SPRINKLER_COSTS : FERTILIZER_COSTS;
+      const lvl = u[id];
+      if (lvl >= 5){
+        toast('That upgrade is already maxed out.', 'warn');
+        return;
+      }
+      const cost = costs[lvl];
+      if (state.coins < cost){
+        toast('Need ' + fmtNum(cost - state.coins) + ' more 🪙.', 'warn');
+        sfx.error();
+        return;
+      }
+      state.coins -= cost;
+      u[id]++;
+      sfx.buy();
+      toast((id === 'sprinkler' ? '💧 Sprinkler' : '🧪 Fertilizer') + ' upgraded to level ' + u[id] + '!', 'good');
+      renderAll();
+      scheduleSave();
+      return;
+    }
+
+    if (id === 'autoHarvest'){
+      if (u.autoHarvest) return;
+      if (state.coins < AUTO_HARVEST_COST){
+        toast('Need ' + fmtNum(AUTO_HARVEST_COST - state.coins) + ' more 🪙.', 'warn');
+        sfx.error();
+        return;
+      }
+      state.coins -= AUTO_HARVEST_COST;
+      u.autoHarvest = true;
+      sfx.buy();
+      toast('🤖 Auto-Harvester online! Ripe crops will be collected automatically.', 'good');
+      renderAll();
+      scheduleSave();
+      return;
+    }
+
+    if (id === 'autoReplant'){
+      if (u.autoReplant) return;
+      if (!u.autoHarvest){
+        toast('Buy the Auto-Harvester first.', 'warn');
+        sfx.error();
+        return;
+      }
+      if (state.coins < AUTO_REPLANT_COST){
+        toast('Need ' + fmtNum(AUTO_REPLANT_COST - state.coins) + ' more 🪙.', 'warn');
+        sfx.error();
+        return;
+      }
+      state.coins -= AUTO_REPLANT_COST;
+      u.autoReplant = true;
+      sfx.buy();
+      toast('🌱 Replanting Drone installed!', 'good');
+      renderAll();
+      scheduleSave();
+    }
+  }
+
+  function buyPlot(){
+    const cost = nextPlotCost();
+    if (cost == null){
+      toast('Every plot is already unlocked!', 'warn');
+      return;
+    }
+    if (state.coins < cost){
+      toast('Need ' + fmtNum(cost - state.coins) + ' more 🪙 for this plot.', 'warn');
+      sfx.error();
+      return;
+    }
+    const idx = firstLockedIndex();
+    if (idx < 0) return;
+    state.coins -= cost;
+    state.plots[idx].unlocked = true;
+    sfx.buy();
+    toast('🚜 New plot unlocked!', 'good');
+    renderAll();
+    scheduleSave();
+  }
+
+  function onPlot(i){
+    const p = state.plots[i];
+    if (!p) return;
+    if (!p.unlocked){
+      buyPlot();
+      return;
+    }
+    if (!p.crop){
+      plantAt(i, {});
+      return;
+    }
+    const crop = CROP_MAP[p.crop];
+    if (!crop) return;
+    if (Date.now() - p.plantedAt >= growMs(crop)){
+      harvestAt(i, {});
+    } else {
+      waterAt(i);
+    }
+  }
+
+  function plantAll(){
+    const crop = CROP_MAP[state.selected];
+    if (!crop) return;
+    const li = levelInfo(state.xp);
+    if (li.level < crop.unlockLevel){
+      toast('Reach level ' + crop.unlockLevel + ' to plant ' + crop.name + '.', 'warn');
+      sfx.error();
+      return;
+    }
+    let n = 0;
+    for (let i = 0; i < SLOTS; i++){
+      if (state.coins < crop.seed) break;
+      if (plantAt(i, { silent: true })) n++;
+    }
+    if (n > 0){
+      sfx.plant();
+      toast('🌱 Planted ' + n + ' × ' + crop.name + '.', 'good');
+    } else {
+      toast(state.coins < crop.seed ? 'Not enough coins for seeds.' : 'No empty plots available.', 'warn');
+      sfx.error();
+    }
+  }
+
+  function harvestAll(){
+    let n = 0;
+    for (let i = 0; i < SLOTS; i++){
+      const p = state.plots[i];
+      if (!p.crop) continue;
+      const crop = CROP_MAP[p.crop];
+      if (crop && Date.now() - p.plantedAt >= growMs(crop)){
+        if (harvestAt(i, { quiet: true })) n++;
+      }
+    }
+    if (n > 0){
+      sfx.harvest();
+      toast('🧺 Harvested ' + n + ' crop' + (n > 1 ? 's' : '') + '.', 'good');
+    } else {
+      toast('Nothing is ripe yet — give it a moment.', 'warn');
+    }
+  }
+
+  function resetGame(){
+    if (!confirm('Reset your farm and start over? This cannot be undone.')) return;
+    state = defaultState();
+    lastLevel = 1;
+    try { localStorage.removeItem(SAVE_KEY); } catch (err){ /* ignore */ }
+    renderAll();
+    save();
+    toast('Farm reset. A fresh start! 🌱', 'good');
+  }
+
+  /* ============================== Events ============================== */
+  els.farm.addEventListener('click', function(e){
+    const el = e.target.closest('.plot');
+    if (!el || !els.farm.contains(el)) return;
+    onPlot(Number(el.dataset.i));
+  });
+
+  els.seedsPanel.addEventListener('click', function(e){
+    const btn = e.target.closest('[data-seed]');
+    if (!btn || btn.disabled) return;
+    if (state.selected === btn.dataset.seed) return;
+    state.selected = btn.dataset.seed;
+    tone(560, 0.05, 'triangle', 0.025);
+    renderFarm();
+    renderShop();
+    scheduleSave();
+  });
+
+  els.upgradesPanel.addEventListener('click', function(e){
+    const btn = e.target.closest('[data-upg]');
+    if (!btn) return;
+    buyUpgrade(btn.dataset.upg);
+  });
+
+  els.plantAll.addEventListener('click', plantAll);
+  els.harvestAll.addEventListener('click', harvestAll);
+  els.resetBtn.addEventListener('click', resetGame);
+
+  els.soundBtn.addEventListener('click', function(){
+    state.sound = !state.sound;
+    if (state.sound){
+      audio();
+      tone(660, 0.08, 'triangle', 0.04);
+    }
+    renderHeader();
+    scheduleSave();
+  });
+
+  els.tabs.forEach(function(tab){
+    tab.addEventListener('click', function(){
+      els.tabs.forEach(function(t){ t.classList.toggle('active', t === tab); });
+      const showSeeds = tab.dataset.tab === 'seeds';
+      els.seedsPanel.classList.toggle('hidden', !showSeeds);
+      els.upgradesPanel.classList.toggle('hidden', showSeeds);
+    });
+  });
+
+  document.addEventListener('keydown', function(e){
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.target && e.target.matches && e.target.matches('input,textarea,select')) return;
+    const n = Number(e.key);
+    if (n >= 1 && n <= CROPS.length){
+      const crop = CROPS[n - 1];
+      if (levelInfo(state.xp).level >= crop.unlockLevel){
+        state.selected = crop.id;
+        renderFarm();
+        renderShop();
+        scheduleSave();
+      } else {
+        toast(crop.emoji + ' ' + crop.name + ' unlocks at level ' + crop.unlockLevel + '.', 'warn');
+      }
+      return;
+    }
+    if (e.key === 'p' || e.key === 'P'){
+      plantAll();
+      return;
+    }
+    if (e.key === 'h' || e.key === 'H'){
+      harvestAll();
+    }
+  });
+
+  window.addEventListener('beforeunload', save);
+  window.addEventListener('pagehide', save);
+  document.addEventListener('visibilitychange', function(){
+    if (document.hidden) save();
+  });
+
+  /* ============================== Loops ============================== */
+  function tick(){
+    for (let i = 0; i < SLOTS; i++) updatePlot(i);
+  }
+
+  function autoHarvestLoop(){
+    if (!state.upgrades.autoHarvest) return;
+    const now = Date.now();
+    for (let i = 0; i < SLOTS; i++){
+      const p = state.plots[i];
+      if (!p.unlocked || !p.crop) continue;
+      const crop = CROP_MAP[p.crop];
+      if (crop && now - p.plantedAt >= growMs(crop)){
+        harvestAt(i, { auto: true, quiet: true });
+      }
+    }
+  }
+
+  /* ============================== Init ============================== */
+  function init(){
+    buildFarm();
+    const loaded = load();
+    lastLevel = levelInfo(state.xp).level;
+
+    if (loaded){
+      const away = Date.now() - state.lastSeen;
+      if (away > 60000){
+        toast('👋 Welcome back! Your crops kept growing while you were away.', 'good');
+      } else {
+        toast('🌱 Welcome back to the farm!', 'good');
+      }
+      els.saveState.textContent = 'Loaded ✓';
+    } else {
+      toast('🌱 Welcome! Click an empty plot to plant your first wheat.', 'good');
+    }
+
+    renderAll();
+    setInterval(tick, 200);
+    setInterval(autoHarvestLoop, 900);
+    setInterval(function(){ if (dirty) save(); }, 4000);
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>

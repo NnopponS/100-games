@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Tangram Puzzle</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{min-height:100vh;background:#141625;color:#fff;font-family:system-ui,-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;padding:12px}
+  .wrap{width:min(640px,100%);display:flex;flex-direction:column;gap:8px}
+  .hud{display:flex;justify-content:space-between;align-items:center;background:#1f233b;border:1px solid #38416b;padding:9px 14px;border-radius:12px;font-weight:800}
+  .hud span{color:#fbbf24}
+  canvas{width:100%;height:auto;aspect-ratio:600/430;background:#1a1e33;border-radius:14px;border:2px solid #38416b;cursor:grab;display:block;touch-action:none}
+  .bar{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;font-size:.88rem;color:#cbd5e1}
+  button{padding:8px 14px;border:none;border-radius:9px;font-weight:800;cursor:pointer}
+  .b-rot{background:#38bdf8;color:#0f172a}
+  .b-nxt{background:#fbbf24;color:#0f172a}
+  .b-res{background:#334155;color:#fff}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hud">
+    <div>Puzzle: <span id="pname">House</span></div>
+    <div>Placed: <span id="placed">0/5</span></div>
+    <div>Solved: <span id="solved">0</span></div>
+  </div>
+  <canvas id="c" width="600" height="430"></canvas>
+  <div class="bar">
+    <span id="msg">Drag shapes onto the dark silhouette! Click a piece or press R to rotate 45°.</span>
+    <div style="display:flex;gap:6px">
+      <button class="b-rot" id="rotBtn">Rotate 45° (R)</button>
+      <button class="b-nxt" id="nextBtn">Next Puzzle</button>
+      <button class="b-res" id="resetBtn">Reset</button>
+    </div>
+  </div>
+</div>
+<script>
+(() => {
+  const c = document.getElementById('c'), ctx = c.getContext('2d');
+  const pnameEl = document.getElementById('pname'), placedEl = document.getElementById('placed'), solvedEl = document.getElementById('solved'), msgEl = document.getElementById('msg');
+
+  // Shapes defined around (0,0) centroid
+  const SHAPES = {
+    sq:   { pts: [[-35,-35],[35,-35],[35,35],[-35,35]], col: '#f43f5e', sym: 90 },
+    triL: { pts: [[-50,35],[50,35],[0,-35]], col: '#38bdf8', sym: 360 },
+    triM: { pts: [[-35,25],[35,25],[0,-25]], col: '#a855f7', sym: 360 },
+    rect: { pts: [[-45,-20],[45,-20],[45,20],[-45,20]], col: '#22c55e', sym: 180 },
+    triS: { pts: [[-25,20],[25,20],[0,-20]], col: '#fbbf24', sym: 360 }
+  };
+
+  const PUZZLES = [
+    {
+      name: 'Rocket',
+      slots: [
+        { k:'triL', tx:300, ty:115, tang:0 },
+        { k:'sq',   tx:300, ty:185, tang:0 },
+        { k:'rect', tx:300, ty:240, tang:0 },
+        { k:'triS', tx:245, ty:245, tang:270 },
+        { k:'triS', tx:355, ty:245, tang:90 }
+      ]
+    },
+    {
+      name: 'House',
+      slots: [
+        { k:'triL', tx:300, ty:125, tang:0 },
+        { k:'sq',   tx:300, ty:195, tang:0 },
+        { k:'rect', tx:300, ty:250, tang:0 },
+        { k:'triS', tx:235, ty:195, tang:270 },
+        { k:'triM', tx:370, ty:235, tang:0 }
+      ]
+    },
+    {
+      name: 'Sailboat',
+      slots: [
+        { k:'triL', tx:300, ty:140, tang:0 },
+        { k:'triM', tx:255, ty:185, tang:0 },
+        { k:'rect', tx:300, ty:245, tang:0 },
+        { k:'triS', tx:235, ty:245, tang:180 },
+        { k:'triS', tx:365, ty:245, tang:180 }
+      ]
+    },
+    {
+      name: 'Tower',
+      slots: [
+        { k:'triS', tx:300, ty:95,  tang:0 },
+        { k:'sq',   tx:300, ty:150, tang:0 },
+        { k:'rect', tx:300, ty:205, tang:0 },
+        { k:'triM', tx:300, ty:250, tang:180 },
+        { k:'triL', tx:300, ty:310, tang:0 }
+      ]
+    }
+  ];
+
+  let pIdx = 0, solved = 0, pieces = [], drag = null, selected = null, won = false;
+
+  function loadPuzzle(i) {
+    pIdx = (i + PUZZLES.length) % PUZZLES.length;
+    const P = PUZZLES[pIdx];
+    won = false;
+    pnameEl.textContent = P.name;
+    const trayX = [85, 85, 85, 515, 515];
+    const trayY = [90, 200, 320, 140, 280];
+    pieces = P.slots.map((s, idx) => ({
+      ...s,
+      ...SHAPES[s.k],
+      x: trayX[idx],
+      y: trayY[idx],
+      ang: ((s.tang + (idx % 2 === 0 ? 45 : 90)) % 360),
+      snapped: false
+    }));
+    selected = pieces[0];
+    updateCount();
+    msgEl.textContent = 'Drag pieces into the target silhouette! R = Rotate 45°.';
+  }
+
+  function updateCount() {
+    const cnt = pieces.filter(p => p.snapped).length;
+    placedEl.textContent = cnt + '/' + pieces.length;
+    if (cnt === pieces.length && !won) {
+      won = true;
+      solved++;
+      solvedEl.textContent = solved;
+      msgEl.textContent = `🎉 ${PUZZLES[pIdx].name} Complete! Click Next Puzzle!`;
+    }
+  }
+
+  function polyPts(pts, x, y, angDeg) {
+    const rad = angDeg * Math.PI / 180;
+    const ca = Math.cos(rad), sa = Math.sin(rad);
+    return pts.map(([px, py]) => [x + px*ca - py*sa, y + px*sa + py*ca]);
+  }
+
+  function pointInPoly(x, y, poly) {
+    let inside = false;
+    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+      const xi = poly[i][0], yi = poly[i][1], xj = poly[j][0], yj = poly[j][1];
+      if (((yi > y) !== (yj > y)) && (x < (xj - xi)*(y - yi)/(yj - yi + 1e-9) + xi)) inside = !inside;
+    }
+    return inside;
+  }
+
+  function checkSnap(p) {
+    const diffAng = Math.abs(((p.ang - p.tang) % p.sym + p.sym) % p.sym);
+    const angOk = diffAng < 1 || Math.abs(diffAng - p.sym) < 1;
+    if (angOk && Math.hypot(p.x - p.tx, p.y - p.ty) < 26) {
+      p.x = p.tx; p.y = p.ty; p.ang = p.tang; p.snapped = true;
+    } else {
+      p.snapped = false;
+    }
+    updateCount();
+  }
+
+  function drawPoly(poly, fill, stroke, lw = 2) {
+    ctx.beginPath();
+    poly.forEach(([x, y], i) => i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y));
+    ctx.closePath();
+    ctx.fillStyle = fill; ctx.fill();
+    if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke(); }
+  }
+
+  function draw() {
+    ctx.fillStyle = '#1a1e33';
+    ctx.fillRect(0, 0, c.width, c.height);
+
+    // Target silhouette
+    const P = PUZZLES[pIdx];
+    for (const s of P.slots) {
+      const sh = SHAPES[s.k];
+      drawPoly(polyPts(sh.pts, s.tx, s.ty, s.tang), '#0d101d', '#334155', 1.5);
+    }
+
+    // Pieces
+    for (const p of pieces) {
+      const isSel = p === selected;
+      drawPoly(polyPts(p.pts, p.x, p.y, p.ang), p.col, isSel ? '#ffffff' : 'rgba(0,0,0,.4)', isSel ? 3 : 1.5);
+    }
+    requestAnimationFrame(draw);
+  }
+
+  function getPos(e) {
+    const r = c.getBoundingClientRect();
+    return { x: (e.clientX - r.left) * c.width / r.width, y: (e.clientY - r.top) * c.height / r.height };
+  }
+
+  c.addEventListener('pointerdown', e => {
+    const { x, y } = getPos(e);
+    for (let i = pieces.length - 1; i >= 0; i--) {
+      const p = pieces[i];
+      if (pointInPoly(x, y, polyPts(p.pts, p.x, p.y, p.ang))) {
+        selected = p;
+        drag = { p, ox: x - p.x, oy: y - p.y, moved: false };
+        pieces.splice(i, 1); pieces.push(p);
+        break;
+      }
+    }
+  });
+  c.addEventListener('pointermove', e => {
+    if (!drag) return;
+    const { x, y } = getPos(e);
+    drag.p.x = x - drag.ox;
+    drag.p.y = y - drag.oy;
+    drag.p.snapped = false;
+    drag.moved = true;
+  });
+  window.addEventListener('pointerup', () => {
+    if (!drag) return;
+    if (!drag.moved) {
+      drag.p.ang = (drag.p.ang + 45) % 360;
+    }
+    checkSnap(drag.p);
+    drag = null;
+  });
+
+  function rotateSelected() {
+    if (!selected) return;
+    selected.ang = (selected.ang + 45) % 360;
+    checkSnap(selected);
+  }
+
+  document.getElementById('rotBtn').onclick = rotateSelected;
+  document.getElementById('nextBtn').onclick = () => loadPuzzle(pIdx + 1);
+  document.getElementById('resetBtn').onclick = () => loadPuzzle(pIdx);
+  window.addEventListener('keydown', e => { if (e.code === 'KeyR') rotateSelected(); });
+  loadPuzzle(0);
+  draw();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Connect Four vs AI</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: "Segoe UI", system-ui, sans-serif;
+    background: radial-gradient(ellipse at top, #1e3a5f 0%, #0d1b2a 100%);
+    color: #e8eef4;
+    padding: 20px;
+    user-select: none;
+  }
+  h1 { font-size: 1.6rem; letter-spacing: 0.15em; margin-bottom: 6px; text-transform: uppercase; }
+  #status {
+    font-size: 1.05rem;
+    min-height: 1.5em;
+    margin-bottom: 14px;
+    font-weight: 600;
+    color: #ffd166;
+  }
+  #board {
+    display: grid;
+    grid-template-columns: repeat(7, 64px);
+    grid-template-rows: repeat(6, 64px);
+    gap: 8px;
+    padding: 10px;
+    background: #0b5cad;
+    border-radius: 14px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.55), inset 0 -6px 0 #084a8c;
+  }
+  .cell {
+    border-radius: 50%;
+    background: #0d1b2a;
+    box-shadow: inset 0 4px 8px rgba(0,0,0,0.6);
+    position: relative;
+    cursor: pointer;
+    transition: box-shadow 0.15s;
+  }
+  #board.locked .cell { cursor: default; }
+  .disc {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    transform: scale(0.92);
+    animation: drop 0.35s cubic-bezier(0.3, 1.4, 0.6, 1) forwards;
+  }
+  @keyframes drop {
+    from { transform: translateY(-420px) scale(0.92); }
+    to   { transform: translateY(0) scale(0.92); }
+  }
+  .p1 .disc { background: radial-gradient(circle at 35% 30%, #ff7b7b, #d62828 70%); box-shadow: inset 0 -4px 6px rgba(0,0,0,0.3); }
+  .p2 .disc { background: radial-gradient(circle at 35% 30%, #ffe08a, #f4a800 70%); box-shadow: inset 0 -4px 6px rgba(0,0,0,0.3); }
+  .cell.win .disc { outline: 4px solid #fff; animation: pulse 0.6s ease-in-out infinite alternate; }
+  @keyframes pulse {
+    from { transform: scale(0.92); filter: brightness(1); }
+    to   { transform: scale(1);    filter: brightness(1.35); }
+  }
+  #board:not(.locked) .cell:hover { box-shadow: inset 0 4px 8px rgba(0,0,0,0.6), 0 0 0 3px rgba(255,255,255,0.35); }
+  #controls { margin-top: 18px; display: flex; gap: 12px; align-items: center; }
+  button {
+    font: inherit;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    padding: 10px 26px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    background: #ffd166;
+    color: #1b2a3a;
+    transition: transform 0.1s, filter 0.15s;
+  }
+  button:hover { filter: brightness(1.1); transform: translateY(-1px); }
+  button:active { transform: translateY(1px); }
+  .legend { font-size: 0.85rem; opacity: 0.8; }
+  .dot { display: inline-block; width: 0.9em; height: 0.9em; border-radius: 50%; vertical-align: -0.1em; margin: 0 4px; }
+  .dot.r { background: #d62828; } .dot.y { background: #f4a800; }
+  @media (max-width: 560px) {
+    #board { grid-template-columns: repeat(7, 11vw); grid-template-rows: repeat(6, 11vw); gap: 1.4vw; padding: 2vw; }
+  }
+</style>
+</head>
+<body>
+  <h1>Connect Four</h1>
+  <div id="status">Your turn</div>
+  <div id="board"></div>
+  <div id="controls">
+    <button id="restart">Restart</button>
+    <span class="legend"><span class="dot r"></span>You<span class="dot y"></span>AI</span>
+  </div>
+
+<script>
+(function () {
+  'use strict';
+  var COLS = 7, ROWS = 6, HUMAN = 1, AI = 2, AI_DEPTH = 5;
+
+  var boardEl = document.getElementById('board');
+  var statusEl = document.getElementById('status');
+  var cells = [];
+  var grid, gameOver, aiThinking;
+
+  function init() {
+    grid = [];
+    for (var r = 0; r < ROWS; r++) { grid.push([0,0,0,0,0,0,0]); }
+    gameOver = false;
+    aiThinking = false;
+    boardEl.innerHTML = '';
+    boardEl.classList.remove('locked');
+    cells = [];
+    for (var r = 0; r < ROWS; r++) {
+      var row = [];
+      for (var c = 0; c < COLS; c++) {
+        var d = document.createElement('div');
+        d.className = 'cell';
+        d.dataset.col = c;
+        d.addEventListener('click', onCellClick);
+        boardEl.appendChild(d);
+        row.push(d);
+      }
+      cells.push(row);
+    }
+    setStatus('Your turn');
+  }
+
+  function setStatus(t) { statusEl.textContent = t; }
+
+  function onCellClick(e) {
+    if (gameOver || aiThinking) return;
+    var col = +e.currentTarget.dataset.col;
+    if (dropPiece(grid, col, HUMAN) < 0) return;
+    renderLast(col);
+    if (finishIfDone(HUMAN)) return;
+    aiThinking = true;
+    boardEl.classList.add('locked');
+    setStatus('AI is thinking…');
+    setTimeout(aiMove, 320);
+  }
+
+  function aiMove() {
+    var col = bestMove();
+    if (col >= 0) {
+      dropPiece(grid, col, AI);
+      renderLast(col);
+    }
+    aiThinking = false;
+    boardEl.classList.remove('locked');
+    if (!finishIfDone(AI)) setStatus('Your turn');
+  }
+
+  function renderLast(col) {
+    for (var r = 0; r < ROWS; r++) {
+      var v = grid[r][col];
+      if (v !== 0) {
+        var cell = cells[r][col];
+        cell.classList.add(v === HUMAN ? 'p1' : 'p2');
+        var disc = document.createElement('div');
+        disc.className = 'disc';
+        cell.appendChild(disc);
+        break;
+      }
+    }
+  }
+
+  function dropPiece(g, col, p) {
+    for (var r = ROWS - 1; r >= 0; r--) {
+      if (g[r][col] === 0) { g[r][col] = p; return r; }
+    }
+    return -1;
+  }
+
+  function undoPiece(g, col) {
+    for (var r = 0; r < ROWS; r++) {
+      if (g[r][col] !== 0) { g[r][col] = 0; return; }
+    }
+  }
+
+  function validCols(g) {
+    var order = [3, 2, 4, 1, 5, 0, 6];
+    var out = [];
+    for (var i = 0; i < order.length; i++) {
+      if (g[0][order[i]] === 0) out.push(order[i]);
+    }
+    return out;
+  }
+
+  function winCells(g, p) {
+    var dirs = [[0,1],[1,0],[1,1],[1,-1]];
+    for (var r = 0; r < ROWS; r++) {
+      for (var c = 0; c < COLS; c++) {
+        if (g[r][c] !== p) continue;
+        for (var d = 0; d < 4; d++) {
+          var dr = dirs[d][0], dc = dirs[d][1];
+          var rr = r + 3*dr, cc = c + 3*dc;
+          if (rr < 0 || rr >= ROWS || cc < 0 || cc >= COLS) continue;
+          if (g[r+dr][c+dc] === p && g[r+2*dr][c+2*dc] === p && g[rr][cc] === p) {
+            return [[r,c],[r+dr,c+dc],[r+2*dr,c+2*dc],[rr,cc]];
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  function boardFull(g) { return validCols(g).length === 0; }
+
+  function finishIfDone(p) {
+    var w = winCells(grid, p);
+    if (w) {
+      gameOver = true;
+      boardEl.classList.add('locked');
+      for (var i = 0; i < w.length; i++) cells[w[i][0]][w[i][1]].classList.add('win');
+      setStatus(p === HUMAN ? 'You win!' : 'AI wins!');
+      return true;
+    }
+    if (boardFull(grid)) {
+      gameOver = true;
+      boardEl.classList.add('locked');
+      setStatus("It's a draw!");
+      return true;
+    }
+    return false;
+  }
+
+  // ---- AI: minimax + alpha-beta ----
+
+  function scoreWindow(cells4, p) {
+    var opp = p === AI ? HUMAN : AI;
+    var mine = 0, empty = 0, theirs = 0;
+    for (var i = 0; i < 4; i++) {
+      if (cells4[i] === p) mine++;
+      else if (cells4[i] === 0) empty++;
+      else theirs++;
+    }
+    if (mine === 4) return 100000;
+    if (mine === 3 && empty === 1) return 50;
+    if (mine === 2 && empty === 2) return 10;
+    if (theirs === 3 && empty === 1) return -80;
+    return 0;
+  }
+
+  function evaluate(g, p) {
+    var score = 0, r, c, i;
+    for (r = 0; r < ROWS; r++) if (g[r][3] === p) score += 6;
+    for (r = 0; r < ROWS; r++) {
+      for (c = 0; c <= COLS - 4; c++) {
+        score += scoreWindow([g[r][c], g[r][c+1], g[r][c+2], g[r][c+3]], p);
+      }
+    }
+    for (c = 0; c < COLS; c++) {
+      for (r = 0; r <= ROWS - 4; r++) {
+        score += scoreWindow([g[r][c], g[r+1][c], g[r+2][c], g[r+3][c]], p);
+      }
+    }
+    for (r = 0; r <= ROWS - 4; r++) {
+      for (c = 0; c <= COLS - 4; c++) {
+        score += scoreWindow([g[r][c], g[r+1][c+1], g[r+2][c+2], g[r+3][c+3]], p);
+        score += scoreWindow([g[r+3][c], g[r+2][c+1], g[r+1][c+2], g[r][c+3]], p);
+      }
+    }
+    return score;
+  }
+
+  function minimax(g, depth, alpha, beta, maximizing) {
+    if (winCells(g, AI)) return { score: 1000000 + depth };
+    if (winCells(g, HUMAN)) return { score: -1000000 - depth };
+    var cols = validCols(g);
+    if (depth === 0 || cols.length === 0) return { score: evaluate(g, AI) };
+
+    var bestCol = cols[0], i, col, res;
+    if (maximizing) {
+      var best = -Infinity;
+      for (i = 0; i < cols.length; i++) {
+        col = cols[i];
+        dropPiece(g, col, AI);
+        res = minimax(g, depth - 1, alpha, beta, false).score;
+        undoPiece(g, col);
+        if (res > best) { best = res; bestCol = col; }
+        alpha = Math.max(alpha, best);
+        if (alpha >= beta) break;
+      }
+      return { score: best, col: bestCol };
+    } else {
+      var worst = Infinity;
+      for (i = 0; i < cols.length; i++) {
+        col = cols[i];
+        dropPiece(g, col, HUMAN);
+        res = minimax(g, depth - 1, alpha, beta, true).score;
+        undoPiece(g, col);
+        if (res < worst) { worst = res; bestCol = col; }
+        beta = Math.min(beta, worst);
+        if (alpha >= beta) break;
+      }
+      return { score: worst, col: bestCol };
+    }
+  }
+
+  function bestMove() {
+    var cols = validCols(grid);
+    if (!cols.length) return -1;
+    // Immediate win or block before search
+    for (var i = 0; i < cols.length; i++) {
+      dropPiece(grid, cols[i], AI);
+      var w = !!winCells(grid, AI);
+      undoPiece(grid, cols[i]);
+      if (w) return cols[i];
+    }
+    for (i = 0; i < cols.length; i++) {
+      dropPiece(grid, cols[i], HUMAN);
+      var hw = !!winCells(grid, HUMAN);
+      undoPiece(grid, cols[i]);
+      if (hw) return cols[i];
+    }
+    return minimax(grid, AI_DEPTH, -Infinity, Infinity, true).col;
+  }
+
+  document.getElementById('restart').addEventListener('click', init);
+  init();
+})();
+</script>
+</body>
+</html>

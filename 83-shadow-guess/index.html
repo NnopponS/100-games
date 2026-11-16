@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Shadow Guess</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{min-height:100vh;background:linear-gradient(135deg,#1e1b4b,#311042);color:#fff;font-family:system-ui,-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;padding:14px}
+  .card{width:min(500px,100%);background:rgba(15,23,42,.92);border:1px solid rgba(255,255,255,.14);border-radius:22px;padding:24px;display:flex;flex-direction:column;gap:16px;box-shadow:0 24px 60px rgba(0,0,0,.5)}
+  .top{display:flex;justify-content:space-between;font-weight:800;font-size:.95rem}
+  .pill{background:rgba(255,255,255,.08);padding:6px 12px;border-radius:999px}
+  .pill b{color:#f472b6}
+  .stage{height:200px;background:radial-gradient(circle,#fde047 0%,#f59e0b 100%);border-radius:16px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+  .stage svg{width:140px;height:140px;transition:filter .35s,transform .35s}
+  .stage.dark svg{filter:brightness(0)}
+  .choices{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .cbtn{padding:14px;border:1px solid rgba(255,255,255,.14);border-radius:12px;background:#1e293b;color:#fff;font-weight:800;font-size:1rem;cursor:pointer;transition:.15s}
+  .cbtn:hover:not(:disabled){background:#334155}
+  .cbtn.ok{background:#16a34a;border-color:#4ade80}
+  .cbtn.bad{background:#dc2626;border-color:#f87171}
+  .foot{display:flex;justify-content:space-between;align-items:center;color:#cbd5e1;font-size:.9rem}
+  .res{padding:9px 18px;border:none;border-radius:10px;background:#f472b6;color:#111827;font-weight:900;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="top">
+    <div class="pill">Score: <b id="score">0</b></div>
+    <div class="pill">Streak: <b id="streak">0</b></div>
+    <div class="pill">Round: <b id="round">1</b>/12</div>
+  </div>
+  <div class="stage dark" id="stage"></div>
+  <div class="choices" id="choices"></div>
+  <div class="foot">
+    <span id="msg">Guess the object from its silhouette!</span>
+    <button class="res" id="resBtn">Restart</button>
+  </div>
+</div>
+<script>
+(() => {
+  const ITEMS = [
+    { name:'Rocket', svg:'<path d="M50 8 C66 24 68 50 62 72 L38 72 C32 50 34 24 50 8Z" fill="#ef4444"/><circle cx="50" cy="40" r="9" fill="#38bdf8"/><path d="M38 56 L22 76 L38 70Z M62 56 L78 76 L62 70Z" fill="#1d4ed8"/><path d="M42 72 L50 92 L58 72Z" fill="#f97316"/>' },
+    { name:'Crown', svg:'<path d="M14 75 L10 30 L34 50 L50 20 L66 50 L90 30 L86 75 Z" fill="#eab308"/><rect x="14" y="75" width="72" height="10" rx="3" fill="#ca8a04"/>' },
+    { name:'Anchor', svg:'<circle cx="50" cy="20" r="8" fill="none" stroke="#1e293b" stroke-width="6"/><path d="M50 28 L50 82 M32 42 L68 42 M20 62 C20 84 80 84 80 62" fill="none" stroke="#1e293b" stroke-width="8" stroke-linecap="round"/>' },
+    { name:'Umbrella', svg:'<path d="M12 52 C12 22 88 22 88 52 Z" fill="#ec4899"/><path d="M50 52 L50 82 C50 90 62 90 62 82" fill="none" stroke="#1e293b" stroke-width="6" stroke-linecap="round"/>' },
+    { name:'Key', svg:'<circle cx="30" cy="50" r="16" fill="none" stroke="#eab308" stroke-width="9"/><path d="M46 50 L88 50 M72 50 L72 64 M84 50 L84 68" stroke="#eab308" stroke-width="8" stroke-linecap="round"/>' },
+    { name:'Trophy', svg:'<path d="M26 18 L74 18 L70 50 C68 62 32 62 30 50 Z" fill="#f59e0b"/><path d="M26 24 C12 24 12 46 28 46 M74 24 C88 24 88 46 72 46" fill="none" stroke="#d97706" stroke-width="6"/><rect x="44" y="58" width="12" height="18" fill="#d97706"/><rect x="30" y="76" width="40" height="10" rx="3" fill="#92400e"/>' },
+    { name:'Cactus', svg:'<rect x="42" y="16" width="16" height="72" rx="8" fill="#16a34a"/><path d="M42 52 L24 52 L24 34" fill="none" stroke="#16a34a" stroke-width="12" stroke-linecap="round"/><path d="M58 44 L76 44 L76 26" fill="none" stroke="#16a34a" stroke-width="12" stroke-linecap="round"/>' },
+    { name:'Camera', svg:'<rect x="14" y="30" width="72" height="50" rx="10" fill="#334155"/><rect x="34" y="18" width="32" height="14" rx="4" fill="#475569"/><circle cx="50" cy="55" r="16" fill="#38bdf8" stroke="#e2e8f0" stroke-width="4"/>' },
+    { name:'Headphones', svg:'<path d="M20 56 C20 20 80 20 80 56" fill="none" stroke="#1e293b" stroke-width="9"/><rect x="12" y="50" width="16" height="30" rx="6" fill="#ec4899"/><rect x="72" y="50" width="16" height="30" rx="6" fill="#ec4899"/>' },
+    { name:'House', svg:'<path d="M12 48 L50 16 L88 48 Z" fill="#dc2626"/><rect x="22" y="48" width="56" height="38" fill="#f8fafc"/><rect x="42" y="60" width="16" height="26" fill="#7c2d12"/>' },
+    { name:'Lightning', svg:'<path d="M56 10 L24 54 L48 54 L42 90 L76 44 L52 44 Z" fill="#2563eb"/>' },
+    { name:'Crescent Moon', svg:'<path d="M62 16 C36 16 20 38 22 60 C24 80 44 90 66 84 C48 80 42 62 44 46 C46 32 54 22 62 16Z" fill="#1e293b"/>' },
+    { name:'Hourglass', svg:'<rect x="24" y="14" width="52" height="8" rx="3" fill="#7c2d12"/><rect x="24" y="78" width="52" height="8" rx="3" fill="#7c2d12"/><path d="M30 22 L70 22 L50 50 L70 78 L30 78 L50 50 Z" fill="#38bdf8"/>' },
+    { name:'Butterfly', svg:'<ellipse cx="32" cy="36" rx="20" ry="18" fill="#a855f7"/><ellipse cx="68" cy="36" rx="20" ry="18" fill="#a855f7"/><ellipse cx="34" cy="64" rx="14" ry="14" fill="#ec4899"/><ellipse cx="66" cy="64" rx="14" ry="14" fill="#ec4899"/><rect x="47" y="24" width="6" height="54" rx="3" fill="#1e293b"/>' },
+    { name:'Pine Tree', svg:'<path d="M50 10 L76 42 L62 42 L82 68 L18 68 L38 42 L24 42 Z" fill="#15803d"/><rect x="44" y="68" width="12" height="20" fill="#78350f"/>' }
+  ];
+
+  const stage = document.getElementById('stage'), choicesEl = document.getElementById('choices');
+  const scoreEl = document.getElementById('score'), streakEl = document.getElementById('streak'), roundEl = document.getElementById('round'), msgEl = document.getElementById('msg');
+
+  let deck = [], idx = 0, score = 0, streak = 0, locked = false;
+  const shuffle = a => [...a].sort(() => Math.random() - 0.5);
+
+  function start() {
+    deck = shuffle(ITEMS).slice(0, 12);
+    idx = 0; score = 0; streak = 0; locked = false;
+    scoreEl.textContent = '0'; streakEl.textContent = '0';
+    render();
+  }
+
+  function render() {
+    if (idx >= deck.length) {
+      stage.classList.remove('dark');
+      stage.innerHTML = '<div style="color:#0f172a;text-align:center"><h2>All 12 Revealed!</h2><p style="font-weight:800;margin-top:6px">Score: ' + score + '</p></div>';
+      choicesEl.innerHTML = '';
+      msgEl.textContent = 'Press Restart to play again!';
+      return;
+    }
+    locked = false;
+    roundEl.textContent = idx + 1;
+    const item = deck[idx];
+    stage.classList.add('dark');
+    stage.innerHTML = `<svg viewBox="0 0 100 100">${item.svg}</svg>`;
+    const opts = shuffle([item, ...shuffle(ITEMS.filter(x => x.name !== item.name)).slice(0, 3)]);
+    choicesEl.innerHTML = '';
+    msgEl.textContent = 'Guess the object from its silhouette!';
+    opts.forEach(o => {
+      const b = document.createElement('button');
+      b.className = 'cbtn'; b.textContent = o.name;
+      b.onclick = () => choose(b, o.name === item.name, item.name);
+      choicesEl.appendChild(b);
+    });
+  }
+
+  function choose(btn, ok, right) {
+    if (locked) return;
+    locked = true;
+    stage.classList.remove('dark');
+    [...choicesEl.children].forEach(b => {
+      b.disabled = true;
+      if (b.textContent === right) b.classList.add('ok');
+    });
+    if (ok) {
+      streak++;
+      score += 10 + (streak - 1) * 3;
+      msgEl.textContent = `Yes! It's a ${right}!`;
+    } else {
+      btn.classList.add('bad');
+      streak = 0;
+      msgEl.textContent = `It was ${right}!`;
+    }
+    scoreEl.textContent = score;
+    streakEl.textContent = streak;
+    setTimeout(() => { idx++; render(); }, 1100);
+  }
+
+  document.getElementById('resBtn').onclick = start;
+  start();
+})();
+</script>
+</body>
+</html>

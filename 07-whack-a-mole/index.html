@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Whack-a-Mole</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body { height: 100%; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: linear-gradient(180deg, #87ceeb 0%, #a8e063 45%, #56ab2f 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+    overflow: hidden;
+    cursor: none;
+  }
+
+  /* ---------- hammer cursor ---------- */
+  #hammer {
+    position: fixed;
+    font-size: 42px;
+    pointer-events: none;
+    z-index: 9999;
+    transform: translate(-8px, -34px) rotate(-30deg);
+    transition: transform 0.07s ease-out;
+    filter: drop-shadow(2px 3px 2px rgba(0,0,0,0.3));
+  }
+  #hammer.whack { transform: translate(-8px, -30px) rotate(20deg) scale(0.9); }
+
+  /* ---------- HUD ---------- */
+  h1 {
+    font-size: clamp(28px, 5vw, 44px);
+    color: #fff;
+    text-shadow: 2px 3px 0 rgba(0,0,0,0.25);
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+  }
+
+  #hud {
+    display: flex;
+    gap: 24px;
+    font-size: 20px;
+    font-weight: 700;
+    color: #fff;
+    text-shadow: 1px 2px 0 rgba(0,0,0,0.3);
+    margin-bottom: 18px;
+  }
+  #hud span b { color: #ffe14d; }
+
+  /* ---------- board ---------- */
+  #board {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(90px, 130px));
+    grid-template-rows: repeat(3, minmax(90px, 130px));
+    gap: clamp(10px, 2.5vw, 22px);
+  }
+
+  .hole {
+    position: relative;
+    overflow: hidden;
+    cursor: none;
+  }
+  /* dirt pit */
+  .hole::after {
+    content: '';
+    position: absolute;
+    left: 5%; right: 5%; bottom: 4%;
+    height: 34%;
+    background: radial-gradient(ellipse at center, #4a2f18 0%, #6b4423 60%, #7d5233 100%);
+    border-radius: 50%;
+    box-shadow: inset 0 6px 10px rgba(0,0,0,0.55), 0 2px 0 rgba(255,255,255,0.25);
+    z-index: 3;
+    pointer-events: none;
+  }
+
+  .mole {
+    position: absolute;
+    left: 50%;
+    bottom: 12%;
+    width: 72%;
+    font-size: clamp(44px, 8vw, 64px);
+    text-align: center;
+    line-height: 1;
+    transform: translateX(-50%) translateY(110%);
+    transition: transform 0.12s ease-out;
+    z-index: 2;
+    will-change: transform;
+  }
+  .mole.up { transform: translateX(-50%) translateY(0); }
+  .mole.bonked { transform: translateX(-50%) translateY(20%) scale(0.85); filter: brightness(1.4) saturate(0.3); }
+
+  /* ---------- score popup ---------- */
+  .pop {
+    position: absolute;
+    left: 50%;
+    top: 10%;
+    transform: translateX(-50%);
+    font-size: 22px;
+    font-weight: 800;
+    color: #ffe14d;
+    text-shadow: 1px 2px 0 rgba(0,0,0,0.5);
+    animation: pop 0.5s ease-out forwards;
+    pointer-events: none;
+    z-index: 5;
+  }
+  @keyframes pop {
+    to { transform: translateX(-50%) translateY(-30px); opacity: 0; }
+  }
+
+  /* ---------- overlay ---------- */
+  #overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    z-index: 100;
+    backdrop-filter: blur(3px);
+  }
+  #overlay.hidden { display: none; }
+  #overlay h2 { color: #fff; font-size: clamp(30px, 6vw, 52px); text-shadow: 2px 3px 0 rgba(0,0,0,0.4); }
+  #overlay p  { color: #ffe14d; font-size: 24px; font-weight: 700; }
+
+  button {
+    font: inherit;
+    font-size: 22px;
+    font-weight: 800;
+    padding: 14px 44px;
+    border: none;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #ffb347, #ff7b25);
+    color: #fff;
+    text-shadow: 1px 1px 0 rgba(0,0,0,0.3);
+    box-shadow: 0 5px 0 #c25a10, 0 8px 14px rgba(0,0,0,0.35);
+    cursor: none;
+    transition: transform 0.08s, box-shadow 0.08s;
+  }
+  button:active { transform: translateY(4px); box-shadow: 0 1px 0 #c25a10; }
+</style>
+</head>
+<body>
+
+<div id="hammer">🔨</div>
+<h1>Whack-a-Mole!</h1>
+<div id="hud">
+  <span>Score: <b id="score">0</b></span>
+  <span>Time: <b id="time">30</b>s</span>
+  <span>Best: <b id="best">0</b></span>
+</div>
+<div id="board"></div>
+
+<div id="overlay">
+  <h2 id="overlay-title">Whack-a-Mole!</h2>
+  <p id="overlay-sub">You have 30 seconds. Bonk the moles!</p>
+  <button id="start-btn">▶ Start</button>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var HOLES = 9, ROUND_SECONDS = 30;
+  var board = document.getElementById('board');
+  var scoreEl = document.getElementById('score');
+  var timeEl = document.getElementById('time');
+  var bestEl = document.getElementById('best');
+  var overlay = document.getElementById('overlay');
+  var overlayTitle = document.getElementById('overlay-title');
+  var overlaySub = document.getElementById('overlay-sub');
+  var startBtn = document.getElementById('start-btn');
+  var hammer = document.getElementById('hammer');
+
+  var score = 0, timeLeft = ROUND_SECONDS, running = false;
+  var moles = [], timers = [], countdownTimer = null;
+
+  var best = 0;
+  try { best = parseInt(localStorage.getItem('wam-best') || '0', 10) || 0; } catch (e) {}
+  bestEl.textContent = best;
+
+  // build holes
+  for (var i = 0; i < HOLES; i++) {
+    var hole = document.createElement('div');
+    hole.className = 'hole';
+    var mole = document.createElement('div');
+    mole.className = 'mole';
+    mole.textContent = '🐹';
+    hole.appendChild(mole);
+    board.appendChild(hole);
+    moles.push({ el: mole, hole: hole, up: false, hideTimer: null });
+
+    (function (m) {
+      m.hole.addEventListener('pointerdown', function () {
+        if (!running || !m.up) return;
+        m.up = false;
+        score++;
+        scoreEl.textContent = score;
+        m.el.classList.remove('up');
+        m.el.classList.add('bonked');
+        m.el.textContent = '💥';
+        clearTimeout(m.hideTimer);
+        var pop = document.createElement('div');
+        pop.className = 'pop';
+        pop.textContent = '+1';
+        m.hole.appendChild(pop);
+        setTimeout(function () {
+          m.el.classList.remove('bonked');
+          m.el.textContent = '🐹';
+          if (pop.parentNode) pop.parentNode.removeChild(pop);
+        }, 280);
+      });
+    })(moles[moles.length - 1]);
+  }
+
+  function raiseMole() {
+    if (!running) return;
+    var idle = moles.filter(function (m) { return !m.up; });
+    if (idle.length) {
+      var m = idle[Math.floor(Math.random() * idle.length)];
+      m.up = true;
+      m.el.classList.add('up');
+      // moles stay up for less time as the round progresses
+      var stayUp = 1100 - (ROUND_SECONDS - timeLeft) * 20; // ~1100ms → ~500ms
+      m.hideTimer = setTimeout(function () {
+        m.up = false;
+        m.el.classList.remove('up');
+      }, Math.max(450, stayUp));
+    }
+    // spawn faster over time
+    var delay = 850 - (ROUND_SECONDS - timeLeft) * 16; // ~850ms → ~370ms
+    timers.push(setTimeout(raiseMole, Math.max(320, delay) * (0.7 + Math.random() * 0.6)));
+  }
+
+  function startGame() {
+    score = 0; timeLeft = ROUND_SECONDS; running = true;
+    scoreEl.textContent = '0';
+    timeEl.textContent = timeLeft;
+    overlay.classList.add('hidden');
+    timers.push(setTimeout(raiseMole, 400));
+    timers.push(setTimeout(raiseMole, 800));
+    countdownTimer = setInterval(function () {
+      timeLeft--;
+      timeEl.textContent = timeLeft;
+      if (timeLeft <= 0) endGame();
+    }, 1000);
+  }
+
+  function endGame() {
+    running = false;
+    clearInterval(countdownTimer);
+    timers.forEach(clearTimeout);
+    timers = [];
+    moles.forEach(function (m) {
+      m.up = false;
+      clearTimeout(m.hideTimer);
+      m.el.classList.remove('up', 'bonked');
+      m.el.textContent = '🐹';
+    });
+    if (score > best) {
+      best = score;
+      bestEl.textContent = best;
+      try { localStorage.setItem('wam-best', String(best)); } catch (e) {}
+    }
+    overlayTitle.textContent = "Time's Up!";
+    overlaySub.textContent = 'You whacked ' + score + ' mole' + (score === 1 ? '' : 's') + '!';
+    startBtn.textContent = '↻ Play Again';
+    overlay.classList.remove('hidden');
+  }
+
+  startBtn.addEventListener('click', startGame);
+
+  // hammer cursor
+  document.addEventListener('pointermove', function (e) {
+    hammer.style.left = e.clientX + 'px';
+    hammer.style.top = e.clientY + 'px';
+  });
+  document.addEventListener('pointerdown', function () { hammer.classList.add('whack'); });
+  document.addEventListener('pointerup', function () { hammer.classList.remove('whack'); });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Flags Quiz</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{min-height:100vh;background:linear-gradient(135deg,#0f172a,#1e1b4b);color:#fff;font-family:system-ui,-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;padding:16px}
+  .card{width:min(520px,100%);background:rgba(15,23,42,.92);border:1px solid rgba(255,255,255,.12);border-radius:22px;padding:24px;box-shadow:0 24px 60px rgba(0,0,0,.55);display:flex;flex-direction:column;gap:16px}
+  .top{display:flex;justify-content:space-between;align-items:center;font-weight:800;font-size:.95rem}
+  .pill{background:rgba(255,255,255,.08);padding:6px 12px;border-radius:999px}
+  .pill b{color:#38bdf8}
+  .flag-box{height:190px;background:#0b1120;border-radius:16px;display:flex;align-items:center;justify-content:center;padding:18px;border:1px solid rgba(255,255,255,.08)}
+  .flag-box svg{width:240px;height:150px;border-radius:8px;box-shadow:0 8px 25px rgba(0,0,0,.5)}
+  .choices{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .choice{padding:14px 12px;border:1px solid rgba(255,255,255,.14);border-radius:12px;background:#1e293b;color:#fff;font-weight:700;font-size:.98rem;cursor:pointer;transition:.15s}
+  .choice:hover:not(:disabled){background:#334155;transform:translateY(-1px)}
+  .choice.ok{background:#16a34a;border-color:#4ade80}
+  .choice.bad{background:#dc2626;border-color:#f87171}
+  .footer{display:flex;justify-content:space-between;align-items:center;color:#94a3b8;font-size:.9rem}
+  .restart{padding:9px 18px;border:none;border-radius:10px;background:#38bdf8;color:#0f172a;font-weight:900;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="top">
+    <div class="pill">Score: <b id="score">0</b></div>
+    <div class="pill">Streak: <b id="streak">0</b> 🔥</div>
+    <div class="pill">Q: <b id="qnum">1</b>/15</div>
+  </div>
+  <div class="flag-box" id="flagBox"></div>
+  <div class="choices" id="choices"></div>
+  <div class="footer">
+    <span id="msg">Which country does this flag belong to?</span>
+    <button class="restart" id="restartBtn">Restart</button>
+  </div>
+</div>
+<script>
+(() => {
+  const FLAGS = [
+    { name:'Japan', svg:'<rect width="240" height="150" fill="#fff"/><circle cx="120" cy="75" r="42" fill="#bc002d"/>' },
+    { name:'France', svg:'<rect width="80" height="150" fill="#0055a4"/><rect x="80" width="80" height="150" fill="#fff"/><rect x="160" width="80" height="150" fill="#ef4135"/>' },
+    { name:'Italy', svg:'<rect width="80" height="150" fill="#009246"/><rect x="80" width="80" height="150" fill="#fff"/><rect x="160" width="80" height="150" fill="#ce2b37"/>' },
+    { name:'Germany', svg:'<rect width="240" height="50" fill="#000"/><rect y="50" width="240" height="50" fill="#dd0000"/><rect y="100" width="240" height="50" fill="#ffce00"/>' },
+    { name:'Thailand', svg:'<rect width="240" height="150" fill="#a51931"/><rect y="25" width="240" height="100" fill="#f4f5f8"/><rect y="50" width="240" height="50" fill="#2d2a4a"/>' },
+    { name:'Sweden', svg:'<rect width="240" height="150" fill="#006aa7"/><rect x="70" width="28" height="150" fill="#fecc00"/><rect y="61" width="240" height="28" fill="#fecc00"/>' },
+    { name:'Finland', svg:'<rect width="240" height="150" fill="#fff"/><rect x="70" width="32" height="150" fill="#003580"/><rect y="59" width="240" height="32" fill="#003580"/>' },
+    { name:'Switzerland', svg:'<rect width="240" height="150" fill="#d52b1e"/><rect x="104" y="30" width="32" height="90" fill="#fff"/><rect x="75" y="59" width="90" height="32" fill="#fff"/>' },
+    { name:'Poland', svg:'<rect width="240" height="75" fill="#fff"/><rect y="75" width="240" height="75" fill="#dc143c"/>' },
+    { name:'Indonesia', svg:'<rect width="240" height="75" fill="#ce1126"/><rect y="75" width="240" height="75" fill="#fff"/>' },
+    { name:'Netherlands', svg:'<rect width="240" height="50" fill="#ae1c28"/><rect y="50" width="240" height="50" fill="#fff"/><rect y="100" width="240" height="50" fill="#21468b"/>' },
+    { name:'Ukraine', svg:'<rect width="240" height="75" fill="#0057b7"/><rect y="75" width="240" height="75" fill="#ffd700"/>' },
+    { name:'Belgium', svg:'<rect width="80" height="150" fill="#000"/><rect x="80" width="80" height="150" fill="#fae042"/><rect x="160" width="80" height="150" fill="#ed2939"/>' },
+    { name:'Ireland', svg:'<rect width="80" height="150" fill="#169b62"/><rect x="80" width="80" height="150" fill="#fff"/><rect x="160" width="80" height="150" fill="#ff883e"/>' },
+    { name:'Austria', svg:'<rect width="240" height="50" fill="#ed2939"/><rect y="50" width="240" height="50" fill="#fff"/><rect y="100" width="240" height="50" fill="#ed2939"/>' },
+    { name:'Bangladesh', svg:'<rect width="240" height="150" fill="#006a4e"/><circle cx="105" cy="75" r="42" fill="#f42a41"/>' },
+    { name:'Palau', svg:'<rect width="240" height="150" fill="#4aadd6"/><circle cx="105" cy="75" r="42" fill="#ffde00"/>' },
+    { name:'Nigeria', svg:'<rect width="80" height="150" fill="#008751"/><rect x="80" width="80" height="150" fill="#fff"/><rect x="160" width="80" height="150" fill="#008751"/>' },
+    { name:'Denmark', svg:'<rect width="240" height="150" fill="#c60c30"/><rect x="70" width="24" height="150" fill="#fff"/><rect y="63" width="240" height="24" fill="#fff"/>' },
+    { name:'Latvia', svg:'<rect width="240" height="60" fill="#9e3039"/><rect y="60" width="240" height="30" fill="#fff"/><rect y="90" width="240" height="60" fill="#9e3039"/>' }
+  ];
+
+  const flagBox = document.getElementById('flagBox');
+  const choicesEl = document.getElementById('choices');
+  const scoreEl = document.getElementById('score');
+  const streakEl = document.getElementById('streak');
+  const qnumEl = document.getElementById('qnum');
+  const msgEl = document.getElementById('msg');
+
+  let deck = [], idx = 0, score = 0, streak = 0, locked = false;
+
+  function shuffle(a) { return [...a].sort(() => Math.random() - 0.5); }
+
+  function start() {
+    deck = shuffle(FLAGS).slice(0, 15);
+    idx = 0; score = 0; streak = 0; locked = false;
+    scoreEl.textContent = '0'; streakEl.textContent = '0';
+    renderQ();
+  }
+
+  function renderQ() {
+    if (idx >= deck.length) {
+      flagBox.innerHTML = '<div style="text-align:center"><h2 style="color:#38bdf8;font-size:1.7rem">Quiz Complete!</h2><p style="margin-top:8px;color:#cbd5e1">Final Score: ' + score + ' / 150</p></div>';
+      choicesEl.innerHTML = '';
+      msgEl.textContent = 'Click Restart to play another round!';
+      return;
+    }
+    locked = false;
+    qnumEl.textContent = idx + 1;
+    const target = deck[idx];
+    flagBox.innerHTML = `<svg viewBox="0 0 240 150">${target.svg}</svg>`;
+    const distractors = shuffle(FLAGS.filter(f => f.name !== target.name)).slice(0, 3);
+    const opts = shuffle([target, ...distractors]);
+    choicesEl.innerHTML = '';
+    msgEl.textContent = 'Which country does this flag belong to?';
+    opts.forEach(o => {
+      const b = document.createElement('button');
+      b.className = 'choice';
+      b.textContent = o.name;
+      b.onclick = () => pick(b, o.name === target.name, target.name);
+      choicesEl.appendChild(b);
+    });
+  }
+
+  function pick(btn, ok, rightName) {
+    if (locked) return;
+    locked = true;
+    const btns = [...choicesEl.children];
+    btns.forEach(b => {
+      b.disabled = true;
+      if (b.textContent === rightName) b.classList.add('ok');
+    });
+    if (ok) {
+      streak++;
+      score += 10 + Math.min(10, (streak - 1) * 2);
+      msgEl.textContent = 'Correct! +Points';
+    } else {
+      btn.classList.add('bad');
+      streak = 0;
+      msgEl.textContent = `Oops! That was ${rightName}.`;
+    }
+    scoreEl.textContent = score;
+    streakEl.textContent = streak;
+    setTimeout(() => { idx++; renderQ(); }, 1050);
+  }
+
+  document.getElementById('restartBtn').onclick = start;
+  start();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Archery</title>
+<style>
+  html,body{margin:0;padding:0;height:100%;background:#101723;display:flex;align-items:center;justify-content:center;font-family:'Segoe UI',system-ui,sans-serif;overflow:hidden}
+  #wrap{width:min(96vw,170vh)}
+  canvas{width:100%;display:block;border-radius:12px;box-shadow:0 18px 60px rgba(0,0,0,.5);touch-action:none;cursor:crosshair}
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="c" width="960" height="540"></canvas></div>
+<script>
+'use strict';
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+const W = 960, H = 540, GROUND = 492, GRAV = 820;
+const BOW = { x: 152, y: 356 };
+const TG = { x: 836, cy: 330, r: 88 };
+const MAXPULL = 46, N_ARROWS = 10, CHARGE = 800;
+const RINGW = TG.r / 10;
+
+let phase, wind, windAcc, arrowsLeft, total, marks, arrow, power, drawT0, lastShot, floats, clouds, restartBtn, now = 0;
+let aim = { x: 620, y: 300 };
+let AC = null;
+
+function newWind(){ const w = (Math.random() < .5 ? -1 : 1) * (2.5 + Math.random() * 6.5); return Math.round(w * 2) / 2; }
+
+function reset(){
+  wind = newWind(); windAcc = wind * 26;
+  phase = 'ready'; arrowsLeft = N_ARROWS; total = 0; marks = []; arrow = null;
+  power = 0; lastShot = null; floats = []; restartBtn = null;
+  clouds = [{x:140,y:82,s:1},{x:430,y:58,s:.7},{x:690,y:112,s:1.25}];
+}
+
+function tone(f, d, type, g){
+  try{
+    AC = AC || new (window.AudioContext || window.webkitAudioContext)();
+    const o = AC.createOscillator(), v = AC.createGain();
+    o.type = type || 'triangle'; o.frequency.value = f;
+    v.gain.setValueAtTime(g || .15, AC.currentTime);
+    v.gain.exponentialRampToValueAtTime(.001, AC.currentTime + d);
+    o.connect(v); v.connect(AC.destination);
+    o.start(); o.stop(AC.currentTime + d);
+  }catch(e){}
+}
+
+function line(x1, y1, x2, y2){ ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); }
+
+function roundRect(x, y, w, h, r){
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+function aimAngle(){
+  const a = Math.atan2(aim.y - BOW.y, aim.x - BOW.x);
+  return Math.max(-1.45, Math.min(0.9, a));
+}
+
+function effAngle(){
+  const wob = (0.005 + Math.max(0, power - 0.7) * 0.055) * Math.sin(now * 0.02);
+  return aimAngle() + wob;
+}
+
+function release(){
+  const a = effAngle(), sp = 520 + power * 580;
+  arrow = { x: BOW.x + Math.cos(a) * 30, y: BOW.y + Math.sin(a) * 30,
+            vx: Math.cos(a) * sp, vy: Math.sin(a) * sp };
+  phase = 'fly';
+  tone(160 + power * 160, 0.12, 'triangle', 0.25);
+}
+
+function scoreShot(s, fx, fy){
+  arrowsLeft--; lastShot = s;
+  if(s > 0){
+    total += s;
+    floats.push({ x: fx, y: fy, txt: '+' + s, col: s >= 9 ? '#ffd23a' : s >= 6 ? '#ff8a4b' : '#fff', t0: now });
+    tone(140, 0.15, 'square', 0.18);
+    if(s >= 9) tone(880, 0.25, 'sine', 0.15);
+  }else{
+    floats.push({ x: fx, y: fy, txt: 'MISS', col: '#ff6b6b', t0: now });
+    tone(90, 0.2, 'sawtooth', 0.12);
+  }
+  arrow = null;
+  if(arrowsLeft > 0){ wind = newWind(); windAcc = wind * 26; phase = 'ready'; }
+  else phase = 'over';
+}
+
+function update(dt){
+  for(const c of clouds){
+    c.x += wind * 6 * dt;
+    if(c.x > W + 100) c.x = -100;
+    if(c.x < -100) c.x = W + 100;
+  }
+  floats = floats.filter(f => now - f.t0 < 1200);
+
+  if(phase === 'draw') power = Math.min(1, (now - drawT0) / CHARGE);
+
+  if(phase === 'fly' && arrow){
+    arrow.vy += GRAV * dt;
+    arrow.vx += windAcc * dt;
+    arrow.vy += Math.sin(now * 0.006 + wind * 1.7) * Math.abs(wind) * 4 * dt;
+    const px = arrow.x, py = arrow.y;
+    arrow.x += arrow.vx * dt;
+    arrow.y += arrow.vy * dt;
+
+    if(px < TG.x && arrow.x >= TG.x){
+      const f = (TG.x - px) / (arrow.x - px);
+      const yh = py + (arrow.y - py) * f;
+      const r = Math.abs(yh - TG.cy);
+      if(r <= TG.r){
+        const s = 10 - Math.floor(r / RINGW);
+        marks.push({ dy: yh - TG.cy });
+        scoreShot(s, TG.x - 46, yh);
+        return;
+      }
+    }
+    if(arrow.y >= GROUND) scoreShot(0, Math.min(Math.max(arrow.x, 60), W - 60), GROUND - 14);
+    else if(arrow.x > W + 80 || arrow.x < -80) scoreShot(0, W / 2, 140);
+  }
+}
+
+function cloud(x, y, s){
+  ctx.save(); ctx.translate(x, y); ctx.scale(s, s);
+  ctx.beginPath();
+  ctx.arc(0, 0, 18, 0, 7); ctx.arc(20, -9, 23, 0, 7);
+  ctx.arc(45, 0, 17, 0, 7); ctx.arc(22, 9, 21, 0, 7);
+  ctx.fill(); ctx.restore();
+}
+
+function drawTarget(){
+  ctx.strokeStyle = '#6b4a2b'; ctx.lineWidth = 7; ctx.lineCap = 'round';
+  line(TG.x - 4, TG.cy + TG.r - 8, TG.x - 26, GROUND);
+  line(TG.x + 4, TG.cy + TG.r - 8, TG.x + 26, GROUND);
+  line(TG.x - 14, GROUND - 40, TG.x + 14, GROUND - 40);
+
+  ctx.fillStyle = '#22262e';
+  ctx.beginPath(); ctx.arc(TG.x, TG.cy, TG.r + 5, 0, 7); ctx.fill();
+  const zones = [[TG.r, '#f2efe6'], [TG.r * .8, '#3a3a40'], [TG.r * .6, '#3f7fd9'], [TG.r * .4, '#e04040'], [TG.r * .2, '#f5c531']];
+  for(const [r, c] of zones){
+    ctx.fillStyle = c;
+    ctx.beginPath(); ctx.arc(TG.x, TG.cy, r, 0, 7); ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,.2)'; ctx.lineWidth = 1; ctx.stroke();
+  }
+  ctx.fillStyle = '#a83232';
+  ctx.beginPath(); ctx.arc(TG.x, TG.cy, 2.5, 0, 7); ctx.fill();
+
+  ctx.strokeStyle = '#2e2e2e'; ctx.lineWidth = 2;
+  for(const m of marks){
+    const y = TG.cy + m.dy;
+    line(TG.x - 15, y - 5, TG.x - 1, y);
+    line(TG.x - 15, y - 5, TG.x - 19, y - 8);
+    line(TG.x - 15, y - 5, TG.x - 19, y - 2);
+  }
+}
+
+function drawArcher(){
+  const a = effAngle();
+  const pull = phase === 'draw' ? power * MAXPULL : 0;
+  const sx = BOW.x - Math.cos(a) * pull, sy = BOW.y - Math.sin(a) * pull;
+
+  ctx.strokeStyle = '#26303d'; ctx.lineCap = 'round';
+  ctx.lineWidth = 6;
+  line(92, 424, 72, GROUND);
+  line(92, 424, 112, GROUND);
+  ctx.lineWidth = 7;
+  line(92, 424, 98, 382);
+  ctx.fillStyle = '#26303d';
+  ctx.beginPath(); ctx.arc(95, 365, 11, 0, 7); ctx.fill();
+  ctx.lineWidth = 5;
+  line(98, 388, BOW.x, BOW.y);
+  line(98, 388, sx, sy);
+
+  ctx.save(); ctx.translate(BOW.x, BOW.y); ctx.rotate(a);
+  ctx.strokeStyle = '#8a5a2b'; ctx.lineWidth = 5;
+  ctx.beginPath(); ctx.moveTo(0, -46); ctx.quadraticCurveTo(-18, 0, 0, 46); ctx.stroke();
+  ctx.strokeStyle = 'rgba(245,245,245,.9)'; ctx.lineWidth = 1.6;
+  ctx.beginPath(); ctx.moveTo(0, -44); ctx.lineTo(-pull, 0); ctx.lineTo(0, 44); ctx.stroke();
+  ctx.strokeStyle = '#e8e2d0'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(-pull - 6, 0); ctx.lineTo(66 - pull, 0); ctx.stroke();
+  ctx.fillStyle = '#cfd6da';
+  ctx.beginPath(); ctx.moveTo(72 - pull, 0); ctx.lineTo(60 - pull, -4.5); ctx.lineTo(60 - pull, 4.5); ctx.fill();
+  ctx.strokeStyle = '#e05a4e'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(-pull - 2, -5); ctx.lineTo(-pull + 4, 0); ctx.lineTo(-pull - 2, 5); ctx.stroke();
+  ctx.restore();
+
+  if(phase === 'draw'){ drawPreview(a); drawPower(); }
+}
+
+function drawPreview(a){
+  const sp = 520 + power * 580;
+  let x = BOW.x + Math.cos(a) * 30, y = BOW.y + Math.sin(a) * 30;
+  let vx = Math.cos(a) * sp, vy = Math.sin(a) * sp;
+  ctx.fillStyle = 'rgba(255,255,255,.55)';
+  for(let i = 0; i < 30; i++){
+    vy += GRAV * .035; vx += windAcc * .035;
+    x += vx * .035; y += vy * .035;
+    if(y > GROUND || x > TG.x) break;
+    if(i % 2 === 0){ ctx.beginPath(); ctx.arc(x, y, 3, 0, 7); ctx.fill(); }
+  }
+}
+
+function drawPower(){
+  const x = BOW.x - 60, y = BOW.y - 52, w = 10, h = 104;
+  ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fillRect(x - 2, y - 2, w + 4, h + 4);
+  ctx.fillStyle = 'hsl(' + (120 - 110 * power) + ',85%,48%)';
+  ctx.fillRect(x, y + h * (1 - power), w, h * power);
+  ctx.fillStyle = '#fff'; ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('POWER', x + w / 2, y - 8);
+}
+
+function drawArrow(){
+  if(!arrow) return;
+  ctx.save(); ctx.translate(arrow.x, arrow.y); ctx.rotate(Math.atan2(arrow.vy, arrow.vx));
+  ctx.strokeStyle = '#e8e2d0'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(-34, 0); ctx.lineTo(8, 0); ctx.stroke();
+  ctx.fillStyle = '#cfd6da';
+  ctx.beginPath(); ctx.moveTo(14, 0); ctx.lineTo(5, -4); ctx.lineTo(5, 4); ctx.fill();
+  ctx.strokeStyle = '#e05a4e'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(-30, -5); ctx.lineTo(-24, 0); ctx.lineTo(-30, 5); ctx.stroke();
+  ctx.restore();
+}
+
+function drawHUD(){
+  ctx.textAlign = 'left';
+  ctx.fillStyle = 'rgba(10,20,35,.55)';
+  roundRect(14, 14, 172, 56, 10); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.font = 'bold 22px sans-serif';
+  ctx.fillText('Score ' + total, 26, 39);
+  ctx.font = '13px sans-serif'; ctx.fillStyle = 'rgba(255,255,255,.8)';
+  ctx.fillText(lastShot === null ? 'First shot' : (lastShot > 0 ? 'Last  +' + lastShot : 'Last  MISS'), 26, 60);
+
+  for(let i = 0; i < N_ARROWS; i++){
+    const x = W - 32 - i * 23, y = 28;
+    ctx.globalAlpha = i < arrowsLeft ? 1 : .15;
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 3;
+    line(x - 14, y, x - 3, y);
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.moveTo(x + 3, y); ctx.lineTo(x - 4, y - 4); ctx.lineTo(x - 4, y + 4); ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+  ctx.fillStyle = 'rgba(255,255,255,.85)'; ctx.font = '11px sans-serif'; ctx.textAlign = 'right';
+  ctx.fillText('ARROWS', W - 30, 52);
+
+  const fx = W / 2 - 60, fy = 20;
+  ctx.fillStyle = 'rgba(10,20,35,.55)';
+  roundRect(fx - 56, fy - 6, 210, 54, 10); ctx.fill();
+  ctx.strokeStyle = '#dfe6ea'; ctx.lineWidth = 3;
+  line(fx, fy + 2, fx, fy + 40);
+  const dir = wind > 0 ? 1 : -1, fl = 14 + Math.abs(wind) * 3.4;
+  ctx.fillStyle = wind > 0 ? '#4caf6d' : '#e0624f';
+  ctx.beginPath(); ctx.moveTo(fx, fy + 2); ctx.lineTo(fx + dir * fl, fy + 9); ctx.lineTo(fx, fy + 16); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.font = 'bold 16px sans-serif'; ctx.textAlign = 'left';
+  ctx.fillText((wind > 0 ? '\u2192 ' : '\u2190 ') + Math.abs(wind).toFixed(1) + ' m/s', fx + 18, fy + 16);
+  ctx.font = '11px sans-serif'; ctx.fillStyle = 'rgba(255,255,255,.8)';
+  ctx.fillText('WIND', fx + 18, fy + 33);
+
+  if(phase === 'ready'){
+    ctx.fillStyle = 'rgba(20,30,45,.5)';
+    roundRect(W / 2 - 195, H - 42, 390, 30, 15); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.font = '14px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('Hold to draw  \u00b7  release to shoot  \u00b7  R to restart', W / 2, H - 22);
+  }
+}
+
+function drawFloats(){
+  ctx.textAlign = 'center';
+  for(const f of floats){
+    const p = (now - f.t0) / 1200;
+    ctx.globalAlpha = 1 - p;
+    ctx.font = 'bold 26px sans-serif';
+    ctx.strokeStyle = 'rgba(0,0,0,.6)'; ctx.lineWidth = 4;
+    ctx.strokeText(f.txt, f.x, f.y - p * 34);
+    ctx.fillStyle = f.col;
+    ctx.fillText(f.txt, f.x, f.y - p * 34);
+    ctx.globalAlpha = 1;
+  }
+}
+
+function rating(){
+  return total >= 80 ? 'Master Archer!' : total >= 60 ? 'Sharpshooter' :
+         total >= 40 ? 'Solid Marksman' : total >= 20 ? 'Keep Practicing' : 'The Ground Fears You';
+}
+
+function drawOver(){
+  ctx.fillStyle = 'rgba(8,14,26,.6)'; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = 'rgba(15,26,44,.95)';
+  roundRect(W / 2 - 190, H / 2 - 112, 380, 236, 16); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,.15)'; ctx.lineWidth = 1; ctx.stroke();
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#fff'; ctx.font = 'bold 30px sans-serif';
+  ctx.fillText('Round Over', W / 2, H / 2 - 66);
+  ctx.fillStyle = '#ffd23a'; ctx.font = 'bold 44px sans-serif';
+  ctx.fillText(total + ' pts', W / 2, H / 2 - 14);
+  ctx.fillStyle = '#9fc3e8'; ctx.font = '16px sans-serif';
+  ctx.fillText(rating(), W / 2, H / 2 + 16);
+  restartBtn = { x: W / 2 - 85, y: H / 2 + 46, w: 170, h: 46 };
+  ctx.fillStyle = '#4caf6d';
+  roundRect(restartBtn.x, restartBtn.y, restartBtn.w, restartBtn.h, 10); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.font = 'bold 18px sans-serif';
+  ctx.fillText('Shoot Again', W / 2, restartBtn.y + 30);
+}
+
+function render(){
+  const g = ctx.createLinearGradient(0, 0, 0, GROUND);
+  g.addColorStop(0, '#7cc0f4'); g.addColorStop(1, '#dff2ff');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+
+  ctx.fillStyle = 'rgba(255,226,122,.35)';
+  ctx.beginPath(); ctx.arc(84, 78, 44, 0, 7); ctx.fill();
+  ctx.fillStyle = '#ffe27a';
+  ctx.beginPath(); ctx.arc(84, 78, 30, 0, 7); ctx.fill();
+
+  ctx.fillStyle = 'rgba(255,255,255,.92)';
+  for(const c of clouds) cloud(c.x, c.y, c.s);
+
+  ctx.fillStyle = '#b7dfa5';
+  ctx.beginPath(); ctx.ellipse(220, GROUND + 40, 340, 80, 0, Math.PI, 0); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(760, GROUND + 50, 380, 90, 0, Math.PI, 0); ctx.fill();
+
+  ctx.fillStyle = '#7fa64e'; ctx.fillRect(0, GROUND, W, H - GROUND);
+  ctx.fillStyle = '#6a8c3f'; ctx.fillRect(0, GROUND, W, 5);
+
+  drawTarget();
+  drawArcher();
+  drawArrow();
+  drawFloats();
+  drawHUD();
+  if(phase === 'over') drawOver();
+}
+
+function toGame(e){
+  const r = cv.getBoundingClientRect();
+  return { x: (e.clientX - r.left) * W / r.width, y: (e.clientY - r.top) * H / r.height };
+}
+
+cv.addEventListener('pointerdown', e => {
+  const p = toGame(e); aim = p;
+  if(phase === 'over'){
+    if(restartBtn && p.x > restartBtn.x && p.x < restartBtn.x + restartBtn.w &&
+       p.y > restartBtn.y && p.y < restartBtn.y + restartBtn.h) reset();
+    return;
+  }
+  if(phase !== 'ready') return;
+  drawT0 = now; power = 0; phase = 'draw';
+});
+window.addEventListener('pointermove', e => { aim = toGame(e); });
+window.addEventListener('pointerup', () => { if(phase === 'draw') release(); });
+window.addEventListener('pointercancel', () => { if(phase === 'draw'){ phase = 'ready'; power = 0; } });
+window.addEventListener('keydown', e => { if(e.key === 'r' || e.key === 'R') reset(); });
+cv.addEventListener('contextmenu', e => e.preventDefault());
+
+reset();
+let prev = performance.now();
+function frame(t){
+  const dt = Math.min(0.033, (t - prev) / 1000);
+  prev = t; now = t;
+  update(dt); render();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

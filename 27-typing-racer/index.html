@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Typing Racer</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+    color: #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+  }
+  .card {
+    width: 100%;
+    max-width: 760px;
+    background: rgba(30, 41, 59, 0.85);
+    border: 1px solid rgba(148, 163, 184, 0.15);
+    border-radius: 16px;
+    padding: 32px;
+    box-shadow: 0 25px 60px rgba(0,0,0,0.5);
+    position: relative;
+  }
+  h1 {
+    text-align: center;
+    font-size: 1.8rem;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+  }
+  h1 .flag { filter: drop-shadow(0 2px 4px rgba(0,0,0,.4)); }
+  .subtitle { text-align: center; color: #94a3b8; font-size: .9rem; margin-bottom: 22px; }
+
+  /* Race track */
+  .track {
+    position: relative;
+    height: 46px;
+    background: repeating-linear-gradient(90deg, #334155 0 24px, #3b4a61 24px 48px);
+    border-radius: 10px;
+    border: 1px solid rgba(148,163,184,.2);
+    margin-bottom: 18px;
+    overflow: hidden;
+  }
+  .track::after {
+    content: '';
+    position: absolute;
+    right: 10px; top: 0; bottom: 0; width: 6px;
+    background: repeating-conic-gradient(#fff 0 25%, #0f172a 0 50%) 0 0/6px 12px;
+    opacity: .8;
+  }
+  #car {
+    position: absolute;
+    top: 50%;
+    left: 0%;
+    transform: translate(0, -50%) scaleX(-1);
+    font-size: 30px;
+    transition: left .25s ease-out;
+    will-change: left;
+  }
+
+  /* Stats bar */
+  .stats {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .stat {
+    flex: 1;
+    background: rgba(15,23,42,.6);
+    border: 1px solid rgba(148,163,184,.12);
+    border-radius: 10px;
+    padding: 10px 14px;
+    text-align: center;
+  }
+  .stat .label { font-size: .72rem; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; }
+  .stat .value { font-size: 1.5rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  #wpm { color: #38bdf8; }
+  #acc { color: #4ade80; }
+  #time { color: #facc15; }
+
+  /* Sentence display */
+  .sentence-wrap {
+    position: relative;
+    background: rgba(15,23,42,.7);
+    border: 1px solid rgba(148,163,184,.15);
+    border-radius: 12px;
+    padding: 24px 22px;
+    cursor: text;
+    margin-bottom: 18px;
+  }
+  #sentence {
+    font-family: 'Cascadia Code', 'Consolas', 'Courier New', monospace;
+    font-size: 1.45rem;
+    line-height: 2;
+    word-break: break-word;
+    user-select: none;
+  }
+  #sentence span { position: relative; border-radius: 4px; }
+  .ch-pending { color: #64748b; }
+  .ch-correct { color: #4ade80; }
+  .ch-wrong { color: #f87171; background: rgba(248,113,113,.18); border-bottom: 2px solid #f87171; }
+  .ch-current::before {
+    content: '';
+    position: absolute;
+    left: -1px; top: 4px; bottom: 4px;
+    width: 2px;
+    background: #38bdf8;
+    animation: blink .8s step-end infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  #startHint {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(15,23,42,.82);
+    border-radius: 12px;
+    font-size: 1rem; color: #38bdf8;
+    letter-spacing: .5px;
+    backdrop-filter: blur(2px);
+    transition: opacity .2s;
+  }
+  #startHint.hidden { opacity: 0; pointer-events: none; }
+
+  #typer {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+    left: -9999px;
+    top: 0;
+  }
+
+  /* Results overlay */
+  #results {
+    position: absolute; inset: 0;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: rgba(15,23,42,.96);
+    border-radius: 16px;
+    z-index: 10;
+    text-align: center;
+    padding: 20px;
+  }
+  #results.show { display: flex; }
+  #results h2 { font-size: 1.6rem; margin-bottom: 4px; }
+  .final-wpm { font-size: 3.6rem; font-weight: 800; color: #38bdf8; line-height: 1; }
+  .final-wpm small { font-size: 1.1rem; color: #94a3b8; font-weight: 600; }
+  .final-row { display: flex; gap: 28px; margin: 14px 0 20px; }
+  .final-row div { font-size: .95rem; color: #94a3b8; }
+  .final-row b { display: block; font-size: 1.3rem; color: #e2e8f0; }
+  #grade { font-size: 1rem; color: #facc15; margin-bottom: 4px; min-height: 1.4em; }
+
+  .btn {
+    background: linear-gradient(135deg, #0ea5e9, #2563eb);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 12px 34px;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: .5px;
+    cursor: pointer;
+    transition: transform .12s, box-shadow .12s;
+    box-shadow: 0 6px 18px rgba(14,165,233,.35);
+  }
+  .btn:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(14,165,233,.45); }
+  .btn:active { transform: translateY(0); }
+  .hint { margin-top: 10px; font-size: .8rem; color: #64748b; }
+</style>
+</head>
+<body>
+  <div class="card" id="card">
+    <h1><span class="flag">🏁</span> Typing Racer <span class="flag">🏁</span></h1>
+    <p class="subtitle">Type the sentence as fast and accurately as you can</p>
+
+    <div class="track"><div id="car">🏎️</div></div>
+
+    <div class="stats">
+      <div class="stat"><div class="label">WPM</div><div class="value" id="wpm">0</div></div>
+      <div class="stat"><div class="label">Accuracy</div><div class="value" id="acc">100%</div></div>
+      <div class="stat"><div class="label">Time</div><div class="value" id="time">0.0s</div></div>
+    </div>
+
+    <div class="sentence-wrap" id="sentenceWrap">
+      <div id="sentence"></div>
+      <div id="startHint">Click here and start typing…</div>
+    </div>
+
+    <input id="typer" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Type the sentence here">
+
+    <div class="hint" style="text-align:center">Mistakes count against your accuracy — Backspace fixes them.</div>
+
+    <div id="results">
+      <h2>🏆 Race Complete!</h2>
+      <div id="grade"></div>
+      <div class="final-wpm"><span id="finalWpm">0</span> <small>WPM</small></div>
+      <div class="final-row">
+        <div><b id="finalAcc">0%</b>Accuracy</div>
+        <div><b id="finalTime">0.0s</b>Time</div>
+        <div><b id="finalErr">0</b>Errors</div>
+      </div>
+      <button class="btn" id="restartBtn">Race Again</button>
+      <div class="hint">or press Enter</div>
+    </div>
+  </div>
+
+<script>
+(function () {
+  'use strict';
+
+  var SENTENCES = [
+    'The quick brown fox jumps over the lazy dog near the river bank.',
+    'Practice makes perfect, so keep typing every single day.',
+    'A journey of a thousand miles begins with a single step.',
+    'Coding is like humor: if you have to explain it, it is probably bad.',
+    'The best time to plant a tree was twenty years ago. The second best time is now.',
+    'Speed is nothing without control, and typing is no different.',
+    'Every expert was once a beginner who refused to give up.',
+    'Simplicity is the soul of efficiency in both writing and code.',
+    'The keyboard is mightier than the sword in the digital age.',
+    'Great things never come from comfort zones, so push your limits.',
+    'Measure twice, cut once, and always read the error message twice.',
+    'A smooth sea never made a skilled sailor, nor a fast typist.',
+    'First solve the problem, then write the code to make it real.',
+    'It is not about how fast you start, but how cleanly you finish.',
+    'Debugging is being the detective in a crime movie where you are also the murderer.',
+    'Small steps every day add up to massive results over time.',
+    'The only way to do great work is to love what you do.',
+    'Focus on accuracy first, and speed will follow naturally.'
+  ];
+
+  var sentenceEl = document.getElementById('sentence');
+  var wrapEl = document.getElementById('sentenceWrap');
+  var hintEl = document.getElementById('startHint');
+  var input = document.getElementById('typer');
+  var wpmEl = document.getElementById('wpm');
+  var accEl = document.getElementById('acc');
+  var timeEl = document.getElementById('time');
+  var carEl = document.getElementById('car');
+  var resultsEl = document.getElementById('results');
+  var restartBtn = document.getElementById('restartBtn');
+
+  var target = '';
+  var spans = [];
+  var started = false;
+  var finished = false;
+  var startTime = 0;
+  var timer = null;
+  var keystrokes = 0;
+  var correctKeystrokes = 0;
+  var errorChars = 0; // wrong chars remaining in the text
+
+  function pickSentence() {
+    var s;
+    do {
+      s = SENTENCES[Math.floor(Math.random() * SENTENCES.length)];
+    } while (s === target && SENTENCES.length > 1);
+    return s;
+  }
+
+  function renderSentence() {
+    sentenceEl.innerHTML = '';
+    spans = [];
+    for (var i = 0; i < target.length; i++) {
+      var sp = document.createElement('span');
+      sp.textContent = target[i];
+      sp.className = 'ch-pending';
+      sentenceEl.appendChild(sp);
+      spans.push(sp);
+    }
+    if (spans.length) spans[0].classList.add('ch-current');
+  }
+
+  function elapsedMs() {
+    return started ? Date.now() - startTime : 0;
+  }
+
+  function correctCharCount() {
+    var v = input.value, n = 0;
+    for (var i = 0; i < v.length && i < target.length; i++) {
+      if (v[i] === target[i]) n++;
+    }
+    return n;
+  }
+
+  function updateStats() {
+    var ms = elapsedMs();
+    var secs = ms / 1000;
+    var mins = ms / 60000;
+    var wpm = mins > 0 ? Math.round((correctCharCount() / 5) / mins) : 0;
+    var acc = keystrokes > 0 ? Math.round((correctKeystrokes / keystrokes) * 100) : 100;
+    wpmEl.textContent = wpm;
+    accEl.textContent = acc + '%';
+    timeEl.textContent = secs.toFixed(1) + 's';
+  }
+
+  function updateCar() {
+    var len = input.value.length;
+    var pct = target.length ? Math.min(len / target.length, 1) : 0;
+    carEl.style.left = (pct * 96) + '%';
+  }
+
+  function updateHighlight() {
+    var v = input.value;
+    errorChars = 0;
+    for (var i = 0; i < spans.length; i++) {
+      var cls = 'ch-pending';
+      if (i < v.length) {
+        if (v[i] === target[i]) cls = 'ch-correct';
+        else { cls = 'ch-wrong'; errorChars++; }
+      }
+      spans[i].className = cls;
+      spans[i].classList.remove('ch-current');
+    }
+    var cur = Math.min(v.length, spans.length - 1);
+    if (v.length < spans.length && spans[cur]) spans[cur].classList.add('ch-current');
+  }
+
+  function startIfNeeded() {
+    if (!started) {
+      started = true;
+      startTime = Date.now();
+      hintEl.classList.add('hidden');
+      timer = setInterval(updateStats, 100);
+    }
+  }
+
+  function grade(wpm, acc) {
+    if (acc < 90) return 'Too many crashes! Accuracy first. 🚧';
+    if (wpm >= 80) return 'Blazing fast! 🚀';
+    if (wpm >= 60) return 'Great pace, racer! 🔥';
+    if (wpm >= 40) return 'Solid speed — keep pushing! 💪';
+    if (wpm >= 25) return 'Warming up nicely. 🏁';
+    return 'Every racer starts somewhere! 🌱';
+  }
+
+  function finish() {
+    finished = true;
+    clearInterval(timer);
+    updateStats();
+    var ms = elapsedMs();
+    var mins = ms / 60000;
+    var wpm = mins > 0 ? Math.round((correctCharCount() / 5) / mins) : 0;
+    var acc = keystrokes > 0 ? Math.round((correctKeystrokes / keystrokes) * 100) : 100;
+    document.getElementById('finalWpm').textContent = wpm;
+    document.getElementById('finalAcc').textContent = acc + '%';
+    document.getElementById('finalTime').textContent = (ms / 1000).toFixed(1) + 's';
+    document.getElementById('finalErr').textContent = keystrokes - correctKeystrokes;
+    document.getElementById('grade').textContent = grade(wpm, acc);
+    resultsEl.classList.add('show');
+    input.blur();
+    restartBtn.focus();
+  }
+
+  function restart() {
+    clearInterval(timer);
+    target = pickSentence();
+    renderSentence();
+    input.value = '';
+    started = false;
+    finished = false;
+    startTime = 0;
+    keystrokes = 0;
+    correctKeystrokes = 0;
+    errorChars = 0;
+    wpmEl.textContent = '0';
+    accEl.textContent = '100%';
+    timeEl.textContent = '0.0s';
+    carEl.style.left = '0%';
+    hintEl.classList.remove('hidden');
+    resultsEl.classList.remove('show');
+  }
+
+  var lastLen = 0;
+
+  input.addEventListener('input', function () {
+    if (finished) { input.value = input.value.slice(0, target.length); return; }
+    startIfNeeded();
+
+    // Clamp to sentence length
+    if (input.value.length > target.length) {
+      input.value = input.value.slice(0, target.length);
+    }
+
+    // Each newly added character counts as a keystroke
+    var v = input.value;
+    if (v.length > lastLen) {
+      for (var i = lastLen; i < v.length; i++) {
+        keystrokes++;
+        if (v[i] === target[i]) correctKeystrokes++;
+      }
+    }
+    lastLen = v.length;
+
+    updateHighlight();
+    updateStats();
+    updateCar();
+
+    if (v.length === target.length) finish();
+  });
+
+  wrapEl.addEventListener('click', function () { if (!finished) input.focus(); });
+  document.getElementById('card').addEventListener('click', function () {
+    if (!finished) input.focus();
+  });
+  input.addEventListener('focus', function () {
+    if (!started && !finished) hintEl.classList.remove('hidden');
+  });
+
+  restartBtn.addEventListener('click', restart);
+  document.addEventListener('keydown', function (e) {
+    if (finished && e.key === 'Enter') {
+      e.preventDefault();
+      restart();
+      input.focus();
+    }
+  });
+
+  // Init
+  target = pickSentence();
+  renderSentence();
+})();
+</script>
+</body>
+</html>

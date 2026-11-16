@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Doodle Jump</title>
+<style>
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: #2b2b3a;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Comic Sans MS', 'Segoe UI', cursive, sans-serif;
+    user-select: none; -webkit-user-select: none;
+  }
+  canvas {
+    background: #fdf6e3;
+    display: block;
+    border-radius: 6px;
+    box-shadow: 0 10px 40px rgba(0,0,0,.55);
+    touch-action: none;
+  }
+</style>
+</head>
+<body>
+<canvas id="game" width="480" height="640"></canvas>
+<script>
+(function () {
+  var canvas = document.getElementById('game');
+  var ctx = canvas.getContext('2d');
+  var W = canvas.width, H = canvas.height;
+
+  var GRAV = 0.34;
+  var JUMP_V = -12.4;
+  var SPRING_V = -21;
+  var MOVE_A = 0.55;
+  var MAX_VX = 4.6;
+  var FRICTION = 0.88;
+
+  var keys = { left: false, right: false };
+  var player, platforms, camera, score, nextY, gameOver, t;
+  var hi = 0;
+  try { hi = +localStorage.getItem('dj-hi') || 0; } catch (e) {}
+
+  function rand(a, b) { return a + Math.random() * (b - a); }
+  function difficulty() { return Math.min(1, score / 6000); }
+
+  function makePlat(y) {
+    var d = difficulty(), r = Math.random(), type = 'normal';
+    if (r < 0.08 + 0.12 * d) type = 'moving';
+    else if (r < 0.08 + 0.12 * d + 0.14 * d) type = 'break';
+    var p = {
+      x: rand(0, W - 78), y: y, w: rand(56, 78), h: 14, type: type,
+      vx: type === 'moving' ? rand(1, 2.2) * (Math.random() < 0.5 ? -1 : 1) : 0,
+      vy: 0, broken: false, spring: type === 'normal' && Math.random() < 0.08
+    };
+    return p;
+  }
+
+  function reset() {
+    player = { x: W / 2 - 18, y: H - 150, w: 36, h: 40, vx: 0, vy: JUMP_V, face: 1 };
+    platforms = [];
+    camera = 0; score = 0; gameOver = false; t = 0;
+    platforms.push({ x: W / 2 - 45, y: H - 90, w: 90, h: 14, type: 'normal', vx: 0, vy: 0, broken: false, spring: false });
+    nextY = H - 90;
+    while (nextY > -60) {
+      nextY -= rand(48, 72);
+      platforms.push(makePlat(nextY));
+    }
+  }
+
+  function update() {
+    t++;
+    if (gameOver) {
+      player.vy += GRAV; player.y += player.vy;
+      return;
+    }
+
+    if (keys.left) player.vx -= MOVE_A;
+    if (keys.right) player.vx += MOVE_A;
+    if (!keys.left && !keys.right) player.vx *= FRICTION;
+    player.vx = Math.max(-MAX_VX, Math.min(MAX_VX, player.vx));
+    player.x += player.vx;
+    if (Math.abs(player.vx) > 0.3) player.face = player.vx > 0 ? 1 : -1;
+    if (player.x < -player.w) player.x = W;
+    if (player.x > W) player.x = -player.w;
+
+    player.vy += GRAV;
+    var prevBottom = player.y + player.h;
+    player.y += player.vy;
+
+    for (var i = 0; i < platforms.length; i++) {
+      var p = platforms[i];
+      if (p.broken) { p.y += p.vy; p.vy += GRAV; continue; }
+      if (p.type === 'moving') {
+        p.x += p.vx;
+        if (p.x < 0 || p.x + p.w > W) { p.vx *= -1; p.x = Math.max(0, Math.min(W - p.w, p.x)); }
+      }
+      if (player.vy > 0 &&
+          prevBottom <= p.y + 2 && player.y + player.h >= p.y &&
+          player.x + player.w > p.x + 4 && player.x < p.x + p.w - 4) {
+        if (p.type === 'break') {
+          p.broken = true; p.vy = 2;
+        } else {
+          player.vy = p.spring ? SPRING_V : JUMP_V;
+          player.y = p.y - player.h;
+        }
+      }
+    }
+
+    var thresh = H * 0.38;
+    if (player.y < thresh) {
+      var dy = thresh - player.y;
+      player.y = thresh;
+      camera += dy;
+      for (var j = 0; j < platforms.length; j++) platforms[j].y += dy;
+      nextY += dy;
+      while (nextY > -60) {
+        nextY -= rand(48, 72 + 28 * difficulty());
+        platforms.push(makePlat(nextY));
+      }
+    }
+    score = Math.max(score, Math.floor(camera / 8));
+
+    platforms = platforms.filter(function (p) { return p.y < H + 60; });
+
+    if (player.y > H + 10) {
+      gameOver = true;
+      if (score > hi) {
+        hi = score;
+        try { localStorage.setItem('dj-hi', hi); } catch (e) {}
+      }
+    }
+  }
+
+  function rrect(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  function drawPlatform(p) {
+    var alpha = 1;
+    if (p.broken) { alpha = Math.max(0, 1 - p.vy * 0.08); }
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    var fill = '#7ec850', edge = '#4f9630';
+    if (p.type === 'moving') { fill = '#5aa9e6'; edge = '#3574ad'; }
+    if (p.type === 'break') { fill = '#c99a5b'; edge = '#8f6a3a'; }
+    rrect(p.x, p.y, p.w, p.h, 6);
+    ctx.fillStyle = fill; ctx.fill();
+    ctx.lineWidth = 2; ctx.strokeStyle = edge; ctx.stroke();
+    if (p.type === 'break') {
+      ctx.strokeStyle = 'rgba(90,60,25,.6)'; ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(p.x + p.w * 0.3, p.y); ctx.lineTo(p.x + p.w * 0.42, p.y + p.h);
+      ctx.moveTo(p.x + p.w * 0.65, p.y); ctx.lineTo(p.x + p.w * 0.55, p.y + p.h);
+      ctx.stroke();
+    }
+    if (p.spring && !p.broken) {
+      var cx = p.x + p.w / 2;
+      ctx.strokeStyle = '#888'; ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(cx - 5, p.y); ctx.lineTo(cx + 5, p.y - 4);
+      ctx.lineTo(cx - 5, p.y - 8); ctx.lineTo(cx + 5, p.y - 12);
+      ctx.stroke();
+      ctx.fillStyle = '#e0533d';
+      rrect(cx - 9, p.y - 16, 18, 5, 2); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function drawPlayer() {
+    ctx.save();
+    ctx.translate(player.x + player.w / 2, player.y + player.h / 2);
+    ctx.rotate(player.vx * 0.04);
+    var f = player.face;
+    ctx.fillStyle = '#57c24e'; ctx.strokeStyle = '#2f7a2a'; ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.ellipse(0, 3, player.w / 2, player.h / 2 - 5, 0, 0, Math.PI * 2);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#4aa842';
+    ctx.beginPath();
+    ctx.ellipse(-10, 16, 7, 4, 0, 0, Math.PI * 2);
+    ctx.ellipse(10, 16, 7, 4, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(-7 + f * 3, -9, 6.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.arc(7 + f * 3, -9, 6.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#222';
+    ctx.beginPath(); ctx.arc(-7 + f * 5.5, -9, 2.5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(7 + f * 5.5, -9, 2.5, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#2f7a2a'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(f * 4, 4, 6, 0.15 * Math.PI, 0.85 * Math.PI); ctx.stroke();
+    ctx.restore();
+  }
+
+  function draw() {
+    ctx.fillStyle = '#fdf6e3';
+    ctx.fillRect(0, 0, W, H);
+    var sp = 46, off = camera % sp;
+    ctx.strokeStyle = 'rgba(120,160,220,.32)'; ctx.lineWidth = 1;
+    for (var y = off - sp; y < H; y += sp) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+    }
+    ctx.strokeStyle = 'rgba(230,110,110,.5)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(48, 0); ctx.lineTo(48, H); ctx.stroke();
+
+    for (var i = 0; i < platforms.length; i++) drawPlatform(platforms[i]);
+    drawPlayer();
+
+    ctx.fillStyle = '#444'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.font = 'bold 26px "Comic Sans MS", cursive';
+    ctx.fillText(score, 14, 10);
+    ctx.font = '13px "Comic Sans MS", cursive'; ctx.fillStyle = '#999';
+    ctx.textAlign = 'right';
+    ctx.fillText('HI ' + hi, W - 12, 14);
+
+    if (!gameOver && t < 300) {
+      ctx.globalAlpha = Math.max(0, 1 - t / 300);
+      ctx.fillStyle = '#777'; ctx.textAlign = 'center'; ctx.font = '15px "Comic Sans MS", cursive';
+      ctx.fillText('← → or A / D to move', W / 2, H - 34);
+      ctx.globalAlpha = 1;
+    }
+
+    if (gameOver) {
+      ctx.fillStyle = 'rgba(253,246,227,.82)';
+      ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = '#333'; ctx.textAlign = 'center';
+      ctx.font = 'bold 42px "Comic Sans MS", cursive';
+      ctx.fillText('Game Over', W / 2, H / 2 - 70);
+      ctx.font = 'bold 28px "Comic Sans MS", cursive';
+      ctx.fillText(score + ' pts', W / 2, H / 2 - 10);
+      ctx.font = '17px "Comic Sans MS", cursive'; ctx.fillStyle = '#777';
+      ctx.fillText('Press R or click to play again', W / 2, H / 2 + 40);
+    }
+  }
+
+  function loop() {
+    update();
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  addEventListener('keydown', function (e) {
+    var k = e.key;
+    if (k === 'ArrowLeft' || k === 'a' || k === 'A') keys.left = true;
+    if (k === 'ArrowRight' || k === 'd' || k === 'D') keys.right = true;
+    if (k === 'ArrowLeft' || k === 'ArrowRight' || k === 'ArrowUp' || k === 'ArrowDown' || k === ' ') e.preventDefault();
+    if (gameOver && (k === 'r' || k === 'R' || k === ' ' || k === 'Enter')) reset();
+  });
+  addEventListener('keyup', function (e) {
+    var k = e.key;
+    if (k === 'ArrowLeft' || k === 'a' || k === 'A') keys.left = false;
+    if (k === 'ArrowRight' || k === 'd' || k === 'D') keys.right = false;
+  });
+
+  function steer(e) {
+    var r = canvas.getBoundingClientRect();
+    var x = e.clientX - r.left;
+    keys.left = x < r.width / 2;
+    keys.right = !keys.left;
+  }
+  canvas.addEventListener('pointerdown', function (e) {
+    if (gameOver) { reset(); return; }
+    steer(e);
+  });
+  canvas.addEventListener('pointermove', function (e) { if (e.buttons) steer(e); });
+  addEventListener('pointerup', function () { keys.left = keys.right = false; });
+
+  reset();
+  loop();
+})();
+</script>
+</body>
+</html>

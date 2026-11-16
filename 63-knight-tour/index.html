@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Knight's Tour</title>
+<style>
+  :root {
+    --bg: #16181d;
+    --panel: #20242d;
+    --border: #353b47;
+    --text: #e9eaed;
+    --muted: #9aa3af;
+    --light-sq: #ebecd0;
+    --dark-sq: #739552;
+    --accent: #f5c04e;
+    --good: #7fdd7f;
+    --bad: #ff9d7a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: radial-gradient(ellipse at top, #252b36 0%, var(--bg) 70%);
+    color: var(--text);
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  }
+  .app { width: min(94vw, 560px); text-align: center; }
+  h1 { margin: 0 0 4px; font-size: 30px; letter-spacing: .5px; font-weight: 700; }
+  h1 .glyph { color: var(--accent); }
+  .subtitle { margin: 0 0 14px; color: var(--muted); font-size: 14px; }
+  .controls {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    align-items: center; justify-content: center;
+    margin-bottom: 10px;
+  }
+  button, select {
+    background: var(--panel); color: var(--text);
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 14px; font-size: 14px; cursor: pointer;
+    font-family: inherit;
+  }
+  button:hover:not(:disabled), select:hover { border-color: var(--accent); }
+  button:active:not(:disabled) { transform: translateY(1px); }
+  button:disabled { opacity: .35; cursor: default; }
+  .hint-toggle {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 14px; color: var(--muted); cursor: pointer;
+    padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px;
+    background: var(--panel);
+  }
+  .hint-toggle:hover { border-color: var(--accent); }
+  .status { min-height: 24px; font-size: 15px; margin-bottom: 10px; }
+  .status.win { color: var(--good); font-weight: 600; }
+  .status.stuck { color: var(--bad); }
+  .board-wrap {
+    border-radius: 10px; overflow: hidden;
+    box-shadow: 0 14px 44px rgba(0,0,0,.55);
+    border: 1px solid #000;
+  }
+  .board {
+    display: grid;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    --fs: 40px;
+    user-select: none;
+    touch-action: manipulation;
+  }
+  .sq {
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+  }
+  .sq.light { background: var(--light-sq); }
+  .sq.dark  { background: var(--dark-sq); }
+  .sq.visited { cursor: default; }
+  .sq.visited::after {
+    content: ""; position: absolute; inset: 0;
+    background: rgba(0,0,0,.18);
+  }
+  .sq.hint:hover::after {
+    content: ""; position: absolute; inset: 0;
+    background: rgba(255,255,255,.25);
+  }
+  .num {
+    position: relative; z-index: 1;
+    font-size: calc(var(--fs) * .38);
+    font-weight: 600;
+    color: rgba(0,0,0,.55);
+  }
+  .sq.current { background: #baca44; }
+  .sq.current::after {
+    content: ""; position: absolute; inset: 0;
+    box-shadow: inset 0 0 0 4px var(--accent), inset 0 0 18px rgba(0,0,0,.25);
+  }
+  .piece {
+    position: relative; z-index: 2;
+    font-size: calc(var(--fs) * .62);
+    line-height: 1;
+    color: #222;
+    text-shadow: 0 1px 0 rgba(255,255,255,.35);
+  }
+  .dot {
+    width: calc(var(--fs) * .58); height: calc(var(--fs) * .58);
+    border-radius: 50%;
+    background: rgba(10, 30, 10, .28);
+    border: 2px solid rgba(10, 30, 10, .45);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .deg {
+    font-size: calc(var(--fs) * .30);
+    font-weight: 700;
+    color: rgba(0,0,0,.6);
+  }
+  .sq.dead .dot { border-color: rgba(160, 30, 30, .7); background: rgba(160,30,30,.15); }
+  .sq.dead .deg { color: rgba(140, 20, 20, .85); }
+  .board.done .sq { cursor: default; }
+  .board.done .sq.current::after { box-shadow: inset 0 0 0 4px var(--good); }
+  .progress {
+    margin-top: 10px;
+    display: flex; align-items: center; gap: 10px;
+    font-size: 13px; color: var(--muted);
+  }
+  .bar { flex: 1; height: 8px; background: var(--panel); border-radius: 4px; overflow: hidden; border: 1px solid var(--border); }
+  .bar > div { height: 100%; width: 0; background: linear-gradient(90deg, #739552, #baca44); transition: width .2s ease; }
+  .keys { margin-top: 8px; font-size: 12px; color: #6b7280; }
+  kbd {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 4px; padding: 1px 5px; font-size: 11px;
+  }
+</style>
+</head>
+<body>
+  <div class="app">
+    <h1><span class="glyph">&#9822;</span> Knight's Tour</h1>
+    <p class="subtitle">Move the knight to visit every square exactly once.</p>
+    <div class="controls">
+      <select id="size" title="Board size">
+        <option value="5">5 &times; 5</option>
+        <option value="6">6 &times; 6</option>
+        <option value="8" selected>8 &times; 8</option>
+      </select>
+      <button id="undo" title="Undo last move (Z)">&#8617; Undo</button>
+      <button id="restart" title="Clear the board">&#8635; Restart</button>
+      <label class="hint-toggle" title="Show valid moves and onward-move counts">
+        <input type="checkbox" id="hints" checked /> Hints
+      </label>
+    </div>
+    <div class="status" id="status"></div>
+    <div class="board-wrap"><div class="board" id="board"></div></div>
+    <div class="progress">
+      <span id="count">0 / 64</span>
+      <div class="bar"><div id="barfill"></div></div>
+    </div>
+    <div class="keys">Click a highlighted square to move &nbsp;&middot;&nbsp; <kbd>Z</kbd> undo &nbsp;&middot;&nbsp; <kbd>R</kbd> restart</div>
+  </div>
+
+<script>
+(function () {
+  "use strict";
+
+  var DIRS = [[1,2],[2,1],[2,-1],[1,-2],[-1,-2],[-2,-1],[-2,1],[-1,2]];
+
+  var boardEl  = document.getElementById("board");
+  var statusEl = document.getElementById("status");
+  var countEl  = document.getElementById("count");
+  var barEl    = document.getElementById("barfill");
+  var undoBtn  = document.getElementById("undo");
+  var restartBtn = document.getElementById("restart");
+  var sizeSel  = document.getElementById("size");
+  var hintsChk = document.getElementById("hints");
+
+  var size = 8;
+  var path = [];   // [{r, c}] in move order
+  var grid = [];   // grid[r][c] = move number (0 = unvisited)
+
+  function inBounds(r, c) { return r >= 0 && r < size && c >= 0 && c < size; }
+
+  function validMoves(r, c) {
+    var out = [];
+    for (var i = 0; i < DIRS.length; i++) {
+      var nr = r + DIRS[i][0], nc = c + DIRS[i][1];
+      if (inBounds(nr, nc) && grid[nr][nc] === 0) out.push([nr, nc]);
+    }
+    return out;
+  }
+
+  function place(r, c) {
+    if (grid[r][c] !== 0) return;
+    var cur = path[path.length - 1];
+    if (cur) {
+      var ok = validMoves(cur.r, cur.c).some(function (m) { return m[0] === r && m[1] === c; });
+      if (!ok) return;
+    }
+    grid[r][c] = path.length + 1;
+    path.push({ r: r, c: c });
+    render();
+  }
+
+  function undo() {
+    var last = path.pop();
+    if (!last) return;
+    grid[last.r][last.c] = 0;
+    render();
+  }
+
+  function reset() {
+    path = [];
+    grid = [];
+    for (var r = 0; r < size; r++) {
+      var row = [];
+      for (var c = 0; c < size; c++) row.push(0);
+      grid.push(row);
+    }
+    render();
+  }
+
+  function setStatus(msg, cls) {
+    statusEl.textContent = msg;
+    statusEl.className = "status" + (cls ? " " + cls : "");
+  }
+
+  function render() {
+    var total = size * size;
+    var done = path.length === total;
+    var cur = path[path.length - 1] || null;
+    var hintsOn = hintsChk.checked;
+    var moves = cur ? validMoves(cur.r, cur.c) : [];
+    var hintMap = {};
+    moves.forEach(function (m) { hintMap[m[0] + "," + m[1]] = validMoves(m[0], m[1]).length; });
+
+    boardEl.innerHTML = "";
+    boardEl.style.gridTemplateColumns = "repeat(" + size + ", 1fr)";
+    boardEl.className = "board" + (done ? " done" : "");
+
+    for (var r = 0; r < size; r++) {
+      for (var c = 0; c < size; c++) {
+        var sq = document.createElement("div");
+        var isCur = cur && cur.r === r && cur.c === c;
+        var n = grid[r][c];
+        sq.className = "sq " + (((r + c) % 2 === 0) ? "light" : "dark");
+        sq.dataset.r = r;
+        sq.dataset.c = c;
+
+        if (isCur) {
+          sq.classList.add("visited", "current");
+          sq.innerHTML = '<span class="piece">&#9822;</span>';
+        } else if (n > 0) {
+          sq.classList.add("visited");
+          sq.innerHTML = '<span class="num">' + n + "</span>";
+        } else if (hintsOn && hintMap[r + "," + c] !== undefined && !done) {
+          var deg = hintMap[r + "," + c];
+          sq.classList.add("hint");
+          if (deg === 0) sq.classList.add("dead");
+          sq.innerHTML = '<span class="dot"><span class="deg">' + deg + "</span></span>";
+        } else if (!cur) {
+          sq.classList.add("hint");
+        }
+        boardEl.appendChild(sq);
+      }
+    }
+
+    countEl.textContent = path.length + " / " + total;
+    barEl.style.width = (path.length / total * 100) + "%";
+    undoBtn.disabled = path.length === 0;
+
+    if (done) {
+      setStatus("Tour complete! All " + total + " squares visited.", "win");
+    } else if (!cur) {
+      setStatus("Click any square to place your knight.");
+    } else if (moves.length === 0) {
+      setStatus("No valid moves left — undo or restart.", "stuck");
+    } else {
+      setStatus("Move " + path.length + " of " + total + " — " + moves.length + " move" + (moves.length === 1 ? "" : "s") + " available.");
+    }
+
+    fit();
+  }
+
+  function fit() {
+    var w = boardEl.clientWidth;
+    if (w > 0) boardEl.style.setProperty("--fs", (w / size) + "px");
+  }
+
+  boardEl.addEventListener("click", function (e) {
+    var sq = e.target;
+    while (sq && sq !== boardEl && sq.dataset.r === undefined) sq = sq.parentNode;
+    if (!sq || sq === boardEl || sq.dataset.r === undefined) return;
+    var r = +sq.dataset.r, c = +sq.dataset.c;
+    if (path.length === size * size) return;
+    place(r, c);
+  });
+
+  undoBtn.addEventListener("click", undo);
+  restartBtn.addEventListener("click", reset);
+  hintsChk.addEventListener("change", render);
+  sizeSel.addEventListener("change", function () {
+    size = parseInt(sizeSel.value, 10) || 8;
+    reset();
+  });
+  window.addEventListener("resize", fit);
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "z" || e.key === "Z" || ((e.ctrlKey || e.metaKey) && e.key === "z")) { e.preventDefault(); undo(); }
+    else if (e.key === "r" || e.key === "R") { reset(); }
+  });
+
+  reset();
+})();
+</script>
+</body>
+</html>

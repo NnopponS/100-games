@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Treasure Dive</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{min-height:100vh;background:#041828;color:#fff;font-family:system-ui,-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;padding:12px}
+  .wrap{position:relative;width:min(540px,100%);display:flex;flex-direction:column;gap:8px}
+  .hud{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;background:rgba(7,35,58,.9);border:1px solid rgba(56,189,248,.3);padding:8px 12px;border-radius:12px;font-weight:800;font-size:.88rem;align-items:center}
+  .o2-bar{height:10px;background:#0a2a42;border-radius:99px;overflow:hidden;margin-top:3px}
+  .o2-fill{height:100%;width:100%;background:linear-gradient(90deg,#ff5e5e,#38bdf8);transition:width .08s}
+  canvas{width:100%;height:auto;aspect-ratio:520/580;border-radius:14px;border:2px solid #0e4a73;display:block;touch-action:none}
+  .ov{position:absolute;inset:54px 0 0 0;background:rgba(3,16,28,.82);border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;gap:12px}
+  .ov.hidden{display:none}
+  .btn{padding:11px 26px;border:none;border-radius:999px;background:linear-gradient(135deg,#06b6d4,#3b82f6);color:#fff;font-weight:900;font-size:1rem;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hud">
+    <div>Banked: <span id="score" style="color:#ffd43b">0</span></div>
+    <div>Bag: <span id="bag" style="color:#69db7c">0</span></div>
+    <div>O₂ <div class="o2-bar"><div class="o2-fill" id="o2"></div></div></div>
+  </div>
+  <canvas id="c" width="520" height="580"></canvas>
+  <div class="ov" id="ov">
+    <h1 id="ovT" style="color:#38bdf8">TREASURE DIVE</h1>
+    <p id="ovP" style="color:#cbd5e1;max-width:320px">Dive deep with Arrow Keys / WASD, grab pearls & chests, and return to the boat before your oxygen runs out! Dodge jellyfish & sharks.</p>
+    <button class="btn" id="startBtn">Dive In</button>
+  </div>
+</div>
+<script>
+(() => {
+  const c = document.getElementById('c'), ctx = c.getContext('2d');
+  const W = c.width, H = c.height, SURF = 74;
+  const scoreEl = document.getElementById('score'), bagEl = document.getElementById('bag'), o2El = document.getElementById('o2');
+  const ov = document.getElementById('ov'), ovT = document.getElementById('ovT'), ovP = document.getElementById('ovP'), startBtn = document.getElementById('startBtn');
+
+  let state = 'idle', diver, items, foes, bubbles, score = 0, bag = 0, o2 = 100, keys = {}, pointer = null;
+
+  function spawnItem() {
+    const deep = Math.random();
+    const y = SURF + 60 + deep * (H - SURF - 95);
+    const val = deep > 0.72 ? 50 : deep > 0.35 ? 25 : 10;
+    const type = val === 50 ? 'chest' : val === 25 ? 'gem' : 'pearl';
+    items.push({ x: 28 + Math.random()*(W - 56), y, val, type, r: 13 });
+  }
+
+  function spawnFoe(i) {
+    const y = SURF + 95 + i * 75 + Math.random()*25;
+    const dir = Math.random() < 0.5 ? 1 : -1;
+    const isShark = i % 2 === 1;
+    foes.push({
+      x: Math.random()*W, y: Math.min(H - 40, y),
+      vx: dir * (isShark ? 95 + Math.random()*55 : 50 + Math.random()*35),
+      r: isShark ? 18 : 14, kind: isShark ? 'shark' : 'jelly'
+    });
+  }
+
+  function reset() {
+    diver = { x: W/2, y: SURF - 6, r: 14 };
+    score = 0; bag = 0; o2 = 100;
+    items = []; foes = []; bubbles = [];
+    for (let i = 0; i < 12; i++) spawnItem();
+    for (let i = 0; i < 6; i++) spawnFoe(i);
+    state = 'play';
+    ov.classList.add('hidden');
+    scoreEl.textContent = '0'; bagEl.textContent = '0';
+  }
+
+  let last = performance.now();
+  function loop(now) {
+    const dt = Math.min(0.04, (now - last) / 1000);
+    last = now;
+    if (state === 'play') update(dt);
+    draw(now / 1000);
+    requestAnimationFrame(loop);
+  }
+
+  function update(dt) {
+    let dx = 0, dy = 0;
+    if (keys.ArrowLeft || keys.KeyA) dx -= 1;
+    if (keys.ArrowRight || keys.KeyD) dx += 1;
+    if (keys.ArrowUp || keys.KeyW) dy -= 1;
+    if (keys.ArrowDown || keys.KeyS) dy += 1;
+    if (pointer) {
+      const pdx = pointer.x - diver.x, pdy = pointer.y - diver.y;
+      const dist = Math.hypot(pdx, pdy);
+      if (dist > 8) { dx = pdx / dist; dy = pdy / dist; }
+    }
+    const mag = Math.hypot(dx, dy) || 1;
+    const spd = 215;
+    if (dx || dy) {
+      diver.x = Math.max(16, Math.min(W - 16, diver.x + (dx/mag)*spd*dt));
+      diver.y = Math.max(SURF - 8, Math.min(H - 18, diver.y + (dy/mag)*spd*dt));
+    }
+
+    if (diver.y <= SURF + 4) {
+      o2 = Math.min(100, o2 + 58 * dt);
+      if (bag > 0) {
+        score += bag;
+        bag = 0;
+        scoreEl.textContent = score;
+        bagEl.textContent = '0';
+      }
+    } else {
+      const depthFactor = 1 + (diver.y - SURF) / H * 0.9;
+      o2 -= 7.5 * depthFactor * dt;
+      if (Math.random() < 0.2) bubbles.push({ x: diver.x, y: diver.y - 10, r: 2 + Math.random()*3 });
+    }
+    o2El.style.width = Math.max(0, o2) + '%';
+
+    for (let i = items.length - 1; i >= 0; i--) {
+      const it = items[i];
+      if (Math.hypot(diver.x - it.x, diver.y - it.y) < diver.r + it.r) {
+        bag += it.val;
+        bagEl.textContent = bag;
+        items.splice(i, 1);
+        spawnItem();
+      }
+    }
+
+    for (const f of foes) {
+      f.x += f.vx * dt;
+      if (f.x < 16 || f.x > W - 16) f.vx *= -1;
+      if (Math.hypot(diver.x - f.x, diver.y - f.y) < diver.r + f.r - 3) {
+        o2 -= 28;
+        diver.y = Math.max(SURF, diver.y - 24);
+      }
+    }
+
+    for (let i = bubbles.length - 1; i >= 0; i--) {
+      bubbles[i].y -= 65 * dt;
+      if (bubbles[i].y < SURF) bubbles.splice(i, 1);
+    }
+
+    if (o2 <= 0) {
+      state = 'over';
+      ovT.textContent = 'OUT OF OXYGEN!';
+      ovP.textContent = `Final Banked Score: ${score} (lost ${bag} in bag)`;
+      startBtn.textContent = 'Dive Again';
+      ov.classList.remove('hidden');
+    }
+  }
+
+  function draw(t) {
+    ctx.fillStyle = '#7dd3fc';
+    ctx.fillRect(0, 0, W, SURF);
+    const water = ctx.createLinearGradient(0, SURF, 0, H);
+    water.addColorStop(0, '#0284c7');
+    water.addColorStop(0.55, '#075985');
+    water.addColorStop(1, '#041c2c');
+    ctx.fillStyle = water;
+    ctx.fillRect(0, SURF, W, H - SURF);
+
+    // Boat on surface
+    ctx.fillStyle = '#f59e0b';
+    ctx.beginPath();
+    ctx.moveTo(W/2 - 42, SURF - 14); ctx.lineTo(W/2 + 42, SURF - 14);
+    ctx.lineTo(W/2 + 30, SURF + 4); ctx.lineTo(W/2 - 30, SURF + 4);
+    ctx.closePath(); ctx.fill();
+
+    if (items) {
+      for (const it of items) {
+        ctx.font = '22px sans-serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(it.type === 'chest' ? '🪙' : it.type === 'gem' ? '💎' : '⚪', it.x, it.y + Math.sin(t*3 + it.x)*2);
+      }
+    }
+    if (foes) {
+      for (const f of foes) {
+        ctx.font = f.kind === 'shark' ? '28px sans-serif' : '24px sans-serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(f.kind === 'shark' ? '🦈' : '🪼', f.x, f.y);
+      }
+    }
+    if (bubbles) {
+      ctx.strokeStyle = 'rgba(255,255,255,.65)';
+      for (const b of bubbles) {
+        ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI*2); ctx.stroke();
+      }
+    }
+    if (diver) {
+      ctx.fillStyle = '#fde047';
+      ctx.beginPath(); ctx.arc(diver.x, diver.y, diver.r, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#0ea5e9';
+      ctx.fillRect(diver.x - 8, diver.y - 6, 16, 8);
+    }
+  }
+
+  window.addEventListener('keydown', e => {
+    keys[e.code] = true;
+    if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)) e.preventDefault();
+  });
+  window.addEventListener('keyup', e => { keys[e.code] = false; });
+  c.addEventListener('pointerdown', e => {
+    const r = c.getBoundingClientRect();
+    pointer = { x: (e.clientX - r.left) * W / r.width, y: (e.clientY - r.top) * H / r.height };
+  });
+  c.addEventListener('pointermove', e => {
+    if (!pointer) return;
+    const r = c.getBoundingClientRect();
+    pointer = { x: (e.clientX - r.left) * W / r.width, y: (e.clientY - r.top) * H / r.height };
+  });
+  window.addEventListener('pointerup', () => pointer = null);
+  startBtn.onclick = reset;
+  draw(0);
+})();
+</script>
+</body>
+</html>

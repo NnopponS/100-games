@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Darts — 301</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #14171c;
+    color: #e8e6df;
+    font-family: "Segoe UI", system-ui, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .wrap {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  canvas {
+    background: radial-gradient(circle at 50% 45%, #23272e, #14171c 75%);
+    border-radius: 12px;
+    cursor: crosshair;
+    display: block;
+    max-width: min(92vw, 560px);
+    height: auto;
+  }
+  .panel {
+    width: 250px;
+    background: #1c2027;
+    border: 1px solid #2c313a;
+    border-radius: 12px;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  h1 { font-size: 20px; letter-spacing: 2px; }
+  h1 span { color: #e0533d; }
+  .score-big {
+    font-size: 46px;
+    font-weight: 700;
+    line-height: 1;
+    color: #ffd75e;
+  }
+  .label { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #8b919c; }
+  .darts { display: flex; gap: 8px; }
+  .dart-pip {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    background: #262b33;
+    border: 1px solid #3a404b;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    transition: all .15s;
+  }
+  .dart-pip.used { background: #e0533d; border-color: #e0533d; }
+  #log {
+    font-size: 13px;
+    line-height: 1.5;
+    color: #b8bdc7;
+    min-height: 90px;
+    max-height: 130px;
+    overflow-y: auto;
+  }
+  #log .bust { color: #ff6b5e; font-weight: 600; }
+  #log .win { color: #7ee08a; font-weight: 600; }
+  #msg {
+    font-size: 14px;
+    min-height: 40px;
+    color: #ffd75e;
+    font-weight: 600;
+  }
+  button {
+    background: #e0533d;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: .5px;
+  }
+  button:hover { background: #f0644d; }
+  .opt { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #b8bdc7; cursor: pointer; }
+  .hint { font-size: 12px; color: #6d747f; }
+  kbd {
+    background: #2c313a; border-radius: 4px; padding: 1px 6px;
+    font-size: 11px; font-family: inherit;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <canvas id="board" width="600" height="600"></canvas>
+  <div class="panel">
+    <h1>DARTS <span>301</span></h1>
+    <div>
+      <div class="label">Score remaining</div>
+      <div class="score-big" id="score">301</div>
+    </div>
+    <div>
+      <div class="label">Darts this turn</div>
+      <div class="darts" id="darts">
+        <div class="dart-pip">&#10112;</div>
+        <div class="dart-pip">&#10113;</div>
+        <div class="dart-pip">&#10114;</div>
+      </div>
+    </div>
+    <div id="msg">Aim with the moving reticle — click or press <kbd>Space</kbd> to throw.</div>
+    <div id="log"></div>
+    <label class="opt"><input type="checkbox" id="doubleOut"> Classic double-out finish</label>
+    <button id="restart">Restart game</button>
+    <div class="hint">Rings: treble = &times;3, double ring = &times;2, bull = 25, inner bull = 50. Bust if you go below 0.</div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const cv = document.getElementById('board');
+  const ctx = cv.getContext('2d');
+  const W = cv.width, CX = W / 2, CY = W / 2, R = 225;
+  const NUMBERS = [20,1,18,4,13,6,10,15,2,17,3,19,7,16,8,11,14,9,12,5];
+  // Ring boundaries as fraction of R
+  const BULL_IN = 0.065, BULL_OUT = 0.16, TRIP_IN = 0.47, TRIP_OUT = 0.55, DBL_IN = 0.93;
+
+  const scoreEl = document.getElementById('score');
+  const logEl = document.getElementById('log');
+  const msgEl = document.getElementById('msg');
+  const pips = document.querySelectorAll('.dart-pip');
+  const doubleOutEl = document.getElementById('doubleOut');
+
+  let score, turnStart, dartsUsed, marks, flying, gameOver, totalDarts;
+
+  function reset() {
+    score = 301; turnStart = 301; dartsUsed = 0; marks = []; flying = null;
+    gameOver = false; totalDarts = 0;
+    scoreEl.textContent = score;
+    logEl.innerHTML = '';
+    msgEl.textContent = 'Aim with the moving reticle — click or press Space to throw.';
+    pips.forEach(p => p.classList.remove('used'));
+  }
+
+  // ---- dartboard drawing ----
+  function drawBoard() {
+    ctx.clearRect(0, 0, W, W);
+    // outer rim
+    ctx.beginPath(); ctx.arc(CX, CY, R + 28, 0, Math.PI * 2);
+    ctx.fillStyle = '#0b0d10'; ctx.fill();
+    for (let i = 0; i < 20; i++) {
+      const a0 = -Math.PI / 2 - Math.PI / 20 + i * Math.PI / 10;
+      const a1 = a0 + Math.PI / 10;
+      const dark = i % 2 === 0;
+      const single = dark ? '#1c1c1c' : '#e8dfc8';
+      const ring = dark ? '#c33a2b' : '#2e7d46';
+      // single segments (bull-out -> treble-in, treble-out -> double-in)
+      seg(BULL_OUT * R, TRIP_IN * R, a0, a1, single);
+      seg(TRIP_OUT * R, DBL_IN * R, a0, a1, single);
+      // treble + double rings
+      seg(TRIP_IN * R, TRIP_OUT * R, a0, a1, ring);
+      seg(DBL_IN * R, R, a0, a1, ring);
+    }
+    // bulls
+    circle(BULL_OUT * R, '#2e7d46');
+    circle(BULL_IN * R, '#c33a2b');
+    // wire rings
+    ctx.strokeStyle = 'rgba(200,200,200,0.35)';
+    ctx.lineWidth = 1.2;
+    [BULL_IN, BULL_OUT, TRIP_IN, TRIP_OUT, DBL_IN, 1].forEach(f => ringStroke(f * R));
+    for (let i = 0; i < 20; i++) {
+      const a = -Math.PI / 2 - Math.PI / 20 + i * Math.PI / 10;
+      ctx.beginPath();
+      ctx.moveTo(CX + Math.cos(a) * BULL_OUT * R, CY + Math.sin(a) * BULL_OUT * R);
+      ctx.lineTo(CX + Math.cos(a) * R, CY + Math.sin(a) * R);
+      ctx.stroke();
+    }
+    // numbers
+    ctx.fillStyle = '#e8e6df';
+    ctx.font = 'bold 20px "Segoe UI", sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    for (let i = 0; i < 20; i++) {
+      const a = -Math.PI / 2 + i * Math.PI / 10;
+      ctx.fillText(NUMBERS[i], CX + Math.cos(a) * (R + 15), CY + Math.sin(a) * (R + 15));
+    }
+  }
+  function seg(r0, r1, a0, a1, fill) {
+    ctx.beginPath();
+    ctx.arc(CX, CY, r1, a0, a1);
+    ctx.arc(CX, CY, r0, a1, a0, true);
+    ctx.closePath();
+    ctx.fillStyle = fill; ctx.fill();
+  }
+  function circle(r, fill) {
+    ctx.beginPath(); ctx.arc(CX, CY, r, 0, Math.PI * 2);
+    ctx.fillStyle = fill; ctx.fill();
+  }
+  function ringStroke(r) {
+    ctx.beginPath(); ctx.arc(CX, CY, r, 0, Math.PI * 2); ctx.stroke();
+  }
+
+  // ---- reticle (moving crosshair) ----
+  function reticlePos(t) {
+    const s = R * 0.98;
+    const x = CX + s * (0.55 * Math.sin(t * 0.9) + 0.28 * Math.sin(t * 1.7 + 1.3) + 0.17 * Math.sin(t * 2.9 + 4.1));
+    const y = CY + s * (0.55 * Math.sin(t * 1.1 + 2.0) + 0.28 * Math.sin(t * 2.3 + 0.6) + 0.17 * Math.sin(t * 3.7 + 5.2));
+    const jx = (Math.random() - 0.5) * 4, jy = (Math.random() - 0.5) * 4;
+    // clamp just outside the double ring
+    let dx = x + jx - CX, dy = y + jy - CY;
+    const d = Math.hypot(dx, dy), max = R * 1.12;
+    if (d > max) { dx *= max / d; dy *= max / d; }
+    return { x: CX + dx, y: CY + dy };
+  }
+
+  function drawReticle(p, t) {
+    const pulse = 13 + Math.sin(t * 6) * 2.5;
+    ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+    ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.arc(p.x, p.y, pulse, 0, Math.PI * 2); ctx.stroke();
+    ctx.strokeStyle = 'rgba(224,83,61,0.95)';
+    ctx.lineWidth = 2;
+    const g = 6, L = 22;
+    ctx.beginPath();
+    ctx.moveTo(p.x - L, p.y); ctx.lineTo(p.x - g, p.y);
+    ctx.moveTo(p.x + g, p.y); ctx.lineTo(p.x + L, p.y);
+    ctx.moveTo(p.x, p.y - L); ctx.lineTo(p.x, p.y - g);
+    ctx.moveTo(p.x, p.y + g); ctx.lineTo(p.x, p.y + L);
+    ctx.stroke();
+    ctx.fillStyle = '#e0533d';
+    ctx.beginPath(); ctx.arc(p.x, p.y, 2, 0, Math.PI * 2); ctx.fill();
+  }
+
+  // ---- darts stuck in the board ----
+  function drawMark(m) {
+    const { x, y, ang } = m;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(ang);
+    // dart body leaning toward the board
+    ctx.strokeStyle = '#d8d3c3'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-14, -6); ctx.stroke();
+    ctx.strokeStyle = '#e0533d'; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(-14, -6); ctx.lineTo(-22, -10); ctx.stroke();
+    ctx.restore();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2); ctx.fill();
+  }
+
+  function drawFlying(f) {
+    const k = f.t / f.dur;
+    const e = 1 - Math.pow(1 - k, 3); // ease-out
+    const x = f.sx + (f.tx - f.sx) * e;
+    const y = f.sy + (f.ty - f.sy) * e - Math.sin(k * Math.PI) * 90; // slight arc
+    const s = 1 - e * 0.55;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(Math.atan2(f.ty - f.sy, f.tx - f.sx) + Math.sin(k * Math.PI) * 0.5);
+    ctx.scale(s, s);
+    ctx.strokeStyle = '#d8d3c3'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-30, 0); ctx.stroke();
+    ctx.strokeStyle = '#e0533d'; ctx.lineWidth = 6;
+    ctx.beginPath(); ctx.moveTo(-30, 0); ctx.lineTo(-46, 0); ctx.stroke();
+    ctx.restore();
+  }
+
+  // ---- scoring ----
+  function scoreAt(x, y) {
+    const dx = x - CX, dy = y - CY;
+    const r = Math.hypot(dx, dy) / R;
+    if (r <= BULL_IN) return { pts: 50, mult: 2, label: 'BULL 50', dbl: true };
+    if (r <= BULL_OUT) return { pts: 25, mult: 1, label: '25', dbl: false };
+    if (r > 1) return { pts: 0, mult: 0, label: 'MISS', dbl: false };
+    let deg = Math.atan2(dy, dx) * 180 / Math.PI + 90; // 0 = top sector edge offset
+    deg = ((deg + 9) % 360 + 360) % 360;
+    const n = NUMBERS[Math.floor(deg / 18)];
+    if (r >= TRIP_IN && r <= TRIP_OUT) return { pts: n * 3, mult: 3, label: 'T' + n, dbl: false };
+    if (r >= DBL_IN) return { pts: n * 2, mult: 2, label: 'D' + n, dbl: true };
+    return { pts: n, mult: 1, label: '' + n, dbl: false };
+  }
+
+  function throwDart() {
+    if (flying || gameOver) return;
+    const p = reticlePos(performance.now() / 1000);
+    // release scatter
+    const spread = 14;
+    const tx = p.x + (Math.random() + Math.random() + Math.random() - 1.5) * spread;
+    const ty = p.y + (Math.random() + Math.random() + Math.random() - 1.5) * spread;
+    flying = { sx: CX, sy: W + 40, tx, ty, t: 0, dur: 16 };
+  }
+
+  function landDart(f) {
+    const res = scoreAt(f.tx, f.ty);
+    marks.push({ x: f.tx, y: f.ty, ang: Math.atan2(CY - f.ty, CX - f.tx) * 0.3 - 0.4 });
+    dartsUsed++; totalDarts++;
+    pips[dartsUsed - 1].classList.add('used');
+
+    const dblOut = doubleOutEl.checked;
+    const next = score - res.pts;
+    let bust = false, win = false;
+    if (next < 0) bust = true;
+    else if (dblOut && (next === 1 || (next === 0 && !res.dbl))) bust = true;
+    else if (next === 0) win = true;
+
+    log(`${res.label} — ${res.pts}`);
+
+    if (bust) {
+      score = turnStart;
+      logEl.innerHTML += `<div class="bust">BUST! Back to ${turnStart}.</div>`;
+      msgEl.textContent = `Bust on ${res.label}. Score stays ${turnStart}.`;
+      endTurn();
+    } else if (win) {
+      score = 0; gameOver = true;
+      logEl.innerHTML += `<div class="win">CHECKOUT on ${res.label}!</div>`;
+      msgEl.textContent = `You win in ${totalDarts} darts! Hit Restart to play again.`;
+    } else {
+      score = next;
+      msgEl.textContent = `${res.label} scored ${res.pts}. ${dartsUsed}/3 darts thrown.`;
+      if (dartsUsed >= 3) endTurn();
+    }
+    scoreEl.textContent = score;
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function endTurn() {
+    setTimeout(() => {
+      marks = [];
+      dartsUsed = 0;
+      turnStart = score;
+      pips.forEach(p => p.classList.remove('used'));
+    }, 650);
+  }
+
+  function log(txt) {
+    const d = document.createElement('div');
+    d.textContent = `› ${txt}`;
+    logEl.appendChild(d);
+  }
+
+  // ---- input ----
+  function canvasPoint(e) {
+    const r = cv.getBoundingClientRect();
+    const cx = (e.touches ? e.touches[0].clientX : e.clientX) - r.left;
+    const cy = (e.touches ? e.touches[0].clientY : e.clientY) - r.top;
+    return { x: cx * W / r.width, y: cy * W / r.height };
+  }
+  cv.addEventListener('click', throwDart);
+  cv.addEventListener('touchstart', e => { e.preventDefault(); throwDart(); }, { passive: false });
+  window.addEventListener('keydown', e => {
+    if (e.code === 'Space') { e.preventDefault(); throwDart(); }
+  });
+  document.getElementById('restart').addEventListener('click', reset);
+
+  // ---- main loop ----
+  function frame() {
+    const t = performance.now() / 1000;
+    drawBoard();
+    marks.forEach(drawMark);
+    if (flying) {
+      flying.t++;
+      drawFlying(flying);
+      if (flying.t >= flying.dur) {
+        const f = flying; flying = null;
+        landDart(f);
+      }
+    }
+    if (!gameOver) drawReticle(reticlePos(t), t);
+    requestAnimationFrame(frame);
+  }
+
+  reset();
+  frame();
+})();
+</script>
+</body>
+</html>

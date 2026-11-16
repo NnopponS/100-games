@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Ice Curling</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{min-height:100vh;background:#0a192f;color:#fff;font-family:system-ui,-apple-system,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px}
+  .wrap{width:min(540px,100%);display:flex;flex-direction:column;gap:8px}
+  .hud{display:flex;justify-content:space-between;background:#112240;border:1px solid #233554;padding:8px 14px;border-radius:12px;font-weight:800;font-size:.9rem}
+  canvas{width:100%;height:auto;max-height:66vh;aspect-ratio:420/560;border-radius:14px;border:2px solid #38bdf8;display:block;margin:0 auto}
+  .ctrl{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;background:#112240;padding:10px 14px;border-radius:12px}
+  label{font-size:.82rem;font-weight:700;display:flex;align-items:center;gap:6px;color:#cbd5e1}
+  button{padding:9px 16px;border:none;border-radius:10px;font-weight:900;cursor:pointer}
+  .btn-go{background:#ef4444;color:#fff}
+  .btn-sweep{background:#38bdf8;color:#0f172a}
+  .btn-res{background:#334155;color:#fff}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hud">
+    <div>End: <span id="end" style="color:#38bdf8">1/8</span></div>
+    <div>You (Red): <span id="pScore" style="color:#f87171">0</span></div>
+    <div>CPU (Yellow): <span id="cScore" style="color:#facc15">0</span></div>
+  </div>
+  <div id="msg" style="text-align:center;font-weight:800;color:#93c5fd">Set aim, curl & power, then THROW!</div>
+  <canvas id="c" width="420" height="560"></canvas>
+  <div class="ctrl">
+    <label>Aim <input type="range" id="aim" min="-80" max="80" value="0"></label>
+    <label>Curl <input type="range" id="curl" min="-40" max="40" value="10"></label>
+    <label>Power <input type="range" id="power" min="45" max="100" value="72"></label>
+    <div style="display:flex;gap:8px">
+      <button class="btn-go" id="throwBtn">THROW</button>
+      <button class="btn-sweep" id="sweepBtn">SWEEP</button>
+      <button class="btn-res" id="resetBtn">Restart</button>
+    </div>
+  </div>
+</div>
+<script>
+(() => {
+  const c = document.getElementById('c'), ctx = c.getContext('2d');
+  const W = c.width, H = c.height, HX = W/2, HY = 128;
+  const endEl = document.getElementById('end'), pEl = document.getElementById('pScore'), cEl = document.getElementById('cScore'), msgEl = document.getElementById('msg');
+  const aimEl = document.getElementById('aim'), curlEl = document.getElementById('curl'), powEl = document.getElementById('power');
+
+  let stones = [], end = 1, turn = 0, pScore = 0, cScore = 0, sliding = false, sweeping = false, over = false;
+
+  function reset() {
+    stones = []; end = 1; turn = 0; pScore = 0; cScore = 0; sliding = false; over = false;
+    pEl.textContent = '0'; cEl.textContent = '0'; endEl.textContent = '1/8';
+    msgEl.textContent = 'End 1 — Your throw (Red)!';
+  }
+
+  function launchStone(team, aim, curl, power) {
+    const spd = 250 + power * 3.1;
+    const ang = -Math.PI/2 + aim * 0.0025;
+    stones.push({
+      x: W/2 + aim * 0.2, y: H - 36,
+      vx: Math.cos(ang)*spd, vy: Math.sin(ang)*spd,
+      curl: curl * 1.1, team, r: 15
+    });
+    sliding = true;
+  }
+
+  function scoreEnd() {
+    const inHouse = stones
+      .map(s => ({ s, d: Math.hypot(s.x - HX, s.y - HY) }))
+      .filter(o => o.d <= 95 + 15)
+      .sort((a,b) => a.d - b.d);
+    if (inHouse.length > 0) {
+      const winner = inHouse[0].s.team;
+      let pts = 0;
+      for (const o of inHouse) {
+        if (o.s.team === winner) pts++; else break;
+      }
+      if (winner === 'red') { pScore += pts; pEl.textContent = pScore; msgEl.textContent = `End ${end}: Red scores +${pts}!`; }
+      else { cScore += pts; cEl.textContent = cScore; msgEl.textContent = `End ${end}: Yellow scores +${pts}!`; }
+    } else {
+      msgEl.textContent = `End ${end}: Blank end (0 pts).`;
+    }
+    if (end >= 8) {
+      over = true;
+      msgEl.textContent = pScore > cScore ? `YOU WIN ${pScore}-${cScore}!` : pScore < cScore ? `CPU WINS ${cScore}-${pScore}!` : `TIE GAME ${pScore}-${cScore}!`;
+    } else {
+      end++; endEl.textContent = end + '/8';
+      turn = 0;
+      setTimeout(() => { stones = []; msgEl.textContent = `End ${end} — Your throw!`; }, 1300);
+    }
+  }
+
+  let last = performance.now();
+  function loop(now) {
+    const dt = Math.min(0.03, (now - last) / 1000);
+    last = now;
+    if (sliding) update(dt);
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  function update(dt) {
+    const active = stones[stones.length - 1];
+    if (active) active.vx += active.curl * dt * 0.35;
+
+    for (let i = 0; i < stones.length; i++) {
+      const s = stones[i];
+      s.x += s.vx * dt; s.y += s.vy * dt;
+      const drag = (sweeping && s === active) ? 0.992 : 0.981;
+      s.vx *= Math.pow(drag, dt * 60);
+      s.vy *= Math.pow(drag, dt * 60);
+      if (s.x < 35 + s.r) { s.x = 35 + s.r; s.vx *= -0.6; }
+      if (s.x > W - 35 - s.r) { s.x = W - 35 - s.r; s.vx *= -0.6; }
+
+      for (let j = i + 1; j < stones.length; j++) {
+        const b = stones[j];
+        const dx = b.x - s.x, dy = b.y - s.y;
+        const dist = Math.hypot(dx, dy);
+        if (dist < s.r + b.r && dist > 0.01) {
+          const nx = dx / dist, ny = dy / dist;
+          const overlap = (s.r + b.r - dist) / 2;
+          s.x -= nx * overlap; s.y -= ny * overlap;
+          b.x += nx * overlap; b.y += ny * overlap;
+          const rel = (s.vx - b.vx)*nx + (s.vy - b.vy)*ny;
+          if (rel > 0) {
+            s.vx -= rel * nx * 0.92; s.vy -= rel * ny * 0.92;
+            b.vx += rel * nx * 0.92; b.vy += rel * ny * 0.92;
+          }
+        }
+      }
+    }
+
+    if (stones.every(s => Math.hypot(s.vx, s.vy) < 4)) {
+      stones.forEach(s => { s.vx = 0; s.vy = 0; });
+      stones = stones.filter(s => s.y > 10 && s.y < H - 10);
+      sliding = false; sweeping = false;
+      turn++;
+      if (turn >= 6) {
+        scoreEnd();
+      } else if (turn % 2 === 1) {
+        msgEl.textContent = 'CPU (Yellow) aiming...';
+        setTimeout(() => {
+          if (!over) launchStone('yellow', (Math.random()-0.5)*26, (Math.random()-0.5)*16, 65 + Math.random()*15);
+        }, 550);
+      } else {
+        msgEl.textContent = `End ${end} — Your throw (${3 - turn/2} left)`;
+      }
+    }
+  }
+
+  function draw() {
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#e0f2fe';
+    ctx.fillRect(35, 10, W - 70, H - 20);
+
+    // House rings
+    [[92,'#2563eb'],[62,'#ffffff'],[34,'#dc2626'],[12,'#ffffff']].forEach(([r, col]) => {
+      ctx.fillStyle = col;
+      ctx.beginPath(); ctx.arc(HX, HY, r, 0, Math.PI*2); ctx.fill();
+    });
+    // Hog line
+    ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(35, 290); ctx.lineTo(W - 35, 290); ctx.stroke();
+
+    if (!sliding && !over && turn % 2 === 0) {
+      const aim = Number(aimEl.value);
+      ctx.strokeStyle = 'rgba(239,68,68,.5)'; ctx.setLineDash([5,5]);
+      ctx.beginPath(); ctx.moveTo(W/2 + aim*0.2, H - 36); ctx.lineTo(W/2 + aim*1.2, HY); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    for (const s of stones) {
+      ctx.fillStyle = '#475569';
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = s.team === 'red' ? '#ef4444' : '#facc15';
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.r - 4, 0, Math.PI*2); ctx.fill();
+    }
+  }
+
+  document.getElementById('throwBtn').onclick = () => {
+    if (!sliding && !over && turn % 2 === 0) {
+      launchStone('red', Number(aimEl.value), Number(curlEl.value), Number(powEl.value));
+    }
+  };
+  document.getElementById('sweepBtn').onpointerdown = () => sweeping = true;
+  document.getElementById('sweepBtn').onpointerup = () => sweeping = false;
+  document.getElementById('resetBtn').onclick = reset;
+  reset();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
