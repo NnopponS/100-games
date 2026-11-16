@@ -146,7 +146,7 @@
     }
   }
 
-  window.addEventListener('keydown', e => { keys[e.code] = true; });
+  window.addEventListener('keydown', e => { keys[e.code] = true; if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Space'].includes(e.code)) e.preventDefault(); });
   window.addEventListener('keyup', e => { keys[e.code] = false; });
   c.addEventListener('pointermove', e => {
     if (state !== 'play') return;
@@ -159,5 +159,7 @@
   requestAnimationFrame(loop);
 })();
 </script>
+
+<script src="../assets/aaa-arcade.js" defer></script>
 </body>
 </html>

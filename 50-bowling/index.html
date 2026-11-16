@@ -14,7 +14,7 @@
   .fnum{color:#94a3b8;font-size:.65rem}
   .frolls{font-weight:800;min-height:16px;color:#e2e8f0}
   .ftot{font-weight:900;color:#fbbf24;min-height:16px}
-  canvas{width:100%;height:auto;max-height:58vh;aspect-ratio:480/480;background:#161d33;border-radius:14px;border:2px solid #2d3a5e;display:block;margin:0 auto}
+  canvas{width:min(100%,58vh);height:auto;aspect-ratio:1/1;background:#161d33;border-radius:14px;border:2px solid #2d3a5e;display:block;margin:0 auto}
   .ctrl{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;background:#1b233d;padding:10px 14px;border-radius:12px}
   .ctrl label{font-size:.82rem;font-weight:700;display:flex;align-items:center;gap:6px;color:#cbd5e1}
   input[type=range]{accent-color:#fbbf24;cursor:pointer}
@@ -315,5 +315,7 @@
   requestAnimationFrame(loop);
 })();
 </script>
+
+<script src="../assets/aaa-arcade.js" defer></script>
 </body>
 </html>

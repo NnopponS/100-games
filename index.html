@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="th">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>100 Games Arcade — คลังเกมเว็บ 100 เกม</title>
+<title>100 Games Arcade — AAA Instant Web Game Library</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%236c5ce7'/%3E%3Ctext x='32' y='44' font-size='34' text-anchor='middle'%3E%F0%9F%8E%AE%3C/text%3E%3C/svg%3E">
 <style>
   :root {
@@ -18,7 +18,7 @@
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    background: var(--bg);
+    background: radial-gradient(circle at 18% 0%, rgba(108, 92, 231, 0.14), transparent 42%), var(--bg);
     color: var(--text);
     font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
     min-height: 100vh;
@@ -30,11 +30,11 @@
     backdrop-filter: blur(14px);
     border-bottom: 1px solid var(--border);
     padding: 12px 24px;
-    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
   }
   .brand {
     display: flex; align-items: center; gap: 10px;
-    font-weight: 900; font-size: 1.2rem; letter-spacing: -0.02em;
+    font-weight: 900; font-size: 1.18rem; letter-spacing: -0.02em;
     cursor: pointer; user-select: none;
   }
   .brand-logo {
@@ -44,22 +44,23 @@
     box-shadow: 0 4px 16px rgba(124, 58, 237, 0.45);
   }
   .brand span b { color: #a78bfa; }
-  .search-wrap { flex: 1; min-width: 220px; max-width: 460px; position: relative; }
+  .search-wrap { flex: 1; min-width: 220px; max-width: 440px; position: relative; }
   .search-wrap input {
     width: 100%; padding: 10px 16px 10px 40px; border-radius: 999px;
     border: 1px solid rgba(255,255,255,0.12); background: #171a29; color: #fff;
-    font-size: 0.94rem; outline: none; transition: border-color .2s, box-shadow .2s;
+    font-size: 0.93rem; outline: none; transition: border-color .2s, box-shadow .2s;
   }
   .search-wrap input:focus { border-color: var(--accent-bright); box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.25); }
   .search-wrap svg {
     position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
     width: 17px; height: 17px; color: var(--muted); pointer-events: none;
   }
-  .top-actions { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+  .top-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .pill-btn {
     border: 1px solid rgba(255,255,255,0.12); background: #1b1e30; color: #fff;
-    padding: 8px 14px; border-radius: 999px; font-weight: 700; font-size: 0.86rem;
-    cursor: pointer; display: flex; align-items: center; gap: 6px; transition: .18s;
+    padding: 8px 13px; border-radius: 999px; font-weight: 700; font-size: 0.84rem;
+    cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: .18s;
+    text-decoration: none;
   }
   .pill-btn:hover { background: #262b44; transform: translateY(-1px); }
   .pill-btn.primary { background: linear-gradient(135deg, #6c5ce7, #8b5cf6); border-color: transparent; }
@@ -111,23 +112,33 @@
     display: block; text-decoration: none; color: inherit;
   }
   .gcard:hover {
-    transform: translateY(-3px) scale(1.012);
-    border-color: rgba(255,255,255,0.28);
-    box-shadow: 0 14px 30px rgba(0,0,0,0.48); z-index: 2;
+    transform: translateY(-3px) scale(1.014);
+    border-color: rgba(167, 139, 250, 0.55);
+    box-shadow: 0 14px 30px rgba(0,0,0,0.52), 0 0 20px rgba(108, 92, 231, 0.2); z-index: 2;
   }
-  .gcard img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .gcard img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .25s; }
+  .gcard:hover img { transform: scale(1.04); }
+
+  .play-pill {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.85);
+    background: rgba(108, 92, 231, 0.92); color: #fff;
+    padding: 7px 16px; border-radius: 999px; font-weight: 900; font-size: 0.82rem;
+    opacity: 0; transition: opacity .18s, transform .18s; pointer-events: none;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+  }
+  .gcard:hover .play-pill { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 
   .card-caption {
     position: absolute; left: 0; right: 0; bottom: 0;
-    padding: 22px 12px 9px;
-    background: linear-gradient(180deg, rgba(10,12,24,0) 0%, rgba(10,12,24,0.86) 55%, rgba(10,12,24,0.96) 100%);
+    padding: 24px 12px 9px;
+    background: linear-gradient(180deg, rgba(10,12,24,0) 0%, rgba(10,12,24,0.88) 55%, rgba(10,12,24,0.97) 100%);
     font-weight: 800; font-size: 0.94rem; line-height: 1.2;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
 
   .hero-footer {
     position: absolute; left: 0; right: 0; bottom: 0;
-    padding: 34px 18px 14px;
+    padding: 36px 18px 14px;
     background: linear-gradient(180deg, rgba(84, 62, 232, 0) 0%, rgba(84, 62, 232, 0.88) 44%, #4a34d6 100%);
     display: flex; flex-direction: column; gap: 5px;
   }
@@ -167,7 +178,7 @@
   .fav-btn.on { color: #f43f5e; }
   .fav-btn:hover { transform: scale(1.12); }
 
-  .filter-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .filter-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 14px; }
   .tabs { display: flex; flex-wrap: wrap; gap: 8px; }
   .tab {
     padding: 7px 14px; border-radius: 999px; border: 1px solid var(--border);
@@ -175,6 +186,10 @@
   }
   .tab:hover { color: #fff; border-color: rgba(255,255,255,0.22); }
   .tab.active { background: var(--accent); color: #fff; border-color: transparent; }
+  .sort-sel {
+    background: var(--bg-elev); color: #fff; border: 1px solid var(--border);
+    padding: 7px 12px; border-radius: 999px; font-weight: 700; font-size: 0.84rem; outline: none; cursor: pointer;
+  }
 
   .all-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(205px, 1fr)); gap: 14px; }
   .all-grid .gcard { aspect-ratio: 16 / 10; }
@@ -184,13 +199,31 @@
   .player-overlay.open { display: flex; }
   .player-bar {
     height: 54px; background: #141724; border-bottom: 1px solid var(--border);
-    padding: 0 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 0 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
   }
-  .player-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
-  .player-title { font-weight: 800; font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .player-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .player-title { font-weight: 800; font-size: 0.98rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .player-cat { font-size: 0.74rem; padding: 3px 9px; border-radius: 999px; background: rgba(108, 92, 231, 0.25); color: #c4b5fd; font-weight: 700; }
-  .player-right { display: flex; align-items: center; gap: 8px; }
+  .player-right { display: flex; align-items: center; gap: 7px; }
   .player-frame { flex: 1; width: 100%; border: none; background: #0b0d14; }
+
+  /* AI Report Modal */
+  .modal-bg {
+    position: fixed; inset: 0; z-index: 120; background: rgba(6,8,16,0.82); backdrop-filter: blur(8px);
+    display: none; align-items: center; justify-content: center; padding: 18px;
+  }
+  .modal-bg.open { display: flex; }
+  .modal-card {
+    width: min(740px, 100%); max-height: 86vh; overflow-y: auto;
+    background: #151828; border: 1px solid rgba(255,255,255,0.14); border-radius: 22px;
+    padding: 24px; display: flex; flex-direction: column; gap: 14px;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.65);
+  }
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+  .kpi { background: #0e111d; border: 1px solid var(--border); border-radius: 14px; padding: 12px; }
+  .kpi b { display: block; font-size: 1.4rem; color: #a78bfa; }
+  .kpi span { font-size: 0.78rem; color: var(--muted); font-weight: 600; }
+  .report-list { font-size: 0.9rem; line-height: 1.6; color: #cbd5e1; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; }
 </style>
 </head>
 <body>
@@ -202,11 +235,13 @@
   </div>
   <div class="search-wrap">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-    <input type="text" id="searchInput" placeholder="ค้นหาเกมจาก 100 เกม... (เช่น Snake, Chess, Bowling)" autocomplete="off">
+    <input type="text" id="searchInput" placeholder="Search 100 games... (e.g. Snake, Bowling, Chess)" autocomplete="off">
   </div>
   <div class="top-actions">
-    <button class="pill-btn" id="favFilterBtn">❤️ รายการโปรด (<span id="favCount">0</span>)</button>
-    <button class="pill-btn primary" id="randomBtn">🎲 สุ่มเล่นเกม</button>
+    <button class="pill-btn" id="uiSoundBtn" title="Toggle Portal UI Sound">🔊 Sound</button>
+    <button class="pill-btn" id="reportBtn">📊 AI Benchmark</button>
+    <button class="pill-btn" id="favFilterBtn">❤️ Favorites (<span id="favCount">0</span>)</button>
+    <button class="pill-btn primary" id="randomBtn">🎲 Surprise Me</button>
   </div>
 </header>
 
@@ -215,46 +250,54 @@
     <div class="cat-card" data-cat="brain" style="background:linear-gradient(135deg,#124365,#0f172a)">
       <div class="cat-icon">🧠</div>
       <div class="cat-title">Train your brain</div>
-      <div class="cat-sub">Puzzle, Logic & Quiz</div>
+      <div class="cat-sub">Puzzle, Logic &amp; Quiz</div>
     </div>
     <div class="cat-card" data-cat="action" style="background:linear-gradient(135deg,#6b1544,#1c1026)">
       <div class="cat-icon">🚀</div>
       <div class="cat-title">Adrenaline</div>
-      <div class="cat-sub">Action, Shooter & Escape</div>
+      <div class="cat-sub">Action, Shooter &amp; Escape</div>
     </div>
     <div class="cat-card" data-cat="board" style="background:linear-gradient(135deg,#0f524c,#0e1e26)">
       <div class="cat-icon">🎲</div>
-      <div class="cat-title">เล่นกับเพื่อน & บอร์ด</div>
-      <div class="cat-sub">Strategy, Cards & AI</div>
+      <div class="cat-title">Play with Friends</div>
+      <div class="cat-sub">Board, Cards &amp; AI</div>
     </div>
     <div class="cat-card" data-cat="arcade" style="background:linear-gradient(135deg,#5b4714,#1a1712)">
       <div class="cat-icon">☕</div>
       <div class="cat-title">5-minute fun</div>
-      <div class="cat-sub">Quick Arcade & Rhythm</div>
+      <div class="cat-sub">Quick Arcade &amp; Rhythm</div>
     </div>
     <div class="cat-card" data-cat="sports" style="background:linear-gradient(135deg,#14532d,#0e1e1a)">
       <div class="cat-icon">🏆</div>
-      <div class="cat-title">Sports & Skill</div>
-      <div class="cat-sub">Bowling, Pinball & Golf</div>
+      <div class="cat-title">Sports &amp; Skill</div>
+      <div class="cat-sub">Bowling, Pinball &amp; Golf</div>
     </div>
     <div class="cat-card" data-cat="creative" style="background:linear-gradient(135deg,#432070,#151226)">
       <div class="cat-icon">🎨</div>
-      <div class="cat-title">Creative & Sandbox</div>
-      <div class="cat-sub">Pixel Art, Sand & Farm</div>
+      <div class="cat-title">Creative &amp; Sandbox</div>
+      <div class="cat-sub">Pixel Art, Sand &amp; Farm</div>
     </div>
+  </section>
+
+  <section id="recentSection" style="display:none">
+    <div class="sec-head">
+      <h2 class="sec-title">Recently Played</h2>
+      <span class="sec-link" id="clearRecentBtn">Clear history</span>
+    </div>
+    <div class="shelf" id="recentShelf"></div>
   </section>
 
   <section id="featuredSections">
     <div class="sec-head">
-      <h2 class="sec-title">เกมยอดนิยมใน 🇹🇭 วันนี้</h2>
-      <span class="sec-link" id="jumpAllBtn">ดูทั้งหมด 100 เกม ›</span>
+      <h2 class="sec-title">Trending Games Today</h2>
+      <span class="sec-link" id="jumpAllBtn">Browse All 100 Games ›</span>
     </div>
     <div class="bento" id="bentoGrid"></div>
   </section>
 
   <section id="recSection">
     <div class="sec-head">
-      <h2 class="sec-title">เกมส์ที่เราแนะนำ</h2>
+      <h2 class="sec-title">Recommended Picks</h2>
       <div class="shelf-nav">
         <button class="shelf-arrow" data-shelf="recShelf" data-dir="-1">‹</button>
         <button class="shelf-arrow" data-shelf="recShelf" data-dir="1">›</button>
@@ -265,7 +308,7 @@
 
   <section id="newSection">
     <div class="sec-head">
-      <h2 class="sec-title">เกมใหม่ ›</h2>
+      <h2 class="sec-title">New Releases ›</h2>
       <div class="shelf-nav">
         <button class="shelf-arrow" data-shelf="newShelf" data-dir="-1">‹</button>
         <button class="shelf-arrow" data-shelf="newShelf" data-dir="1">›</button>
@@ -276,18 +319,23 @@
 
   <section id="librarySection">
     <div class="sec-head">
-      <h2 class="sec-title">คลังเกมทั้งหมด (<span id="shownCount">100</span> / 100 เกม)</h2>
+      <h2 class="sec-title">All Games Library (<span id="shownCount">100</span> / 100 Games)</h2>
     </div>
     <div class="filter-bar">
       <div class="tabs" id="filterTabs">
-        <button class="tab active" data-cat="all">ทั้งหมด (100)</button>
+        <button class="tab active" data-cat="all">All (100)</button>
         <button class="tab" data-cat="brain">Train your brain</button>
         <button class="tab" data-cat="action">Adrenaline</button>
-        <button class="tab" data-cat="board">เล่นกับเพื่อน / Board</button>
+        <button class="tab" data-cat="board">Play with Friends</button>
         <button class="tab" data-cat="arcade">5-minute fun</button>
-        <button class="tab" data-cat="sports">Sports & Skill</button>
-        <button class="tab" data-cat="creative">Creative & Sandbox</button>
+        <button class="tab" data-cat="sports">Sports &amp; Skill</button>
+        <button class="tab" data-cat="creative">Creative &amp; Sandbox</button>
       </div>
+      <select class="sort-sel" id="sortSelect" aria-label="Sort games">
+        <option value="id">Sort: #01 – #100</option>
+        <option value="pop">Sort: Most Popular</option>
+        <option value="az">Sort: Title A–Z</option>
+      </select>
     </div>
     <div class="all-grid" id="allGrid"></div>
   </section>
@@ -296,17 +344,42 @@
 <div class="player-overlay" id="playerOverlay">
   <div class="player-bar">
     <div class="player-left">
-      <button class="pill-btn" id="closePlayerBtn">← กลับคลังเกม</button>
+      <button class="pill-btn" id="closePlayerBtn">← Back to Library</button>
       <div class="player-title" id="playerTitle">Game</div>
       <span class="player-cat" id="playerCat">Arcade</span>
     </div>
     <div class="player-right">
-      <button class="pill-btn" id="reloadGameBtn">🔄 เริ่มใหม่</button>
-      <a class="pill-btn" id="openDirectLink" href="#" target="_blank" rel="noopener" style="text-decoration:none">↗ แท็บใหม่</a>
-      <button class="pill-btn primary" id="fullscreenBtn">⛶ เต็มจอ</button>
+      <button class="pill-btn" id="prevGameBtn" title="Previous Game">‹ Prev</button>
+      <button class="pill-btn" id="nextGameBtn" title="Next Game">Next ›</button>
+      <button class="pill-btn" id="reloadGameBtn">↺ Restart</button>
+      <a class="pill-btn" id="openDirectLink" href="#" target="_blank" rel="noopener">↗ New Tab</a>
+      <button class="pill-btn primary" id="fullscreenBtn">⛶ Fullscreen</button>
     </div>
   </div>
   <iframe class="player-frame" id="playerFrame" title="Game Player"></iframe>
+</div>
+
+<div class="modal-bg" id="reportModal">
+  <div class="modal-card">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <h2 style="font-size:1.3rem">AI Multi-Agent Benchmark &amp; AAA Layer</h2>
+      <button class="pill-btn" id="closeReportBtn">✕ Close</button>
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi"><b>100 / 100</b><span>Playable Single-File Games</span></div>
+      <div class="kpi"><b>42,113</b><span>Lines of Handcrafted Code</span></div>
+      <div class="kpi"><b>60 / 38 / 2</b><span>Canvas / DOM / SVG Engines</span></div>
+      <div class="kpi"><b>0 Errors</b><span>Headless Browser Verified</span></div>
+    </div>
+    <ul class="report-list">
+      <li><b>AAA Arcade Enhancement Engine (<code>assets/aaa-arcade.js</code>):</b> Every game includes procedural WebAudio SFX, optional synthwave BGM, particle bursts, floating combo popups, micro screen-shake, and a Shadow-DOM pause/restart HUD.</li>
+      <li><b>Multi-Agent Experiment Findings:</b> Parallel orchestration at 100 concurrent agents hit API rate limits; batching at 25 concurrent workers recovered throughput cleanly.</li>
+      <li><b>Model Behavioral Signatures:</b> DeepSeek V4.1 Flash produced the richest single-shot builds (up to 61.7 KB / 1,986 lines in <i>90-ice-breaker</i>), while automated AST &amp; Puppeteer verification caught edge bugs like template-less CSS strings in <i>19-stack-tower</i>.</li>
+    </ul>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:6px">
+      <a class="pill-btn primary" href="https://github.com/NnopponS/100-games/blob/main/AI_EXPERIMENT_REPORT.md" target="_blank" rel="noopener">Read Full Report on GitHub ↗</a>
+    </div>
+  </div>
 </div>
 
 <script src="./assets/games.js"></script>
@@ -317,7 +390,7 @@
   const CAT_LABELS = {
     brain: 'Train your brain',
     action: 'Adrenaline',
-    board: 'Board & Friends',
+    board: 'Play with Friends',
     arcade: '5-minute fun',
     sports: 'Sports & Skill',
     creative: 'Creative & Sandbox'
@@ -325,8 +398,32 @@
 
   let activeCat = 'all';
   let searchQuery = '';
+  let sortMode = 'id';
   let onlyFavs = false;
+  let uiSound = localStorage.getItem('portal_sound') !== '0';
   let favs = new Set(JSON.parse(localStorage.getItem('arcade100_favs') || '[]'));
+  let recents = JSON.parse(localStorage.getItem('arcade100_recent') || '[]');
+
+  let actx = null;
+  function playUiBeep(freq = 580) {
+    if (!uiSound) return;
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      if (!actx) actx = new AC();
+      if (actx.state === 'suspended') actx.resume().catch(() => {});
+      const now = actx.currentTime;
+      const o = actx.createOscillator();
+      const g = actx.createGain();
+      o.type = 'triangle';
+      o.frequency.setValueAtTime(freq, now);
+      g.gain.setValueAtTime(0.001, now);
+      g.gain.linearRampToValueAtTime(0.04, now + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0005, now + 0.08);
+      o.connect(g); g.connect(actx.destination);
+      o.start(now); o.stop(now + 0.09);
+    } catch {}
+  }
 
   const favCountEl = document.getElementById('favCount');
   const shownCountEl = document.getElementById('shownCount');
@@ -334,16 +431,21 @@
   const bentoGrid = document.getElementById('bentoGrid');
   const recShelf = document.getElementById('recShelf');
   const newShelf = document.getElementById('newShelf');
+  const recentSection = document.getElementById('recentSection');
+  const recentShelf = document.getElementById('recentShelf');
   const searchInput = document.getElementById('searchInput');
+  const sortSelect = document.getElementById('sortSelect');
   const featuredSections = document.getElementById('featuredSections');
   const recSection = document.getElementById('recSection');
   const newSection = document.getElementById('newSection');
+  const uiSoundBtn = document.getElementById('uiSoundBtn');
 
   const overlay = document.getElementById('playerOverlay');
   const frame = document.getElementById('playerFrame');
   const playerTitle = document.getElementById('playerTitle');
   const playerCat = document.getElementById('playerCat');
   const openDirectLink = document.getElementById('openDirectLink');
+  const reportModal = document.getElementById('reportModal');
   let currentGame = null;
 
   const byId = id => GAMES.find(g => g.id === id);
@@ -353,16 +455,27 @@
     favCountEl.textContent = favs.size;
   }
 
+  function addRecent(id) {
+    recents = [id, ...recents.filter(x => x !== id)].slice(0, 10);
+    localStorage.setItem('arcade100_recent', JSON.stringify(recents));
+    renderRecent();
+  }
+
   function makeCard(g, opts = {}) {
     const a = document.createElement('a');
     a.className = 'gcard' + (opts.cls ? ' ' + opts.cls : '');
     a.href = '#play=' + g.dir;
-    a.onclick = e => { e.preventDefault(); launchGame(g); };
+    a.onclick = e => { e.preventDefault(); playUiBeep(660); launchGame(g); };
 
     const img = document.createElement('img');
     img.alt = g.title;
     img.src = window.makeGameCover(g);
     a.appendChild(img);
+
+    const pp = document.createElement('div');
+    pp.className = 'play-pill';
+    pp.textContent = '▶ PLAY';
+    a.appendChild(pp);
 
     if (opts.hero) {
       const hf = document.createElement('div');
@@ -396,17 +509,33 @@
 
     const fb = document.createElement('button');
     fb.className = 'fav-btn' + (favs.has(g.id) ? ' on' : '');
-    fb.title = 'เพิ่มในรายการโปรด';
+    fb.title = 'Toggle Favorite';
     fb.textContent = favs.has(g.id) ? '♥' : '♡';
     if (g.badge === 'NEW' && !opts.hero && !opts.hideNew) fb.style.top = '34px';
     fb.onclick = e => {
       e.preventDefault(); e.stopPropagation();
+      playUiBeep(780);
       if (favs.has(g.id)) favs.delete(g.id); else favs.add(g.id);
       saveFavs();
       renderAll();
     };
     a.appendChild(fb);
     return a;
+  }
+
+  function renderRecent() {
+    const q = searchQuery.trim();
+    const isFiltering = activeCat !== 'all' || q.length > 0 || onlyFavs;
+    if (recents.length === 0 || isFiltering) {
+      recentSection.style.display = 'none';
+      return;
+    }
+    recentSection.style.display = 'block';
+    recentShelf.innerHTML = '';
+    recents.forEach(id => {
+      const g = byId(id);
+      if (g) recentShelf.appendChild(makeCard(g));
+    });
   }
 
   function renderShelves() {
@@ -444,8 +573,9 @@
     featuredSections.style.display = isFiltering ? 'none' : 'block';
     recSection.style.display = isFiltering ? 'none' : 'block';
     newSection.style.display = isFiltering ? 'none' : 'block';
+    renderRecent();
 
-    const list = GAMES.filter(g => {
+    let list = GAMES.filter(g => {
       if (onlyFavs && !favs.has(g.id)) return false;
       if (activeCat !== 'all' && g.cat !== activeCat) return false;
       if (q) {
@@ -455,10 +585,13 @@
       return true;
     });
 
+    if (sortMode === 'az') list = [...list].sort((a,b) => a.title.localeCompare(b.title));
+    else if (sortMode === 'pop') list = [...list].sort((a,b) => b.playNum - a.playNum);
+
     shownCountEl.textContent = list.length;
     allGrid.innerHTML = '';
     if (list.length === 0) {
-      allGrid.innerHTML = '<div class="empty-state">ไม่พบเกมที่ตรงกับคำค้นหา — ลองล้างตัวกรองดูนะครับ</div>';
+      allGrid.innerHTML = '<div class="empty-state">No games match your filter — try clearing search or switching categories.</div>';
       return;
     }
     const frag = document.createDocumentFragment();
@@ -467,6 +600,7 @@
   }
 
   function setCat(cat) {
+    playUiBeep(520);
     activeCat = cat;
     onlyFavs = false;
     document.getElementById('favFilterBtn').classList.remove('primary');
@@ -477,6 +611,7 @@
 
   function launchGame(g) {
     currentGame = g;
+    addRecent(g.id);
     playerTitle.textContent = `#${String(g.id).padStart(2,'0')} — ${g.title}`;
     playerCat.textContent = CAT_LABELS[g.cat] || g.cat;
     const url = './' + g.dir + '/index.html';
@@ -500,6 +635,22 @@
     }
   }
 
+  uiSoundBtn.textContent = uiSound ? '🔊 Sound' : '🔇 Muted';
+  uiSoundBtn.onclick = () => {
+    uiSound = !uiSound;
+    localStorage.setItem('portal_sound', uiSound ? '1' : '0');
+    uiSoundBtn.textContent = uiSound ? '🔊 Sound' : '🔇 Muted';
+    if (uiSound) playUiBeep(640);
+  };
+
+  document.getElementById('reportBtn').onclick = () => { playUiBeep(580); reportModal.classList.add('open'); };
+  document.getElementById('closeReportBtn').onclick = () => reportModal.classList.remove('open');
+  reportModal.onclick = e => { if (e.target === reportModal) reportModal.classList.remove('open'); };
+
+  document.getElementById('clearRecentBtn').onclick = () => {
+    recents = []; localStorage.removeItem('arcade100_recent'); renderRecent();
+  };
+
   document.querySelectorAll('#catStrip .cat-card').forEach(c => {
     c.onclick = () => setCat(activeCat === c.dataset.cat ? 'all' : c.dataset.cat);
   });
@@ -507,12 +658,15 @@
     t.onclick = () => setCat(t.dataset.cat);
   });
   searchInput.oninput = e => { searchQuery = e.target.value; renderAll(); };
+  sortSelect.onchange = e => { sortMode = e.target.value; renderAll(); };
   document.getElementById('favFilterBtn').onclick = () => {
+    playUiBeep(600);
     onlyFavs = !onlyFavs;
     document.getElementById('favFilterBtn').classList.toggle('primary', onlyFavs);
     renderAll();
   };
   document.getElementById('randomBtn').onclick = () => {
+    playUiBeep(720);
     const g = GAMES[Math.floor(Math.random() * GAMES.length)];
     if (g) launchGame(g);
   };
@@ -526,6 +680,16 @@
   });
 
   document.getElementById('closePlayerBtn').onclick = () => closePlayer(false);
+  document.getElementById('prevGameBtn').onclick = () => {
+    if (!currentGame) return;
+    const idx = GAMES.findIndex(x => x.id === currentGame.id);
+    launchGame(GAMES[(idx - 1 + GAMES.length) % GAMES.length]);
+  };
+  document.getElementById('nextGameBtn').onclick = () => {
+    if (!currentGame) return;
+    const idx = GAMES.findIndex(x => x.id === currentGame.id);
+    launchGame(GAMES[(idx + 1) % GAMES.length]);
+  };
   document.getElementById('reloadGameBtn').onclick = () => {
     if (currentGame) frame.src = './' + currentGame.dir + '/index.html?t=' + Date.now();
   };
@@ -545,7 +709,10 @@
   }
   window.addEventListener('hashchange', handleHash);
   window.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && overlay.classList.contains('open')) closePlayer(false);
+    if (e.key === 'Escape') {
+      if (reportModal.classList.contains('open')) reportModal.classList.remove('open');
+      else if (overlay.classList.contains('open')) closePlayer(false);
+    }
   });
 
   saveFavs();

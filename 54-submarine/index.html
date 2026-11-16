@@ -214,5 +214,7 @@ var last=performance.now();
 function frame(now){var dt=Math.min(0.033,(now-last)/1000);last=now;T+=dt;update(dt);draw();requestAnimationFrame(frame);}
 requestAnimationFrame(frame);
 </script>
+
+<script src="../assets/aaa-arcade.js" defer></script>
 </body>
 </html>

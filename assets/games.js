@@ -8,6 +8,7 @@ window.GAMES_DATA = [
     "c1": "#0ea5e9",
     "c2": "#1e3a8a",
     "badge": "Classic",
+    "playNum": 193,
     "plays": "193K",
     "likes": "55K"
   },
@@ -20,6 +21,7 @@ window.GAMES_DATA = [
     "c1": "#10b981",
     "c2": "#064e3b",
     "badge": "Classic",
+    "playNum": 266,
     "plays": "266K",
     "likes": "92K"
   },
@@ -32,6 +34,7 @@ window.GAMES_DATA = [
     "c1": "#f97316",
     "c2": "#431407",
     "badge": "Classic",
+    "playNum": 339,
     "plays": "339K",
     "likes": "129K"
   },
@@ -44,6 +47,7 @@ window.GAMES_DATA = [
     "c1": "#3b82f6",
     "c2": "#172554",
     "badge": "2P / AI",
+    "playNum": 412,
     "plays": "412K",
     "likes": "26K"
   },
@@ -56,6 +60,7 @@ window.GAMES_DATA = [
     "c1": "#8b5cf6",
     "c2": "#2e1065",
     "badge": "Top Pick",
+    "playNum": 485,
     "plays": "485K",
     "likes": "63K"
   },
@@ -68,6 +73,7 @@ window.GAMES_DATA = [
     "c1": "#ec4899",
     "c2": "#500724",
     "badge": "Memory",
+    "playNum": 558,
     "plays": "558K",
     "likes": "100K"
   },
@@ -80,6 +86,7 @@ window.GAMES_DATA = [
     "c1": "#84cc16",
     "c2": "#1a2e05",
     "badge": "Quick",
+    "playNum": 631,
     "plays": "631K",
     "likes": "137K"
   },
@@ -89,9 +96,10 @@ window.GAMES_DATA = [
     "title": "Minesweeper",
     "cat": "brain",
     "motif": "mine",
-    "c1": "#64748b",
+    "c1": "#475569",
     "c2": "#0f172a",
     "badge": "Logic",
+    "playNum": 704,
     "plays": "704K",
     "likes": "34K"
   },
@@ -100,10 +108,11 @@ window.GAMES_DATA = [
     "dir": "09-2048",
     "title": "2048",
     "cat": "brain",
-    "motif": "tetris",
+    "motif": "g2048",
     "c1": "#f59e0b",
     "c2": "#451a03",
     "badge": "Top Pick",
+    "playNum": 777,
     "plays": "777K",
     "likes": "71K"
   },
@@ -112,10 +121,11 @@ window.GAMES_DATA = [
     "dir": "10-tic-tac-toe-ai",
     "title": "Tic-Tac-Toe vs AI",
     "cat": "board",
-    "motif": "board",
+    "motif": "ttt",
     "c1": "#06b6d4",
     "c2": "#083344",
     "badge": "VS AI",
+    "playNum": 850,
     "plays": "850K",
     "likes": "108K"
   },
@@ -128,6 +138,7 @@ window.GAMES_DATA = [
     "c1": "#a855f7",
     "c2": "#3b0764",
     "badge": "Memory",
+    "playNum": 923,
     "plays": "923K",
     "likes": "145K"
   },
@@ -140,6 +151,7 @@ window.GAMES_DATA = [
     "c1": "#6366f1",
     "c2": "#0f0c29",
     "badge": "Shooter",
+    "playNum": 996,
     "plays": "996K",
     "likes": "42K"
   },
@@ -152,6 +164,7 @@ window.GAMES_DATA = [
     "c1": "#38bdf8",
     "c2": "#020617",
     "badge": "Space",
+    "playNum": 189,
     "plays": "189K",
     "likes": "79K"
   },
@@ -164,6 +177,7 @@ window.GAMES_DATA = [
     "c1": "#22c55e",
     "c2": "#052e16",
     "badge": "Classic",
+    "playNum": 262,
     "plays": "262K",
     "likes": "116K"
   },
@@ -176,6 +190,7 @@ window.GAMES_DATA = [
     "c1": "#eab308",
     "c2": "#422006",
     "badge": "Climber",
+    "playNum": 335,
     "plays": "335K",
     "likes": "153K"
   },
@@ -188,6 +203,7 @@ window.GAMES_DATA = [
     "c1": "#ef4444",
     "c2": "#450a0a",
     "badge": "Defense",
+    "playNum": 408,
     "plays": "408K",
     "likes": "50K"
   },
@@ -197,9 +213,10 @@ window.GAMES_DATA = [
     "title": "Lunar Lander",
     "cat": "sports",
     "motif": "rocket",
-    "c1": "#94a3b8",
+    "c1": "#64748b",
     "c2": "#090d16",
     "badge": "Physics",
+    "playNum": 481,
     "plays": "481K",
     "likes": "87K"
   },
@@ -212,6 +229,7 @@ window.GAMES_DATA = [
     "c1": "#14b8a6",
     "c2": "#042f2e",
     "badge": "Flyer",
+    "playNum": 554,
     "plays": "554K",
     "likes": "124K"
   },
@@ -224,6 +242,7 @@ window.GAMES_DATA = [
     "c1": "#f43f5e",
     "c2": "#4c0519",
     "badge": "Timing",
+    "playNum": 627,
     "plays": "627K",
     "likes": "21K"
   },
@@ -236,6 +255,7 @@ window.GAMES_DATA = [
     "c1": "#6366f1",
     "c2": "#1e1b4b",
     "badge": "Rhythm",
+    "playNum": 700,
     "plays": "700K",
     "likes": "58K"
   },
@@ -248,6 +268,7 @@ window.GAMES_DATA = [
     "c1": "#ef4444",
     "c2": "#1e3a8a",
     "badge": "VS AI",
+    "playNum": 773,
     "plays": "773K",
     "likes": "95K"
   },
@@ -256,10 +277,11 @@ window.GAMES_DATA = [
     "dir": "22-hangman",
     "title": "Hangman",
     "cat": "brain",
-    "motif": "word",
+    "motif": "wordle",
     "c1": "#0ea5e9",
     "c2": "#0c4a6e",
     "badge": "Word",
+    "playNum": 846,
     "plays": "846K",
     "likes": "132K"
   },
@@ -268,10 +290,11 @@ window.GAMES_DATA = [
     "dir": "23-wordle-clone",
     "title": "Wordle Clone",
     "cat": "brain",
-    "motif": "word",
+    "motif": "wordle",
     "c1": "#22c55e",
     "c2": "#14532d",
     "badge": "Word",
+    "playNum": 919,
     "plays": "919K",
     "likes": "29K"
   },
@@ -284,6 +307,7 @@ window.GAMES_DATA = [
     "c1": "#facc15",
     "c2": "#422006",
     "badge": "Reflex",
+    "playNum": 992,
     "plays": "992K",
     "likes": "66K"
   },
@@ -296,6 +320,7 @@ window.GAMES_DATA = [
     "c1": "#38bdf8",
     "c2": "#0f172a",
     "badge": "Maze",
+    "playNum": 185,
     "plays": "185K",
     "likes": "103K"
   },
@@ -308,6 +333,7 @@ window.GAMES_DATA = [
     "c1": "#f59e0b",
     "c2": "#1e1b4b",
     "badge": "Top Pick",
+    "playNum": 258,
     "plays": "258K",
     "likes": "140K"
   },
@@ -316,10 +342,11 @@ window.GAMES_DATA = [
     "dir": "27-typing-racer",
     "title": "Typing Racer",
     "cat": "arcade",
-    "motif": "word",
+    "motif": "wordle",
     "c1": "#06b6d4",
     "c2": "#164e63",
     "badge": "Speed",
+    "playNum": 331,
     "plays": "331K",
     "likes": "37K"
   },
@@ -332,6 +359,7 @@ window.GAMES_DATA = [
     "c1": "#f472b6",
     "c2": "#500724",
     "badge": "Quick",
+    "playNum": 404,
     "plays": "404K",
     "likes": "74K"
   },
@@ -340,10 +368,11 @@ window.GAMES_DATA = [
     "dir": "29-guess-number",
     "title": "Guess the Number",
     "cat": "brain",
-    "motif": "word",
+    "motif": "g2048",
     "c1": "#60a5fa",
     "c2": "#172554",
     "badge": "Logic",
+    "playNum": 477,
     "plays": "477K",
     "likes": "111K"
   },
@@ -356,6 +385,7 @@ window.GAMES_DATA = [
     "c1": "#16a34a",
     "c2": "#052e16",
     "badge": "Cards",
+    "playNum": 550,
     "plays": "550K",
     "likes": "148K"
   },
@@ -364,10 +394,11 @@ window.GAMES_DATA = [
     "dir": "31-sliding-puzzle",
     "title": "15 Sliding Puzzle",
     "cat": "brain",
-    "motif": "tetris",
+    "motif": "g2048",
     "c1": "#fb923c",
     "c2": "#431407",
     "badge": "Puzzle",
+    "playNum": 623,
     "plays": "623K",
     "likes": "45K"
   },
@@ -380,6 +411,7 @@ window.GAMES_DATA = [
     "c1": "#facc15",
     "c2": "#1e293b",
     "badge": "Logic",
+    "playNum": 696,
     "plays": "696K",
     "likes": "82K"
   },
@@ -388,10 +420,11 @@ window.GAMES_DATA = [
     "dir": "33-sudoku",
     "title": "Sudoku",
     "cat": "brain",
-    "motif": "board",
+    "motif": "sudoku",
     "c1": "#3b82f6",
     "c2": "#0f172a",
     "badge": "Logic",
+    "playNum": 769,
     "plays": "769K",
     "likes": "119K"
   },
@@ -404,6 +437,7 @@ window.GAMES_DATA = [
     "c1": "#0284c7",
     "c2": "#082f49",
     "badge": "Strategy",
+    "playNum": 842,
     "plays": "842K",
     "likes": "156K"
   },
@@ -416,6 +450,7 @@ window.GAMES_DATA = [
     "c1": "#10b981",
     "c2": "#064e3b",
     "badge": "Board",
+    "playNum": 915,
     "plays": "915K",
     "likes": "53K"
   },
@@ -428,6 +463,7 @@ window.GAMES_DATA = [
     "c1": "#d97706",
     "c2": "#451a03",
     "badge": "Board",
+    "playNum": 988,
     "plays": "988K",
     "likes": "90K"
   },
@@ -436,10 +472,11 @@ window.GAMES_DATA = [
     "dir": "37-checkers",
     "title": "Checkers vs AI",
     "cat": "board",
-    "motif": "board",
+    "motif": "chess",
     "c1": "#dc2626",
     "c2": "#1c1917",
     "badge": "Board",
+    "playNum": 181,
     "plays": "181K",
     "likes": "127K"
   },
@@ -452,6 +489,7 @@ window.GAMES_DATA = [
     "c1": "#a855f7",
     "c2": "#1e1b4b",
     "badge": "Shooter",
+    "playNum": 254,
     "plays": "254K",
     "likes": "24K"
   },
@@ -464,6 +502,7 @@ window.GAMES_DATA = [
     "c1": "#06b6d4",
     "c2": "#0f172a",
     "badge": "VS AI",
+    "playNum": 327,
     "plays": "327K",
     "likes": "61K"
   },
@@ -472,10 +511,11 @@ window.GAMES_DATA = [
     "dir": "40-catch-falling",
     "title": "Catch Falling Items",
     "cat": "arcade",
-    "motif": "bowling",
+    "motif": "hoop",
     "c1": "#fbbf24",
     "c2": "#451a03",
     "badge": "Quick",
+    "playNum": 400,
     "plays": "400K",
     "likes": "98K"
   },
@@ -488,6 +528,7 @@ window.GAMES_DATA = [
     "c1": "#f43f5e",
     "c2": "#1e1b4b",
     "badge": "Survival",
+    "playNum": 473,
     "plays": "473K",
     "likes": "135K"
   },
@@ -500,6 +541,7 @@ window.GAMES_DATA = [
     "c1": "#f97316",
     "c2": "#271026",
     "badge": "Runner",
+    "playNum": 546,
     "plays": "546K",
     "likes": "32K"
   },
@@ -512,6 +554,7 @@ window.GAMES_DATA = [
     "c1": "#38bdf8",
     "c2": "#0c4a6e",
     "badge": "Winter",
+    "playNum": 619,
     "plays": "619K",
     "likes": "69K"
   },
@@ -524,6 +567,7 @@ window.GAMES_DATA = [
     "c1": "#0ea5e9",
     "c2": "#082f49",
     "badge": "Relax",
+    "playNum": 692,
     "plays": "692K",
     "likes": "106K"
   },
@@ -536,6 +580,7 @@ window.GAMES_DATA = [
     "c1": "#ef4444",
     "c2": "#1f2937",
     "badge": "Aim",
+    "playNum": 765,
     "plays": "765K",
     "likes": "143K"
   },
@@ -548,6 +593,7 @@ window.GAMES_DATA = [
     "c1": "#22c55e",
     "c2": "#14532d",
     "badge": "Aim",
+    "playNum": 838,
     "plays": "838K",
     "likes": "40K"
   },
@@ -556,10 +602,11 @@ window.GAMES_DATA = [
     "dir": "47-basketball",
     "title": "Basketball Shootout",
     "cat": "sports",
-    "motif": "target",
+    "motif": "hoop",
     "c1": "#f97316",
     "c2": "#431407",
     "badge": "Sports",
+    "playNum": 911,
     "plays": "911K",
     "likes": "77K"
   },
@@ -568,10 +615,11 @@ window.GAMES_DATA = [
     "dir": "48-penalty-kicks",
     "title": "Penalty Kicks",
     "cat": "sports",
-    "motif": "target",
+    "motif": "soccer",
     "c1": "#16a34a",
     "c2": "#052e16",
     "badge": "Sports",
+    "playNum": 984,
     "plays": "984K",
     "likes": "114K"
   },
@@ -580,10 +628,11 @@ window.GAMES_DATA = [
     "dir": "49-mini-golf",
     "title": "Mini Golf",
     "cat": "sports",
-    "motif": "target",
+    "motif": "golf",
     "c1": "#4ade80",
     "c2": "#064e3b",
     "badge": "9 Holes",
+    "playNum": 177,
     "plays": "177K",
     "likes": "151K"
   },
@@ -596,6 +645,7 @@ window.GAMES_DATA = [
     "c1": "#fbbf24",
     "c2": "#172554",
     "badge": "NEW",
+    "playNum": 250,
     "plays": "250K",
     "likes": "48K"
   },
@@ -608,6 +658,7 @@ window.GAMES_DATA = [
     "c1": "#dc2626",
     "c2": "#0f172a",
     "badge": "301",
+    "playNum": 323,
     "plays": "323K",
     "likes": "85K"
   },
@@ -620,6 +671,7 @@ window.GAMES_DATA = [
     "c1": "#ef4444",
     "c2": "#18181b",
     "badge": "Racing",
+    "playNum": 396,
     "plays": "396K",
     "likes": "122K"
   },
@@ -632,6 +684,7 @@ window.GAMES_DATA = [
     "c1": "#4ade80",
     "c2": "#0f172a",
     "badge": "Arcade",
+    "playNum": 469,
     "plays": "469K",
     "likes": "19K"
   },
@@ -644,6 +697,7 @@ window.GAMES_DATA = [
     "c1": "#0284c7",
     "c2": "#041c2c",
     "badge": "Ocean",
+    "playNum": 542,
     "plays": "542K",
     "likes": "56K"
   },
@@ -656,6 +710,7 @@ window.GAMES_DATA = [
     "c1": "#ec4899",
     "c2": "#3b0764",
     "badge": "Quick",
+    "playNum": 615,
     "plays": "615K",
     "likes": "93K"
   },
@@ -664,10 +719,11 @@ window.GAMES_DATA = [
     "dir": "56-cookie-clicker",
     "title": "Cookie Clicker",
     "cat": "creative",
-    "motif": "casino",
+    "motif": "farm",
     "c1": "#d97706",
     "c2": "#451a03",
     "badge": "Idle",
+    "playNum": 688,
     "plays": "688K",
     "likes": "130K"
   },
@@ -680,6 +736,7 @@ window.GAMES_DATA = [
     "c1": "#f43f5e",
     "c2": "#311042",
     "badge": "Speed",
+    "playNum": 761,
     "plays": "761K",
     "likes": "27K"
   },
@@ -688,10 +745,11 @@ window.GAMES_DATA = [
     "dir": "58-rhythm-tap",
     "title": "Rhythm Tap",
     "cat": "arcade",
-    "motif": "piano",
+    "motif": "dance",
     "c1": "#c084fc",
     "c2": "#1e1b4b",
     "badge": "Music",
+    "playNum": 834,
     "plays": "834K",
     "likes": "64K"
   },
@@ -700,10 +758,11 @@ window.GAMES_DATA = [
     "dir": "59-dance-arrows",
     "title": "Dance Arrows",
     "cat": "arcade",
-    "motif": "piano",
+    "motif": "dance",
     "c1": "#ec4899",
     "c2": "#1e1b4b",
     "badge": "Rhythm",
+    "playNum": 907,
     "plays": "907K",
     "likes": "101K"
   },
@@ -712,10 +771,11 @@ window.GAMES_DATA = [
     "dir": "60-math-sprint",
     "title": "Math Sprint",
     "cat": "brain",
-    "motif": "word",
+    "motif": "g2048",
     "c1": "#3b82f6",
     "c2": "#1e293b",
     "badge": "Math",
+    "playNum": 980,
     "plays": "980K",
     "likes": "138K"
   },
@@ -724,10 +784,11 @@ window.GAMES_DATA = [
     "dir": "61-word-scramble",
     "title": "Word Scramble",
     "cat": "brain",
-    "motif": "word",
+    "motif": "wordle",
     "c1": "#8b5cf6",
     "c2": "#1e1b4b",
     "badge": "Word",
+    "playNum": 173,
     "plays": "173K",
     "likes": "35K"
   },
@@ -740,6 +801,7 @@ window.GAMES_DATA = [
     "c1": "#0ea5e9",
     "c2": "#1e1b4b",
     "badge": "NEW",
+    "playNum": 246,
     "plays": "246K",
     "likes": "72K"
   },
@@ -748,10 +810,11 @@ window.GAMES_DATA = [
     "dir": "63-knight-tour",
     "title": "Knight's Tour",
     "cat": "brain",
-    "motif": "board",
+    "motif": "chess",
     "c1": "#a855f7",
     "c2": "#1c1917",
     "badge": "Chess",
+    "playNum": 319,
     "plays": "319K",
     "likes": "109K"
   },
@@ -760,10 +823,11 @@ window.GAMES_DATA = [
     "dir": "64-pipe-connect",
     "title": "Pipe Connect",
     "cat": "brain",
-    "motif": "maze",
+    "motif": "pipes",
     "c1": "#06b6d4",
     "c2": "#0f172a",
     "badge": "Puzzle",
+    "playNum": 392,
     "plays": "392K",
     "likes": "146K"
   },
@@ -776,6 +840,7 @@ window.GAMES_DATA = [
     "c1": "#ec4899",
     "c2": "#0f172a",
     "badge": "Color",
+    "playNum": 465,
     "plays": "465K",
     "likes": "43K"
   },
@@ -788,6 +853,7 @@ window.GAMES_DATA = [
     "c1": "#f97316",
     "c2": "#18181b",
     "badge": "Strategy",
+    "playNum": 538,
     "plays": "538K",
     "likes": "80K"
   },
@@ -800,6 +866,7 @@ window.GAMES_DATA = [
     "c1": "#38bdf8",
     "c2": "#1e1b4b",
     "badge": "Runner",
+    "playNum": 611,
     "plays": "611K",
     "likes": "117K"
   },
@@ -808,10 +875,11 @@ window.GAMES_DATA = [
     "dir": "68-pixel-painter",
     "title": "Pixel Painter",
     "cat": "creative",
-    "motif": "tetris",
+    "motif": "sand",
     "c1": "#f472b6",
     "c2": "#1e1b4b",
     "badge": "Art",
+    "playNum": 684,
     "plays": "684K",
     "likes": "154K"
   },
@@ -824,6 +892,7 @@ window.GAMES_DATA = [
     "c1": "#ef4444",
     "c2": "#7f1d1d",
     "badge": "Retro",
+    "playNum": 757,
     "plays": "757K",
     "likes": "51K"
   },
@@ -832,10 +901,11 @@ window.GAMES_DATA = [
     "dir": "70-falling-sand",
     "title": "Falling Sand",
     "cat": "creative",
-    "motif": "volcano",
+    "motif": "sand",
     "c1": "#eab308",
     "c2": "#1c1917",
     "badge": "Sandbox",
+    "playNum": 830,
     "plays": "830K",
     "likes": "88K"
   },
@@ -848,6 +918,7 @@ window.GAMES_DATA = [
     "c1": "#10b981",
     "c2": "#0f172a",
     "badge": "Top Pick",
+    "playNum": 903,
     "plays": "903K",
     "likes": "125K"
   },
@@ -860,6 +931,7 @@ window.GAMES_DATA = [
     "c1": "#ec4899",
     "c2": "#1e1b4b",
     "badge": "NEW",
+    "playNum": 976,
     "plays": "976K",
     "likes": "22K"
   },
@@ -872,6 +944,7 @@ window.GAMES_DATA = [
     "c1": "#38bdf8",
     "c2": "#0a192f",
     "badge": "NEW",
+    "playNum": 169,
     "plays": "169K",
     "likes": "59K"
   },
@@ -880,10 +953,11 @@ window.GAMES_DATA = [
     "dir": "74-pool-lite",
     "title": "Pool Lite",
     "cat": "sports",
-    "motif": "target",
+    "motif": "soccer",
     "c1": "#16a34a",
     "c2": "#052e16",
     "badge": "Billiards",
+    "playNum": 242,
     "plays": "242K",
     "likes": "96K"
   },
@@ -892,10 +966,11 @@ window.GAMES_DATA = [
     "dir": "75-train-switcher",
     "title": "Train Switcher",
     "cat": "brain",
-    "motif": "car",
+    "motif": "pipes",
     "c1": "#facc15",
     "c2": "#131a22",
     "badge": "NEW",
+    "playNum": 315,
     "plays": "315K",
     "likes": "133K"
   },
@@ -904,22 +979,24 @@ window.GAMES_DATA = [
     "dir": "76-fireworks",
     "title": "Fireworks",
     "cat": "creative",
-    "motif": "volcano",
+    "motif": "fireworks",
     "c1": "#a855f7",
     "c2": "#090d16",
     "badge": "Relax",
+    "playNum": 388,
     "plays": "388K",
     "likes": "30K"
   },
   {
     "id": 77,
     "dir": "77-farm-clicker",
-    "title": "Farm Clicker 🌻",
+    "title": "Farm Clicker",
     "cat": "creative",
-    "motif": "flappy",
+    "motif": "farm",
     "c1": "#84cc16",
     "c2": "#14532d",
     "badge": "Idle",
+    "playNum": 461,
     "plays": "461K",
     "likes": "67K"
   },
@@ -932,6 +1009,7 @@ window.GAMES_DATA = [
     "c1": "#2563eb",
     "c2": "#0f172a",
     "badge": "Quiz",
+    "playNum": 534,
     "plays": "534K",
     "likes": "104K"
   },
@@ -944,6 +1022,7 @@ window.GAMES_DATA = [
     "c1": "#f43f5e",
     "c2": "#141625",
     "badge": "NEW",
+    "playNum": 607,
     "plays": "607K",
     "likes": "141K"
   },
@@ -956,6 +1035,7 @@ window.GAMES_DATA = [
     "c1": "#38bdf8",
     "c2": "#1e293b",
     "badge": "Puzzle",
+    "playNum": 680,
     "plays": "680K",
     "likes": "38K"
   },
@@ -964,10 +1044,11 @@ window.GAMES_DATA = [
     "dir": "81-orbit-dodge",
     "title": "Orbit Dodge",
     "cat": "action",
-    "motif": "orbit",
+    "motif": "planet",
     "c1": "#818cf8",
     "c2": "#070b18",
     "badge": "NEW",
+    "playNum": 753,
     "plays": "753K",
     "likes": "75K"
   },
@@ -980,6 +1061,7 @@ window.GAMES_DATA = [
     "c1": "#f97316",
     "c2": "#0f172a",
     "badge": "Escape",
+    "playNum": 826,
     "plays": "826K",
     "likes": "112K"
   },
@@ -992,6 +1074,7 @@ window.GAMES_DATA = [
     "c1": "#f59e0b",
     "c2": "#1e1b4b",
     "badge": "NEW",
+    "playNum": 899,
     "plays": "899K",
     "likes": "149K"
   },
@@ -1004,6 +1087,7 @@ window.GAMES_DATA = [
     "c1": "#ec4899",
     "c2": "#1f2937",
     "badge": "Match",
+    "playNum": 972,
     "plays": "972K",
     "likes": "46K"
   },
@@ -1016,6 +1100,7 @@ window.GAMES_DATA = [
     "c1": "#22c55e",
     "c2": "#064e3b",
     "badge": "Cards",
+    "playNum": 165,
     "plays": "165K",
     "likes": "83K"
   },
@@ -1028,6 +1113,7 @@ window.GAMES_DATA = [
     "c1": "#fbbf24",
     "c2": "#2a1447",
     "badge": "NEW",
+    "playNum": 238,
     "plays": "238K",
     "likes": "120K"
   },
@@ -1040,6 +1126,7 @@ window.GAMES_DATA = [
     "c1": "#ef4444",
     "c2": "#1f2937",
     "badge": "Dice",
+    "playNum": 311,
     "plays": "311K",
     "likes": "157K"
   },
@@ -1048,10 +1135,11 @@ window.GAMES_DATA = [
     "dir": "88-snake-maze",
     "title": "Snake Maze",
     "cat": "brain",
-    "motif": "snake",
+    "motif": "maze",
     "c1": "#22c55e",
     "c2": "#090d16",
     "badge": "Maze",
+    "playNum": 384,
     "plays": "384K",
     "likes": "54K"
   },
@@ -1064,6 +1152,7 @@ window.GAMES_DATA = [
     "c1": "#38bdf8",
     "c2": "#1e1b4b",
     "badge": "Arcade",
+    "playNum": 457,
     "plays": "457K",
     "likes": "91K"
   },
@@ -1076,6 +1165,7 @@ window.GAMES_DATA = [
     "c1": "#60a5fa",
     "c2": "#0c4a6e",
     "badge": "Arcade",
+    "playNum": 530,
     "plays": "530K",
     "likes": "128K"
   },
@@ -1088,6 +1178,7 @@ window.GAMES_DATA = [
     "c1": "#ff6b35",
     "c2": "#1c0c10",
     "badge": "NEW",
+    "playNum": 603,
     "plays": "603K",
     "likes": "25K"
   },
@@ -1100,6 +1191,7 @@ window.GAMES_DATA = [
     "c1": "#06b6d4",
     "c2": "#041828",
     "badge": "NEW",
+    "playNum": 676,
     "plays": "676K",
     "likes": "62K"
   },
@@ -1108,10 +1200,11 @@ window.GAMES_DATA = [
     "dir": "93-bug-squash",
     "title": "Bug Squash",
     "cat": "arcade",
-    "motif": "ghost",
+    "motif": "mole",
     "c1": "#84cc16",
     "c2": "#1a2e14",
     "badge": "NEW",
+    "playNum": 749,
     "plays": "749K",
     "likes": "99K"
   },
@@ -1124,6 +1217,7 @@ window.GAMES_DATA = [
     "c1": "#6366f1",
     "c2": "#070710",
     "badge": "NEW",
+    "playNum": 822,
     "plays": "822K",
     "likes": "136K"
   },
@@ -1136,6 +1230,7 @@ window.GAMES_DATA = [
     "c1": "#f43f5e",
     "c2": "#090d16",
     "badge": "NEW",
+    "playNum": 895,
     "plays": "895K",
     "likes": "33K"
   },
@@ -1148,6 +1243,7 @@ window.GAMES_DATA = [
     "c1": "#38bdf8",
     "c2": "#0f172a",
     "badge": "NEW",
+    "playNum": 968,
     "plays": "968K",
     "likes": "70K"
   },
@@ -1156,10 +1252,11 @@ window.GAMES_DATA = [
     "dir": "97-math-blocks",
     "title": "Math Blocks",
     "cat": "brain",
-    "motif": "tetris",
+    "motif": "g2048",
     "c1": "#eab308",
     "c2": "#0f172a",
     "badge": "NEW",
+    "playNum": 161,
     "plays": "161K",
     "likes": "107K"
   },
@@ -1168,10 +1265,11 @@ window.GAMES_DATA = [
     "dir": "98-planet-defender",
     "title": "Planet Defender",
     "cat": "action",
-    "motif": "orbit",
+    "motif": "planet",
     "c1": "#22d3ee",
     "c2": "#060914",
     "badge": "NEW",
+    "playNum": 234,
     "plays": "234K",
     "likes": "144K"
   },
@@ -1184,6 +1282,7 @@ window.GAMES_DATA = [
     "c1": "#0ea5e9",
     "c2": "#0c2d48",
     "badge": "NEW",
+    "playNum": 307,
     "plays": "307K",
     "likes": "41K"
   },
@@ -1196,6 +1295,7 @@ window.GAMES_DATA = [
     "c1": "#4ade80",
     "c2": "#0a1210",
     "badge": "NEW",
+    "playNum": 380,
     "plays": "380K",
     "likes": "78K"
   }
