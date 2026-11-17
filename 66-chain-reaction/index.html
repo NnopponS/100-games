@@ -11,8 +11,16 @@
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   html,body{margin:0;min-height:100%;color:var(--txt);
-    font-family:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;user-select:none;
+    font-family:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;user-select:none;-webkit-user-select:none;
+    touch-action:manipulation;overflow-x:hidden;
     background:radial-gradient(1200px 800px at 50% -10%,#101a33 0%,var(--bg) 60%) fixed;}
+  body::before{content:"";position:fixed;inset:-20%;z-index:-2;pointer-events:none;
+    background:
+      radial-gradient(40% 50% at 18% 20%,rgba(63,217,255,.10),transparent 70%),
+      radial-gradient(45% 55% at 82% 25%,rgba(255,90,110,.08),transparent 70%),
+      radial-gradient(50% 55% at 50% 85%,rgba(255,184,77,.07),transparent 70%);
+    animation:aurora 22s ease-in-out infinite alternate;}
+  @keyframes aurora{from{transform:rotate(-2deg) scale(1)}to{transform:rotate(2deg) scale(1.07)}}
   #app{max-width:640px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;padding:14px 14px 24px;}
   header h1{font-size:20px;letter-spacing:.35em;margin:6px 0 10px;text-align:center;color:#eaf4ff;
     text-shadow:0 0 18px rgba(63,217,255,.55);}
@@ -52,6 +60,8 @@
   .fs{position:absolute;transform:translate(-50%,-50%);font-size:13px;font-weight:700;color:#bff0ff;
     text-shadow:0 0 8px rgba(63,217,255,.9);animation:fs .7s ease-out forwards;white-space:nowrap;}
   @keyframes fs{to{transform:translate(-50%,-180%);opacity:0;}}
+  #board.shaking{animation:shake .3s;}
+  @keyframes shake{0%,100%{transform:translate(0,0)}20%{transform:translate(-4px,2px)}40%{transform:translate(4px,-3px)}60%{transform:translate(-3px,-2px)}80%{transform:translate(3px,2px)}}
   #hint{text-align:center;color:var(--dim);font-size:12px;margin-top:12px;letter-spacing:.05em;line-height:1.6;}
   #overlay{position:fixed;inset:0;background:rgba(4,8,18,.8);backdrop-filter:blur(3px);display:none;
     align-items:center;justify-content:center;z-index:20;}
@@ -73,6 +83,7 @@
       <div class="stat"><b id="level">1</b><span>LEVEL</span></div>
       <div class="stat"><b id="moves">8</b><span>MOVES</span></div>
       <div class="stat"><b id="chain">0</b><span>BEST CHAIN</span></div>
+      <div class="stat"><b id="best">0</b><span>BEST</span></div>
       <button id="retryBtn" title="Restart this level">&#8634; RETRY</button>
     </div>
     <div id="targetLine"><span id="targetTxt">TARGET 250</span><div id="barWrap"><div id="bar"></div></div><span id="lvlScore">0</span></div>
@@ -199,6 +210,7 @@ function updateHUD(){
   $('level').textContent=level;
   $('moves').textContent=moves;
   $('chain').textContent=bestChain;
+  $('best').textContent=bestScore;
   $('targetTxt').textContent='TARGET '+target;
   $('lvlScore').textContent=lvlScore;
   $('bar').style.width=Math.min(100,Math.round(100*lvlScore/target))+'%';
@@ -224,11 +236,34 @@ function spawnScore(cell,wave){
   fx.appendChild(el);
 }
 var actx=null;
+function sfxOn(){ try{ return localStorage.getItem('aaa_sfx')!=='0'; }catch(e){ return true; } }
 function ensureAudio(){
   if(!actx){ try{ actx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} }
   if(actx && actx.state==='suspended') actx.resume();
 }
+function tone(f,d,type,vol,slide,delay){
+  if(!sfxOn()) return;
+  ensureAudio();
+  if(!actx) return;
+  try{
+    var t=actx.currentTime+(delay||0);
+    var o=actx.createOscillator(), g=actx.createGain();
+    o.type=type||'sine';
+    o.frequency.setValueAtTime(Math.max(30,f),t);
+    if(slide) o.frequency.exponentialRampToValueAtTime(Math.max(30,slide),t+d);
+    g.gain.setValueAtTime(0.0001,t);
+    g.gain.linearRampToValueAtTime(vol||0.05,t+0.012);
+    g.gain.exponentialRampToValueAtTime(0.0006,t+d);
+    o.connect(g); g.connect(actx.destination);
+    o.start(t); o.stop(t+d+0.05);
+  }catch(e){}
+}
+function fanfare(win){
+  var seq=win?[523,659,784,1046]:[392,330,262,196];
+  for(var i=0;i<seq.length;i++) tone(seq[i],.26,win?'triangle':'sawtooth',.05,null,i*.11);
+}
 function blip(wave,count){
+  if(!sfxOn()) return;
   if(!actx) return;
   try{
     var t=actx.currentTime;
@@ -248,6 +283,7 @@ function onCellClick(e){
   if(cell.blocked) return;
   ensureAudio();
   cell.n++; moves--;
+  tone(300+cell.n*40,.06,'triangle',.05,380+cell.n*50);
   render(); updateHUD();
   resolve().then(afterMove);
 }
@@ -277,6 +313,7 @@ function resolve(){
       score+=10*wave; lvlScore+=10*wave;
     }
     blip(wave,boom.length);
+    if(wave>=3){ boardEl.classList.remove('shaking'); void boardEl.offsetWidth; boardEl.classList.add('shaking'); }
     render(); updateHUD();
     return sleep(190).then(function(){
       exploding={}; render();
@@ -287,6 +324,11 @@ function resolve(){
 }
 function afterMove(chain){
   if(chain>bestChain) bestChain=chain;
+  if(window.AAA&&chain>=5){
+    var r=boardEl.getBoundingClientRect();
+    AAA.popup(r.left+r.width/2,r.top+r.height*0.3,'CHAIN x'+chain+'!','#f472b6');
+    if(chain>=8)AAA.flash(0.16);
+  }
   updateHUD();
   if(lvlScore>=target){ levelClear(); return; }
   if(moves<=0) gameOver();
@@ -310,10 +352,12 @@ function levelClear(){
     try{ localStorage.setItem('cr_best',bestScore); }catch(e){}
   }
   updateHUD();
+  fanfare(true);
+  if(window.AAA)AAA.flash(0.22);
   showCard('LEVEL '+level+' CLEARED',
     'Moves bonus <span class="big">+'+bonus+'</span><br>Total score '+score+' &middot; Best '+bestScore,
     [
-      {t:'NEXT LEVEL &#9654;', f:function(){ level++; newLevel(level); }},
+      {t:'NEXT LEVEL', f:function(){ level++; newLevel(level); }},
       {t:'RESTART GAME', f:function(){ level=1; score=0; newLevel(1); }}
     ]);
 }
@@ -323,6 +367,7 @@ function gameOver(){
     bestScore=score;
     try{ localStorage.setItem('cr_best',bestScore); }catch(e){}
   }
+  fanfare(false);
   showCard('OUT OF MOVES',
     'You needed '+(target-lvlScore)+' more points.<br>Score '+score+' &middot; Best '+bestScore+' &middot; Best chain '+bestChain,
     [

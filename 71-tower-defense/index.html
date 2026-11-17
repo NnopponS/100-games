@@ -166,9 +166,9 @@
 <div class="app">
   <div class="hud">
     <div class="stat"><i class="ico gold"></i><b id="gold">0</b><small>gold</small></div>
-    <div class="stat"><i class="ico heart">&#9829;</i><b id="lives">20</b><small>lives</small></div>
+    <div class="stat"><i class="ico heart"><svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path d="M8 14.5C4 11.5 1.2 8.7 1.2 5.8 1.2 3.7 2.9 2 5 2c1.2 0 2.3.6 3 1.6C8.7 2.6 9.8 2 11 2c2.1 0 3.8 1.7 3.8 3.8 0 2.9-2.8 5.7-6.8 8.7z" fill="currentColor"/></svg></i><b id="lives">20</b><small>lives</small></div>
     <div class="stat"><i class="ico wave"></i><b id="wave">0</b><small>/ 20</small></div>
-    <div class="stat"><i class="ico star">&#9733;</i><b id="score">0</b><small>score</small></div>
+    <div class="stat"><i class="ico star"><svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path d="M8 1.4l2 4.1 4.5.6-3.3 3.2.8 4.5L8 11.6l-4 2.2.8-4.5L1.5 6.1l4.5-.6z" fill="currentColor"/></svg></i><b id="score">0</b><small>score</small></div>
     <div class="status" id="status">Pick a tower, then click a grass tile beside the path.</div>
   </div>
 
@@ -532,6 +532,7 @@
 
   function sfx(name) {
     if (muted) return;
+    try { if (localStorage.getItem('aaa_sfx') === '0') return; } catch (e) {}
     const a = audioCtx();
     if (!a) return;
     if (a.state === 'suspended') a.resume();
@@ -553,6 +554,29 @@
       o.start();
       o.stop(a.currentTime + dur + 0.03);
     } catch (e) { /* ignore */ }
+  }
+
+  // short multi-note stinger for win/lose
+  function sting(winSound) {
+    if (muted) return;
+    try { if (localStorage.getItem('aaa_sfx') === '0') return; } catch (e) {}
+    const a = audioCtx();
+    if (!a) return;
+    if (a.state === 'suspended') a.resume();
+    const seq = winSound ? [523, 659, 784, 1046] : [330, 262, 208, 156];
+    seq.forEach(function (f, i) {
+      try {
+        const t = a.currentTime + i * 0.12;
+        const o = a.createOscillator(), g = a.createGain();
+        o.type = winSound ? 'triangle' : 'sawtooth';
+        o.frequency.setValueAtTime(f, t);
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.linearRampToValueAtTime(0.05, t + 0.015);
+        g.gain.exponentialRampToValueAtTime(0.0006, t + 0.3);
+        o.connect(g); g.connect(a.destination);
+        o.start(t); o.stop(t + 0.34);
+      } catch (e) {}
+    });
   }
 
   /* ============================ tower stats ============================ */
@@ -864,10 +888,22 @@
     checkWaveEnd();
   }
 
+  var best = { score: 0, wave: 0 };
+  try { best = JSON.parse(localStorage.getItem('td_best') || 'null') || best; } catch (e) {}
+  function recordBest() {
+    var improved = false;
+    if (G.score > best.score) { best.score = G.score; improved = true; }
+    if (G.wave > best.wave) { best.wave = G.wave; improved = true; }
+    if (improved) { try { localStorage.setItem('td_best', JSON.stringify(best)); } catch (e) {} }
+    return improved;
+  }
+
   function gameOver() {
     if (G.mode === 'over') return;
     G.mode = 'over';
     sfx('leak');
+    sting(false);
+    if (window.AAA) AAA.flash(0.3);
     showEnd(false);
   }
 
@@ -875,6 +911,8 @@
     G.mode = 'win';
     banner('VICTORY', '#5fe0a0', 3);
     sfx('waveClear');
+    sting(true);
+    if (window.AAA) { AAA.flash(0.26); AAA.shockwave(innerWidth / 2, innerHeight / 2, '#5fe0a0', 200); }
     showEnd(true);
   }
 
@@ -1427,6 +1465,7 @@
           '<div><b>3</b><span>Click a built tower to upgrade or sell</span></div>' +
         '</div>' +
         '<button class="big" id="startBtn">Start Game</button>' +
+        (best.score ? '<div class="tiny" style="color:#ffd479">Best: ' + best.score + ' pts &middot; wave ' + best.wave + '</div>' : '') +
         '<div class="tiny">Tip: call the next wave early for bonus gold.</div>' +
       '</div>';
     $('startBtn').addEventListener('click', beginGame);
@@ -1440,6 +1479,7 @@
   }
 
   function showEnd(isWin) {
+    var improved = recordBest();
     el.overlay.hidden = false;
     el.overlay.innerHTML =
       '<div class="panel">' +
@@ -1453,6 +1493,8 @@
           '<div><b>' + G.wave + '</b><span>Wave</span></div>' +
           '<div><b>' + G.lives + '</b><span>Lives left</span></div>' +
         '</div>' +
+        '<div class="tiny" style="margin-bottom:14px;color:' + (improved ? '#ffd479' : 'inherit') + '">' +
+          (improved ? 'New best! ' : 'Best: ') + best.score + ' pts &middot; wave ' + best.wave + '</div>' +
         '<button class="big" id="againBtn">Play Again</button>' +
       '</div>';
     $('againBtn').addEventListener('click', resetGame);

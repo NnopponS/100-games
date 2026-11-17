@@ -36,6 +36,57 @@
   var canvas = document.getElementById('game');
   var ctx = canvas.getContext('2d');
 
+  /* ---------- procedural SFX (respects the overlay's speaker preference) ---------- */
+  var Sfx = (function () {
+    var actx = null;
+    function ac() {
+      if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
+      if (actx && actx.state === 'suspended') { try { actx.resume(); } catch (e) {} }
+      return actx;
+    }
+    function on() { try { return localStorage.getItem('aaa_sfx') !== '0'; } catch (e) { return true; } }
+    function tone(f, d, type, vol, slide, delay) {
+      if (!on()) return;
+      var c = ac(); if (!c) return;
+      try {
+        var t = c.currentTime + (delay || 0);
+        var o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sine';
+        o.frequency.setValueAtTime(Math.max(30, f), t);
+        if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, slide), t + d);
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.linearRampToValueAtTime(vol || 0.05, t + 0.012);
+        g.gain.exponentialRampToValueAtTime(0.0006, t + d);
+        o.connect(g); g.connect(c.destination);
+        o.start(t); o.stop(t + d + 0.05);
+      } catch (e) {}
+    }
+    function noise(d, vol, freq, delay) {
+      if (!on()) return;
+      var c = ac(); if (!c) return;
+      try {
+        var t = c.currentTime + (delay || 0);
+        var n = Math.max(64, (c.sampleRate * d) | 0);
+        var buf = c.createBuffer(1, n, c.sampleRate);
+        var ch = buf.getChannelData(0);
+        for (var i = 0; i < n; i++) ch[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 1.7);
+        var src = c.createBufferSource(); src.buffer = buf;
+        var f = c.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = freq || 900;
+        var g = c.createGain(); g.gain.value = vol || 0.07;
+        src.connect(f); f.connect(g); g.connect(c.destination);
+        src.start(t);
+      } catch (e) {}
+    }
+    return {
+      unlock: ac,
+      flip: function (dir) { tone(dir > 0 ? 420 : 620, .12, 'sine', .05, dir > 0 ? 720 : 300); },
+      land: function () { noise(.07, .05, 500); tone(150, .08, 'triangle', .05, 90); },
+      mile: function () { tone(880, .08, 'sine', .035, 1320); },
+      start: function () { tone(392, .1, 'triangle', .05, 523); tone(659, .14, 'triangle', .05, null, .09); },
+      crash: function () { noise(.35, .14, 700); [330, 262, 196].forEach(function (f, i) { tone(f, .2, 'sawtooth', .05, null, .05 + i * .1); }); }
+    };
+  })();
+
   // ---------- Sizing ----------
   var W = 960, H = 540;
   function resize() {
@@ -63,7 +114,7 @@
   var state = 'title';              // 'title' | 'run' | 'dead'
   var player, obstacles, particles, stars;
   var speed, distance, best = 0, time, spawnTimer, shake;
-  var flipFlash = 0;
+  var flipFlash = 0, lastMile = 0;
 
   try { best = parseInt(localStorage.getItem('gfr_best'), 10) || 0; } catch (e) { best = 0; }
 
@@ -85,6 +136,8 @@
     spawnTimer = 1.1;
     shake = 0;
     flipFlash = 0;
+    lastMile = 0;
+    newBestFlag = false;
     initStars();
   }
 
@@ -150,15 +203,16 @@
 
   // ---------- Input ----------
   function flip() {
-    if (state === 'title') { state = 'run'; reset(); return; }
+    if (state === 'title') { state = 'run'; reset(); Sfx.start(); return; }
     if (state === 'dead') {
       // small debounce so accidental keypress after dying doesn't skip the screen
-      if (time - deathTime > 0.5) { state = 'run'; reset(); }
+      if (time - deathTime > 0.5) { state = 'run'; reset(); Sfx.start(); }
       return;
     }
     player.gdir *= -1;
     player.grounded = false;
     flipFlash = 0.18;
+    Sfx.flip(player.gdir);
     burst(player.x + PLAYER_SIZE / 2, player.y + PLAYER_SIZE / 2, -player.gdir, '#7fd4ff', 8);
   }
 
@@ -191,6 +245,8 @@
     speed = Math.min(MAX_SPEED, speed + SPEED_RAMP * dt);
     distance += speed * dt / 40;   // "meters"
     shake = Math.max(0, shake - dt * 6);
+    var mile = Math.floor(distance / 100);
+    if (mile > lastMile) { lastMile = mile; Sfx.mile(); }
     flipFlash = Math.max(0, flipFlash - dt);
 
     // stars
@@ -208,10 +264,10 @@
     var ceilBot = CEIL_Y;
     player.grounded = false;
     if (player.gdir === 1 && player.y >= floorTop) {
-      if (player.vy > 500) burst(player.x + PLAYER_SIZE / 2, FLOOR_Y, -1, '#8ef0c8', 6);
+      if (player.vy > 500) { burst(player.x + PLAYER_SIZE / 2, FLOOR_Y, -1, '#8ef0c8', 6); Sfx.land(); }
       player.y = floorTop; player.vy = 0; player.grounded = true;
     } else if (player.gdir === -1 && player.y <= ceilBot) {
-      if (player.vy < -500) burst(player.x + PLAYER_SIZE / 2, CEIL_Y, 1, '#8ef0c8', 6);
+      if (player.vy < -500) { burst(player.x + PLAYER_SIZE / 2, CEIL_Y, 1, '#8ef0c8', 6); Sfx.land(); }
       player.y = ceilBot; player.vy = 0; player.grounded = true;
     }
     // landed on the wrong surface (was falling toward it after flip)
@@ -274,13 +330,22 @@
     state = 'dead';
     deathTime = time;
     shake = 1;
+    Sfx.crash();
     burst(player.x + PLAYER_SIZE / 2, player.y + PLAYER_SIZE / 2, 0, '#ff5f7a', 26);
     var d = Math.floor(distance);
     if (d > best) {
       best = d;
+      newBestFlag = true;
       try { localStorage.setItem('gfr_best', String(best)); } catch (e) {}
     }
+    if (window.AAA) {
+      var r = canvas.getBoundingClientRect();
+      var sx = r.width / W, sy = r.height / H;
+      AAA.flash(0.28);
+      AAA.burst(r.left + (player.x + PLAYER_SIZE / 2) * sx, r.top + (player.y + PLAYER_SIZE / 2) * sy, '#ff5f7a', 18);
+    }
   }
+  var newBestFlag = false;
 
   // ---------- Drawing ----------
   function drawBackground() {
@@ -290,6 +355,23 @@
     g.addColorStop(1, '#12182e');
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, W, H);
+
+    // drifting nebula glows (parallax with the run)
+    var drift = (state === 'run' ? distance * 2.2 : performance.now() * 0.02) % (W + 600);
+    var nebs = [
+      { x: W * 0.75 - drift * 0.5, y: H * 0.28, r: 240, c: 'rgba(124,58,237,0.10)' },
+      { x: W * 1.3 - drift * 0.35, y: H * 0.7, r: 200, c: 'rgba(56,189,248,0.09)' },
+      { x: W * 1.8 - drift * 0.6, y: H * 0.45, r: 170, c: 'rgba(244,114,182,0.07)' }
+    ];
+    for (var n = 0; n < nebs.length; n++) {
+      var nb = nebs[n];
+      var nx = ((nb.x % (W + 600)) + W + 600) % (W + 600) - 300;
+      var rg = ctx.createRadialGradient(nx, nb.y, 0, nx, nb.y, nb.r);
+      rg.addColorStop(0, nb.c);
+      rg.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = rg;
+      ctx.fillRect(0, 0, W, H);
+    }
 
     ctx.fillStyle = '#ffffff';
     for (var i = 0; i < stars.length; i++) {
@@ -406,7 +488,7 @@
     ctx.textAlign = 'right';
     ctx.fillStyle = 'rgba(255,255,255,0.35)';
     ctx.font = '13px "Segoe UI", sans-serif';
-    ctx.fillText('SPACE / CLICK — flip gravity', W - 18, 30);
+    ctx.fillText('TAP / SPACE — flip gravity', W - 18, 30);
     ctx.textAlign = 'left';
   }
 
@@ -421,12 +503,12 @@
 
     ctx.fillStyle = '#aab8d8';
     ctx.font = '18px "Segoe UI", sans-serif';
-    ctx.fillText('Press SPACE or click to flip between floor and ceiling.', W / 2, H / 2 + 26);
+    ctx.fillText('Tap or press SPACE to flip between floor and ceiling.', W / 2, H / 2 + 26);
     ctx.fillText('Dodge the spikes and blocks. Don\'t stop running.', W / 2, H / 2 + 52);
 
     ctx.fillStyle = 'rgba(255,255,255,' + (0.55 + 0.45 * Math.sin(performance.now() / 300)) + ')';
     ctx.font = 'bold 20px "Segoe UI", sans-serif';
-    ctx.fillText('— PRESS SPACE TO START —', W / 2, H / 2 + 100);
+    ctx.fillText('— TAP OR PRESS SPACE TO START —', W / 2, H / 2 + 100);
     ctx.textAlign = 'left';
   }
 
@@ -443,10 +525,10 @@
     ctx.font = 'bold 28px "Segoe UI", sans-serif';
     ctx.fillText(Math.floor(distance) + ' m', W / 2, H / 2 + 4);
 
-    if (Math.floor(distance) >= best && distance > 0) {
+    if (newBestFlag) {
       ctx.fillStyle = '#ffd75f';
       ctx.font = 'bold 18px "Segoe UI", sans-serif';
-      ctx.fillText('★ NEW BEST ★', W / 2, H / 2 + 34);
+      ctx.fillText('NEW BEST!', W / 2, H / 2 + 34);
     } else {
       ctx.fillStyle = '#8a9bbd';
       ctx.font = '17px "Segoe UI", sans-serif';
@@ -455,7 +537,7 @@
 
     ctx.fillStyle = 'rgba(255,255,255,' + (0.55 + 0.45 * Math.sin(performance.now() / 300)) + ')';
     ctx.font = 'bold 18px "Segoe UI", sans-serif';
-    ctx.fillText('SPACE / R — run again', W / 2, H / 2 + 78);
+    ctx.fillText('TAP / R — run again', W / 2, H / 2 + 78);
     ctx.textAlign = 'left';
   }
 

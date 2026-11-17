@@ -17,7 +17,20 @@
     background: radial-gradient(circle at 50% 30%, #3a4b5c 0%, #1d2731 70%);
     font-family: "Segoe UI", Arial, sans-serif;
     user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+    position: relative;
+    overflow-x: hidden;
   }
+  body::before {
+    content: ""; position: fixed; inset: -20%; z-index: -2;
+    background:
+      radial-gradient(40% 50% at 20% 25%, rgba(226,59,59,.12), transparent 70%),
+      radial-gradient(45% 55% at 80% 25%, rgba(255,200,80,.08), transparent 70%),
+      radial-gradient(50% 55% at 50% 85%, rgba(120,160,220,.10), transparent 70%);
+    animation: aurora 22s ease-in-out infinite alternate;
+  }
+  @keyframes aurora { from { transform: rotate(-2deg) scale(1); } to { transform: rotate(2deg) scale(1.07); } }
   .toy {
     width: var(--toy-w);
     background: linear-gradient(160deg, #e23b3b 0%, #c21f1f 55%, #a11414 100%);
@@ -76,6 +89,24 @@
     height: 100%;
     display: block;
   }
+  #ui { touch-action: none; cursor: crosshair; }
+  .clear-btn {
+    display: inline-block;
+    margin-top: 8px;
+    padding: 7px 18px;
+    font: inherit;
+    font-size: calc(var(--toy-w) * 0.024);
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #fff;
+    background: rgba(0,0,0,.28);
+    border: 1px solid rgba(255,255,255,.35);
+    border-radius: 10px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: background .15s;
+  }
+  .clear-btn:active { background: rgba(0,0,0,.45); }
   .knobs {
     display: flex;
     justify-content: space-between;
@@ -134,11 +165,63 @@
     <div class="knob" id="knobL"></div>
     <div class="knob" id="knobR"></div>
   </div>
-  <div class="hint"><kbd>&larr;&uarr;&darr;&rarr;</kbd> draw &nbsp;&middot;&nbsp; <kbd>Space</kbd> or shake to clear</div>
+  <div class="hint"><kbd>&larr;&uarr;&darr;&rarr;</kbd> or drag on screen to draw &nbsp;&middot;&nbsp; <kbd>Space</kbd> or shake to clear<br>
+    <button class="clear-btn" id="clearBtn">Shake to Clear</button>
+  </div>
 </div>
 
 <script>
 (function () {
+  /* ---------- procedural SFX (respects the overlay's speaker preference) ---------- */
+  var Sfx = (function () {
+    var actx = null;
+    function ac() {
+      if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
+      if (actx && actx.state === 'suspended') { try { actx.resume(); } catch (e) {} }
+      return actx;
+    }
+    function on() { try { return localStorage.getItem('aaa_sfx') !== '0'; } catch (e) { return true; } }
+    function tone(f, d, type, vol, slide, delay) {
+      if (!on()) return;
+      var c = ac(); if (!c) return;
+      try {
+        var t = c.currentTime + (delay || 0);
+        var o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sine';
+        o.frequency.setValueAtTime(Math.max(30, f), t);
+        if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, slide), t + d);
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.linearRampToValueAtTime(vol || 0.05, t + 0.012);
+        g.gain.exponentialRampToValueAtTime(0.0006, t + d);
+        o.connect(g); g.connect(c.destination);
+        o.start(t); o.stop(t + d + 0.05);
+      } catch (e) {}
+    }
+    function noise(d, vol, freq) {
+      if (!on()) return;
+      var c = ac(); if (!c) return;
+      try {
+        var n = Math.max(64, (c.sampleRate * d) | 0);
+        var buf = c.createBuffer(1, n, c.sampleRate);
+        var ch = buf.getChannelData(0);
+        for (var i = 0; i < n; i++) ch[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 1.6);
+        var src = c.createBufferSource(); src.buffer = buf;
+        var f = c.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = freq || 1200;
+        var g = c.createGain(); g.gain.value = vol || 0.06;
+        src.connect(f); f.connect(g); g.connect(c.destination);
+        src.start();
+      } catch (e) {}
+    }
+    return {
+      unlock: ac,
+      whir: function (speedPx) {
+        // stylus scratch — tiny filtered blip pitched by speed, caller throttles
+        tone(1400 + speedPx * 1.2, .03, 'square', .012);
+      },
+      clear: function () { noise(.4, .09, 900); tone(300, .3, 'sine', .04, 140); }
+    };
+  })();
+
   var wrap = document.getElementById('screenWrap');
   var art = document.getElementById('art');
   var ui = document.getElementById('ui');
@@ -224,6 +307,8 @@
   function clearScreen() {
     if (clearing) return;
     clearing = true;
+    Sfx.clear();
+    if (window.AAA) AAA.flash(0.15);
     wrap.classList.remove('shaking');
     void wrap.offsetWidth; // restart animation
     wrap.classList.add('shaking');
@@ -258,18 +343,54 @@
     lastAccel = { x: a.x, y: a.y, z: a.z };
   });
 
+  // touch / mouse drag: stylus chases the pointer
+  var pointerActive = false, pointerX = 0, pointerY = 0;
+  function toLogical(e) {
+    var r = ui.getBoundingClientRect();
+    return {
+      x: (e.clientX - r.left) / r.width * W,
+      y: (e.clientY - r.top) / r.height * H
+    };
+  }
+  ui.addEventListener('pointerdown', function (e) {
+    e.preventDefault();
+    Sfx.unlock();
+    ui.setPointerCapture(e.pointerId);
+    var p = toLogical(e);
+    pointerActive = true; pointerX = p.x; pointerY = p.y;
+  });
+  ui.addEventListener('pointermove', function (e) {
+    if (!pointerActive) return;
+    var p = toLogical(e);
+    pointerX = p.x; pointerY = p.y;
+  });
+  ['pointerup', 'pointercancel'].forEach(function (ev) {
+    ui.addEventListener(ev, function () { pointerActive = false; });
+  });
+  document.getElementById('clearBtn').addEventListener('click', clearScreen);
+
+  var whirAcc = 0;
   var last = performance.now();
   function frame(now) {
     var dt = Math.min(0.05, (now - last) / 1000);
     last = now;
 
     if (!clearing) {
-      var d = held();
-      var dx = d[0], dy = d[1];
+      var dx = 0, dy = 0;
+      if (pointerActive) {
+        var tx = pointerX - x, ty = pointerY - y;
+        var td = Math.sqrt(tx * tx + ty * ty);
+        if (td > 2) { dx = tx / td; dy = ty / td; }
+      } else {
+        var d = held();
+        dx = d[0]; dy = d[1];
+      }
       if (dx || dy) {
         var len = Math.sqrt(dx * dx + dy * dy);
-        var nx = x + (dx / len) * SPEED * dt;
-        var ny = y + (dy / len) * SPEED * dt;
+        var stepLen = SPEED * dt;
+        if (pointerActive) stepLen = Math.min(stepLen, Math.hypot(pointerX - x, pointerY - y));
+        var nx = x + (dx / len) * stepLen;
+        var ny = y + (dy / len) * stepLen;
         nx = Math.max(2, Math.min(W - 2, nx));
         ny = Math.max(2, Math.min(H - 2, ny));
         if (nx !== x || ny !== y) {
@@ -281,6 +402,9 @@
           rotR += (ny - y) * 0.06;
           knobL.style.transform = 'rotate(' + rotL + 'rad)';
           knobR.style.transform = 'rotate(' + rotR + 'rad)';
+          var moved = Math.hypot(nx - x, ny - y);
+          whirAcc += moved;
+          if (whirAcc > 7) { whirAcc = 0; Sfx.whir(moved / dt); }
           x = nx; y = ny;
         }
       }

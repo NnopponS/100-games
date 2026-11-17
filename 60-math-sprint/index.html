@@ -9,7 +9,10 @@
   html, body { height: 100%; }
   body {
     font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-    background: #2b2d42;
+    background:
+      radial-gradient(1000px 640px at 50% -14%, rgba(46,196,182,.14), transparent 62%),
+      radial-gradient(820px 560px at 90% 112%, rgba(230,57,70,.10), transparent 60%),
+      radial-gradient(circle at 50% 42%, #34365a 0%, #23243a 75%);
     color: #fff;
     overflow: hidden;
     user-select: none;
@@ -55,8 +58,9 @@
     text-transform: uppercase;
     opacity: 0.55;
   }
-  #streak.hot { color: #ffb703; }
-  #level { color: #8ecae6; }
+  #streak.hot { color: #ffb703; text-shadow: 0 0 14px rgba(255,183,3,.6); }
+  #streak .flame { width: .8em; height: .8em; vertical-align: -0.1em; }
+  #level { color: #8ecae6; text-shadow: 0 0 12px rgba(142,202,230,.5); }
 
   /* floating +N popup */
   .float-pts {
@@ -114,17 +118,20 @@
     font-weight: 800;
     font-variant-numeric: tabular-nums;
     color: #fff;
-    background: rgba(255,255,255,0.09);
+    background: linear-gradient(160deg, rgba(255,255,255,0.13), rgba(255,255,255,0.06));
     border: 2px solid rgba(255,255,255,0.18);
     border-radius: 14px;
     padding: 18px 8px;
     cursor: pointer;
-    transition: transform 0.06s, background 0.06s;
+    transition: transform 0.06s, background 0.06s, box-shadow 0.12s;
+    box-shadow: 0 6px 18px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.08);
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
-  .ans:hover { background: rgba(255,255,255,0.16); }
+  .ans:hover { background: rgba(255,255,255,0.16); box-shadow: 0 8px 22px rgba(0,0,0,.3), 0 0 18px rgba(46,196,182,.12); }
   .ans:active { transform: scale(0.95); }
-  .ans.good { background: #2ec4b6; border-color: #2ec4b6; }
-  .ans.bad  { background: #e63946; border-color: #e63946; }
+  .ans.good { background: linear-gradient(160deg,#35d8c8,#1fae9f); border-color: #2ec4b6; box-shadow: 0 0 24px rgba(46,196,182,.5); }
+  .ans.bad  { background: linear-gradient(160deg,#f0566a,#c92a3d); border-color: #e63946; box-shadow: 0 0 24px rgba(230,57,70,.5); }
   .ans .key {
     display: block;
     font-size: 11px;
@@ -150,10 +157,11 @@
   #overlay.hidden { display: none; }
   #ov-title {
     font-size: clamp(38px, 8vw, 72px);
-    font-weight: 800;
+    font-weight: 900;
     letter-spacing: 1px;
+    filter: drop-shadow(0 0 26px rgba(46,196,182,.3));
   }
-  #ov-title .accent { color: #2ec4b6; }
+  #ov-title .accent { color: #2ec4b6; text-shadow: 0 0 22px rgba(46,196,182,.55); }
   #ov-body {
     font-size: clamp(15px, 2.8vw, 20px);
     opacity: 0.85;
@@ -177,16 +185,19 @@
   #ov-btn {
     font-family: inherit;
     font-size: 19px;
-    font-weight: 700;
+    font-weight: 800;
+    letter-spacing: 1px;
     padding: 15px 42px;
     border: none;
     border-radius: 12px;
-    background: #2ec4b6;
-    color: #14202e;
+    background: linear-gradient(160deg,#35d8c8,#189a8d);
+    color: #0a1a18;
     cursor: pointer;
-    transition: transform 0.08s;
+    transition: transform 0.08s, filter 0.12s;
+    box-shadow: 0 8px 26px rgba(46,196,182,.35), inset 0 1px 0 rgba(255,255,255,.35);
+    touch-action: manipulation;
   }
-  #ov-btn:hover { transform: scale(1.05); }
+  #ov-btn:hover { transform: scale(1.05); filter: brightness(1.08); }
   .hint { font-size: 13px; opacity: 0.5; }
 
   /* level-up toast */
@@ -348,6 +359,7 @@
       level = lv;
       levelEl.textContent = lv + 1;
       showToast('Level ' + (lv + 1) + ' — faster!');
+      if (window.AAA) AAA.sfx.level();
     }
     current = makeQuestion(lv);
     eqEl.innerHTML = current.text + ' = <span class="q">?</span>';
@@ -386,9 +398,17 @@
     setTimeout(function () { stageEl.classList.remove('flash-good', 'flash-bad'); }, 200);
   }
 
+  var FLAME_SVG = '<svg class="flame" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1c1 3-3 4.5-3 8a3.5 3.5 0 0 0 7 0c0-2-1.2-3-1.7-4.2C9.4 5.6 9 3.6 8 1z" fill="#fb923c"/><path d="M8.6 8c.9 1 .4 2.6-.6 3.2 1.9-.3 2.7-1.9 2.1-3.4-.3 1-1 1.2-1.5.2z" fill="#fde047"/></svg>';
+
   function updateHud() {
     scoreEl.textContent = score;
-    streakEl.textContent = streak >= 5 ? '🔥 ' + streak : streak;
+    if (streak >= 5) {
+      if (streakEl.dataset.flame !== '1') { streakEl.dataset.flame = '1'; streakEl.innerHTML = FLAME_SVG + ' <span id="streakN"></span>'; }
+      document.getElementById('streakN').textContent = streak;
+    } else {
+      if (streakEl.dataset.flame === '1') { streakEl.dataset.flame = ''; streakEl.textContent = ''; }
+      streakEl.textContent = streak;
+    }
     streakEl.classList.toggle('hot', streak >= 5);
   }
 
@@ -409,28 +429,37 @@
       correct++;
       flash(true);
       floatPts('+' + pts, false);
+      if (window.AAA) { AAA.sfx.coin(); if (streak > 0 && streak % 5 === 0) { AAA.sfx.power(); AAA.flash(0.1); } }
     } else {
       btn.classList.add('bad');
       streak = 0;
       endTime = Math.max(Date.now() + 500, endTime - PENALTY);
       flash(false);
       floatPts('-2s', true);
+      if (window.AAA) AAA.sfx.error();
     }
     updateHud();
     setTimeout(nextQuestion, good ? 160 : 420);
   }
 
+  var lastTickSec = -1;
   function tick() {
     var left = endTime - Date.now();
     if (left <= 0) { finish(); return; }
     var pct = left / DURATION * 100;
     fillEl.style.width = pct + '%';
     fillEl.classList.toggle('low', left < 10000);
+    var sec = Math.ceil(left / 1000);
+    if (left < 10500 && sec !== lastTickSec) {
+      lastTickSec = sec;
+      if (window.AAA && sec <= 10) AAA.sfx.tick();
+    }
     timerId = setTimeout(tick, 50);
   }
 
   function start() {
     score = 0; streak = 0; bestStreak = 0; correct = 0; answered = 0; level = 0;
+    lastTickSec = -1;
     levelEl.textContent = '1';
     endTime = Date.now() + DURATION;
     overlay.classList.add('hidden');
@@ -443,7 +472,9 @@
 
   function finish() {
     clearTimeout(timerId);
-    if (score > bestScore) { bestScore = score; saveBest(score); }
+    var newBest = score > bestScore;
+    if (newBest) { bestScore = score; saveBest(score); }
+    if (window.AAA) { if (newBest) { AAA.sfx.win(); AAA.flash(0.25); } else AAA.sfx.over(); }
     var acc = answered ? Math.round(correct / answered * 100) : 0;
     ovTitle.innerHTML = 'Time<span class="accent">!</span>';
     ovBody.innerHTML =

@@ -2,114 +2,149 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Typing Racer</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { height: 100%; }
   body {
     font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+    background:
+      radial-gradient(ellipse 70% 45% at 50% -8%, rgba(56,189,248,0.20) 0%, transparent 60%),
+      radial-gradient(ellipse 45% 35% at 88% 106%, rgba(74,222,128,0.10) 0%, transparent 55%),
+      linear-gradient(150deg, #0a1120 0%, #101c33 50%, #080e1c 100%);
     color: #e2e8f0;
     display: flex;
     align-items: center;
     justify-content: center;
     min-height: 100vh;
-    padding: 20px;
+    padding: 16px;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    overflow-x: hidden;
   }
   .card {
     width: 100%;
-    max-width: 760px;
-    background: rgba(30, 41, 59, 0.85);
-    border: 1px solid rgba(148, 163, 184, 0.15);
-    border-radius: 16px;
-    padding: 32px;
-    box-shadow: 0 25px 60px rgba(0,0,0,0.5);
+    max-width: 780px;
+    background: linear-gradient(170deg, rgba(24,34,56,0.92), rgba(13,20,36,0.94));
+    border: 1px solid rgba(148,180,255,0.16);
+    border-radius: 20px;
+    padding: 30px 30px 26px;
+    box-shadow: 0 30px 70px rgba(0,0,0,0.6), 0 0 50px rgba(56,189,248,0.08);
     position: relative;
   }
   h1 {
     text-align: center;
-    font-size: 1.8rem;
-    letter-spacing: 1px;
-    margin-bottom: 6px;
+    font-size: clamp(1.4rem, 4.5vw, 1.9rem);
+    letter-spacing: 6px;
+    margin-bottom: 4px;
+    font-weight: 900;
+    text-transform: uppercase;
+    background: linear-gradient(180deg, #fff 15%, #7dd8ff 55%, #0ea5e9 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 0 20px rgba(56,189,248,0.5));
+    display: flex; align-items: center; justify-content: center; gap: 12px;
   }
-  h1 .flag { filter: drop-shadow(0 2px 4px rgba(0,0,0,.4)); }
-  .subtitle { text-align: center; color: #94a3b8; font-size: .9rem; margin-bottom: 22px; }
+  h1 svg { flex: 0 0 auto; filter: drop-shadow(0 0 8px rgba(56,189,248,0.6)); }
+  .subtitle { text-align: center; color: #7d8aa8; font-size: .75rem; letter-spacing: .3em; text-transform: uppercase; margin-bottom: 20px; }
 
   /* Race track */
   .track {
     position: relative;
-    height: 46px;
-    background: repeating-linear-gradient(90deg, #334155 0 24px, #3b4a61 24px 48px);
-    border-radius: 10px;
-    border: 1px solid rgba(148,163,184,.2);
+    height: 52px;
+    background:
+      repeating-linear-gradient(90deg, transparent 0 26px, rgba(255,255,255,0.13) 26px 40px, transparent 40px 66px),
+      linear-gradient(180deg, #232c42 0%, #1a2236 100%);
+    background-position: 0 26px, 0 0;
+    background-size: auto 4px, 100% 100%;
+    background-repeat: repeat-x, no-repeat;
+    border-radius: 12px;
+    border: 1px solid rgba(148,180,255,.18);
     margin-bottom: 18px;
     overflow: hidden;
+    box-shadow: inset 0 4px 14px rgba(0,0,0,0.5);
   }
   .track::after {
     content: '';
     position: absolute;
-    right: 10px; top: 0; bottom: 0; width: 6px;
-    background: repeating-conic-gradient(#fff 0 25%, #0f172a 0 50%) 0 0/6px 12px;
-    opacity: .8;
+    right: 12px; top: 0; bottom: 0; width: 8px;
+    background: repeating-conic-gradient(#e8edf8 0 25%, #0f172a 0 50%) 0 0/8px 16px;
+    opacity: .9;
   }
   #car {
     position: absolute;
     top: 50%;
     left: 0%;
-    transform: translate(0, -50%) scaleX(-1);
-    font-size: 30px;
-    transition: left .25s ease-out;
+    transform: translate(0, -50%);
+    width: 62px; height: 30px;
+    transition: left .22s ease-out;
     will-change: left;
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5)) drop-shadow(0 0 10px rgba(56,189,248,0.55));
   }
+  #car svg { display: block; width: 100%; height: 100%; }
+  #car::after {
+    content: '';
+    position: absolute;
+    left: -14px; top: 50%;
+    width: 10px; height: 14px;
+    transform: translateY(-50%);
+    background: radial-gradient(ellipse at right, rgba(251,146,60,0.9), transparent 70%);
+    border-radius: 50%;
+    animation: exhaust .12s infinite alternate;
+    opacity: 0;
+  }
+  #car.go::after { opacity: 1; }
+  @keyframes exhaust { from { transform: translateY(-50%) scaleY(0.8); } to { transform: translateY(-50%) scaleY(1.25); } }
 
   /* Stats bar */
-  .stats {
-    display: flex;
-    gap: 12px;
-    margin-bottom: 20px;
-  }
+  .stats { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
   .stat {
-    flex: 1;
-    background: rgba(15,23,42,.6);
-    border: 1px solid rgba(148,163,184,.12);
-    border-radius: 10px;
-    padding: 10px 14px;
+    flex: 1; min-width: 90px;
+    background: rgba(10,16,30,.6);
+    border: 1px solid rgba(148,180,255,.12);
+    border-radius: 12px;
+    padding: 9px 12px;
     text-align: center;
   }
-  .stat .label { font-size: .72rem; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; }
-  .stat .value { font-size: 1.5rem; font-weight: 700; font-variant-numeric: tabular-nums; }
-  #wpm { color: #38bdf8; }
-  #acc { color: #4ade80; }
-  #time { color: #facc15; }
+  .stat .label { font-size: .66rem; text-transform: uppercase; letter-spacing: 1.5px; color: #7d8aa8; }
+  .stat .value { font-size: 1.45rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+  #wpm { color: #38bdf8; text-shadow: 0 0 16px rgba(56,189,248,0.5); }
+  #acc { color: #4ade80; text-shadow: 0 0 16px rgba(74,222,128,0.4); }
+  #time { color: #facc15; text-shadow: 0 0 16px rgba(250,204,21,0.4); }
+  #streakV { color: #f472b6; text-shadow: 0 0 16px rgba(244,114,182,0.4); }
 
   /* Sentence display */
   .sentence-wrap {
     position: relative;
-    background: rgba(15,23,42,.7);
-    border: 1px solid rgba(148,163,184,.15);
-    border-radius: 12px;
+    background: rgba(8,13,26,.75);
+    border: 1px solid rgba(148,180,255,.16);
+    border-radius: 14px;
     padding: 24px 22px;
     cursor: text;
-    margin-bottom: 18px;
+    margin-bottom: 16px;
+    overflow: hidden;
   }
+  .sentence-wrap.errflash { animation: errshake .25s; border-color: rgba(248,113,113,0.6); }
+  @keyframes errshake { 25% { transform: translateX(-5px); } 60% { transform: translateX(4px); } 85% { transform: translateX(-2px); } }
   #sentence {
     font-family: 'Cascadia Code', 'Consolas', 'Courier New', monospace;
-    font-size: 1.45rem;
+    font-size: 1.4rem;
     line-height: 2;
     word-break: break-word;
-    user-select: none;
   }
   #sentence span { position: relative; border-radius: 4px; }
-  .ch-pending { color: #64748b; }
-  .ch-correct { color: #4ade80; }
-  .ch-wrong { color: #f87171; background: rgba(248,113,113,.18); border-bottom: 2px solid #f87171; }
+  .ch-pending { color: #5a6a8e; }
+  .ch-correct { color: #4ade80; text-shadow: 0 0 10px rgba(74,222,128,0.35); }
+  .ch-wrong { color: #ff8f8f; background: rgba(248,113,113,.2); border-bottom: 2px solid #f87171; }
   .ch-current::before {
     content: '';
     position: absolute;
-    left: -1px; top: 4px; bottom: 4px;
-    width: 2px;
+    left: -1px; top: 5px; bottom: 5px;
+    width: 3px; border-radius: 2px;
     background: #38bdf8;
+    box-shadow: 0 0 8px rgba(56,189,248,0.9);
     animation: blink .8s step-end infinite;
   }
   @keyframes blink { 50% { opacity: 0; } }
@@ -117,22 +152,29 @@
   #startHint {
     position: absolute; inset: 0;
     display: flex; align-items: center; justify-content: center;
-    background: rgba(15,23,42,.82);
-    border-radius: 12px;
-    font-size: 1rem; color: #38bdf8;
-    letter-spacing: .5px;
-    backdrop-filter: blur(2px);
+    background: rgba(8,13,26,.78);
+    border-radius: 14px;
+    font-size: .95rem; color: #7dd8ff;
+    letter-spacing: .12em; text-transform: uppercase; font-weight: 700;
+    backdrop-filter: blur(3px);
     transition: opacity .2s;
+    pointer-events: none;
+    text-shadow: 0 0 16px rgba(56,189,248,0.6);
   }
-  #startHint.hidden { opacity: 0; pointer-events: none; }
+  #startHint.hidden { opacity: 0; }
 
   #typer {
     position: absolute;
-    opacity: 0;
-    pointer-events: none;
-    left: -9999px;
-    top: 0;
+    inset: 0;
+    width: 100%; height: 100%;
+    opacity: 0.01;
+    border: none; outline: none; background: transparent;
+    color: transparent; caret-color: transparent;
+    font-size: 16px; /* >=16px prevents iOS auto-zoom */
+    cursor: text;
   }
+
+  .hint { margin-top: 8px; font-size: .72rem; color: #5a6a8e; text-align: center; letter-spacing: .14em; text-transform: uppercase; }
 
   /* Results overlay */
   #results {
@@ -142,69 +184,97 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
-    background: rgba(15,23,42,.96);
-    border-radius: 16px;
+    background: rgba(8,13,26,.95);
+    backdrop-filter: blur(6px);
+    border-radius: 20px;
     z-index: 10;
     text-align: center;
     padding: 20px;
   }
   #results.show { display: flex; }
-  #results h2 { font-size: 1.6rem; margin-bottom: 4px; }
-  .final-wpm { font-size: 3.6rem; font-weight: 800; color: #38bdf8; line-height: 1; }
-  .final-wpm small { font-size: 1.1rem; color: #94a3b8; font-weight: 600; }
-  .final-row { display: flex; gap: 28px; margin: 14px 0 20px; }
-  .final-row div { font-size: .95rem; color: #94a3b8; }
+  #results h2 {
+    font-size: 1.5rem; margin-bottom: 2px; letter-spacing: .12em;
+    color: #4ade80; text-shadow: 0 0 24px rgba(74,222,128,0.6);
+  }
+  .final-wpm { font-size: 3.8rem; font-weight: 900; color: #38bdf8; line-height: 1; text-shadow: 0 0 30px rgba(56,189,248,0.6); }
+  .final-wpm small { font-size: 1.05rem; color: #7d8aa8; font-weight: 600; }
+  .final-row { display: flex; gap: 26px; margin: 14px 0 18px; flex-wrap: wrap; justify-content: center; }
+  .final-row div { font-size: .9rem; color: #7d8aa8; }
   .final-row b { display: block; font-size: 1.3rem; color: #e2e8f0; }
-  #grade { font-size: 1rem; color: #facc15; margin-bottom: 4px; min-height: 1.4em; }
+  #grade { font-size: 1rem; color: #facc15; margin-bottom: 4px; min-height: 1.4em; font-weight: 700; letter-spacing: .06em; }
+  #newrec { color: #f472b6; font-weight: 900; letter-spacing: .15em; font-size: .85rem; text-shadow: 0 0 16px rgba(244,114,182,0.7); min-height: 1.2em; }
 
   .btn {
-    background: linear-gradient(135deg, #0ea5e9, #2563eb);
+    background: linear-gradient(135deg, #38bdf8, #2563eb);
     color: #fff;
     border: none;
-    border-radius: 10px;
-    padding: 12px 34px;
-    font-size: 1rem;
-    font-weight: 700;
-    letter-spacing: .5px;
+    border-radius: 12px;
+    padding: 13px 36px;
+    font-size: .9rem;
+    font-weight: 800;
+    letter-spacing: .12em;
+    text-transform: uppercase;
     cursor: pointer;
-    transition: transform .12s, box-shadow .12s;
-    box-shadow: 0 6px 18px rgba(14,165,233,.35);
+    transition: transform .12s, filter .15s;
+    box-shadow: 0 8px 22px rgba(14,165,233,.4), inset 0 1px 0 rgba(255,255,255,.3);
+    font-family: inherit;
+    touch-action: manipulation;
   }
-  .btn:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(14,165,233,.45); }
-  .btn:active { transform: translateY(0); }
-  .hint { margin-top: 10px; font-size: .8rem; color: #64748b; }
+  .btn:active { transform: translateY(1px); }
+  @media (hover: hover) { .btn:hover { filter: brightness(1.12); transform: translateY(-2px); } }
+  .pb { margin-top: 12px; font-size: .76rem; color: #7d8aa8; letter-spacing: .12em; }
+  .pb b { color: #ffd166; }
 </style>
 </head>
 <body>
   <div class="card" id="card">
-    <h1><span class="flag">🏁</span> Typing Racer <span class="flag">🏁</span></h1>
+    <h1>
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M4 3v18" stroke="#7dd8ff" stroke-width="2.4" stroke-linecap="round"/><path d="M6 4h13l-3 4.5L19 13H6z" fill="#38bdf8"/><path d="M6 4h13l-3 4.5L19 13H6z" fill="none" stroke="#bfe9ff" stroke-width="1.2"/></svg>
+      Typing Racer
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" style="transform:scaleX(-1)"><path d="M4 3v18" stroke="#7dd8ff" stroke-width="2.4" stroke-linecap="round"/><path d="M6 4h13l-3 4.5L19 13H6z" fill="#38bdf8"/><path d="M6 4h13l-3 4.5L19 13H6z" fill="none" stroke="#bfe9ff" stroke-width="1.2"/></svg>
+    </h1>
     <p class="subtitle">Type the sentence as fast and accurately as you can</p>
 
-    <div class="track"><div id="car">🏎️</div></div>
+    <div class="track"><div id="car">
+      <svg viewBox="0 0 64 30" fill="none">
+        <ellipse cx="32" cy="26" rx="26" ry="3" fill="rgba(56,189,248,0.25)"/>
+        <path d="M8 20 L16 20 L20 12 L38 10 L50 14 L56 20 L58 20 L58 23 L8 23 Z" fill="#0ea5e9" stroke="#7dd8ff" stroke-width="1.4" stroke-linejoin="round"/>
+        <path d="M22 13 L36 11.5 L44 14.5 L22 15.5 Z" fill="#0b3550"/>
+        <path d="M8 20 L4 19 L4 22 L8 22.5 Z" fill="#0284c7"/>
+        <circle cx="20" cy="23" r="4.6" fill="#0b1220" stroke="#7dd8ff" stroke-width="1.4"/>
+        <circle cx="20" cy="23" r="1.8" fill="#7dd8ff"/>
+        <circle cx="48" cy="23" r="4.6" fill="#0b1220" stroke="#7dd8ff" stroke-width="1.4"/>
+        <circle cx="48" cy="23" r="1.8" fill="#7dd8ff"/>
+        <path d="M56 16 L62 15 L62 18 L57 18.5 Z" fill="#0369a1"/>
+      </svg>
+    </div></div>
 
     <div class="stats">
       <div class="stat"><div class="label">WPM</div><div class="value" id="wpm">0</div></div>
       <div class="stat"><div class="label">Accuracy</div><div class="value" id="acc">100%</div></div>
       <div class="stat"><div class="label">Time</div><div class="value" id="time">0.0s</div></div>
+      <div class="stat"><div class="label">Streak</div><div class="value" id="streakV">0</div></div>
     </div>
 
     <div class="sentence-wrap" id="sentenceWrap">
       <div id="sentence"></div>
-      <div id="startHint">Click here and start typing…</div>
+      <div id="startHint">Tap here &amp; start typing</div>
+      <input id="typer" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Type the sentence here">
     </div>
 
-    <input id="typer" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Type the sentence here">
-
-    <div class="hint" style="text-align:center">Mistakes count against your accuracy — Backspace fixes them.</div>
+    <div class="hint">Mistakes hurt accuracy &mdash; Backspace fixes them</div>
+    <div class="pb" id="pb"></div>
 
     <div id="results">
-      <h2>🏆 Race Complete!</h2>
-      <div id="grade"></div>
+      <h2>RACE COMPLETE!</h2>
+      <div id="newrec"></div>
       <div class="final-wpm"><span id="finalWpm">0</span> <small>WPM</small></div>
+      <div id="grade"></div>
       <div class="final-row">
         <div><b id="finalAcc">0%</b>Accuracy</div>
         <div><b id="finalTime">0.0s</b>Time</div>
         <div><b id="finalErr">0</b>Errors</div>
+        <div><b id="finalStreak">0</b>Best streak</div>
       </div>
       <button class="btn" id="restartBtn">Race Again</button>
       <div class="hint">or press Enter</div>
@@ -243,9 +313,11 @@
   var wpmEl = document.getElementById('wpm');
   var accEl = document.getElementById('acc');
   var timeEl = document.getElementById('time');
+  var streakEl = document.getElementById('streakV');
   var carEl = document.getElementById('car');
   var resultsEl = document.getElementById('results');
   var restartBtn = document.getElementById('restartBtn');
+  var pbEl = document.getElementById('pb');
 
   var target = '';
   var spans = [];
@@ -255,13 +327,61 @@
   var timer = null;
   var keystrokes = 0;
   var correctKeystrokes = 0;
-  var errorChars = 0; // wrong chars remaining in the text
+  var streak = 0, bestStreak = 0;
+  var milestones = {};
+  var bestWpm = +(localStorage.getItem('tr_best') || 0);
+
+  // ---------- Procedural SFX ----------
+  var SFX = (function () {
+    var ctx = null;
+    function ac() {
+      if (ctx === null) { var A = window.AudioContext || window.webkitAudioContext; ctx = A ? new A() : false; }
+      if (ctx && ctx.state === 'suspended') ctx.resume().catch(function () {});
+      return ctx || null;
+    }
+    var ok = function () { return localStorage.getItem('aaa_sfx') !== '0'; };
+    function tone(f, d, type, v, slide, when) {
+      if (!ok()) return; var c = ac(); if (!c) return;
+      try {
+        var t = c.currentTime + (when || 0);
+        var o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sine'; o.frequency.setValueAtTime(f, t);
+        if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, slide), t + d);
+        g.gain.setValueAtTime(0.001, t);
+        g.gain.linearRampToValueAtTime(v || 0.08, t + 0.012);
+        g.gain.exponentialRampToValueAtTime(0.0006, t + d);
+        o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + d + 0.03);
+      } catch (e) {}
+    }
+    function noise(dur, v, fq, when) {
+      if (!ok()) return; var c = ac(); if (!c) return;
+      try {
+        var t = c.currentTime + (when || 0), n = Math.floor(c.sampleRate * dur);
+        var b = c.createBuffer(1, n, c.sampleRate), d = b.getChannelData(0);
+        for (var i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
+        var s = c.createBufferSource(); s.buffer = b;
+        var f = c.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = fq || 1200;
+        var g = c.createGain(); g.gain.value = v || 0.1;
+        s.connect(f); f.connect(g); g.connect(c.destination); s.start(t);
+      } catch (e) {}
+    }
+    return {
+      unlock: ac,
+      key: function (st) { tone(700 + Math.min(st, 30) * 18 + Math.random() * 40, 0.035, 'triangle', 0.04); },
+      wrong: function () { tone(170, 0.1, 'square', 0.05, 120); noise(0.05, 0.04, 500); },
+      milestone: function () { [880, 1108, 1318].forEach(function (f, i) { tone(f, 0.11, 'triangle', 0.06, null, i * 0.05); }); },
+      start: function () { tone(392, 0.1, 'triangle', 0.06); tone(784, 0.16, 'triangle', 0.07, null, 0.1); },
+      finish: function () { [523, 659, 784, 1047, 1319].forEach(function (f, i) { tone(f, 0.2, 'triangle', 0.08, null, i * 0.09); }); },
+      record: function () { tone(1568, 0.15, 'sine', 0.07, null, 0.5); tone(2093, 0.25, 'sine', 0.06, null, 0.62); }
+    };
+  })();
+  window.addEventListener('pointerdown', SFX.unlock, { passive: true });
+  window.addEventListener('keydown', SFX.unlock);
 
   function pickSentence() {
     var s;
-    do {
-      s = SENTENCES[Math.floor(Math.random() * SENTENCES.length)];
-    } while (s === target && SENTENCES.length > 1);
+    do { s = SENTENCES[Math.floor(Math.random() * SENTENCES.length)]; }
+    while (s === target && SENTENCES.length > 1);
     return s;
   }
 
@@ -278,46 +398,43 @@
     if (spans.length) spans[0].classList.add('ch-current');
   }
 
-  function elapsedMs() {
-    return started ? Date.now() - startTime : 0;
-  }
+  function elapsedMs() { return started ? Date.now() - startTime : 0; }
 
   function correctCharCount() {
     var v = input.value, n = 0;
-    for (var i = 0; i < v.length && i < target.length; i++) {
-      if (v[i] === target[i]) n++;
-    }
+    for (var i = 0; i < v.length && i < target.length; i++) if (v[i] === target[i]) n++;
     return n;
   }
 
+  function curWpm() {
+    var mins = elapsedMs() / 60000;
+    return mins > 0 ? Math.round((correctCharCount() / 5) / mins) : 0;
+  }
+
   function updateStats() {
-    var ms = elapsedMs();
-    var secs = ms / 1000;
-    var mins = ms / 60000;
-    var wpm = mins > 0 ? Math.round((correctCharCount() / 5) / mins) : 0;
+    var secs = elapsedMs() / 1000;
+    var wpm = curWpm();
     var acc = keystrokes > 0 ? Math.round((correctKeystrokes / keystrokes) * 100) : 100;
     wpmEl.textContent = wpm;
     accEl.textContent = acc + '%';
     timeEl.textContent = secs.toFixed(1) + 's';
+    streakEl.textContent = streak;
+    for (var m of [25, 40, 60, 80, 100]) {
+      if (wpm >= m && !milestones[m]) { milestones[m] = true; SFX.milestone(); }
+    }
   }
 
   function updateCar() {
-    var len = input.value.length;
-    var pct = target.length ? Math.min(len / target.length, 1) : 0;
-    carEl.style.left = (pct * 96) + '%';
+    var pct = target.length ? Math.min(input.value.length / target.length, 1) : 0;
+    carEl.style.left = (pct * 88) + '%';
   }
 
   function updateHighlight() {
     var v = input.value;
-    errorChars = 0;
     for (var i = 0; i < spans.length; i++) {
       var cls = 'ch-pending';
-      if (i < v.length) {
-        if (v[i] === target[i]) cls = 'ch-correct';
-        else { cls = 'ch-wrong'; errorChars++; }
-      }
+      if (i < v.length) cls = v[i] === target[i] ? 'ch-correct' : 'ch-wrong';
       spans[i].className = cls;
-      spans[i].classList.remove('ch-current');
     }
     var cur = Math.min(v.length, spans.length - 1);
     if (v.length < spans.length && spans[cur]) spans[cur].classList.add('ch-current');
@@ -328,17 +445,19 @@
       started = true;
       startTime = Date.now();
       hintEl.classList.add('hidden');
+      carEl.classList.add('go');
       timer = setInterval(updateStats, 100);
+      SFX.start();
     }
   }
 
   function grade(wpm, acc) {
-    if (acc < 90) return 'Too many crashes! Accuracy first. 🚧';
-    if (wpm >= 80) return 'Blazing fast! 🚀';
-    if (wpm >= 60) return 'Great pace, racer! 🔥';
-    if (wpm >= 40) return 'Solid speed — keep pushing! 💪';
-    if (wpm >= 25) return 'Warming up nicely. 🏁';
-    return 'Every racer starts somewhere! 🌱';
+    if (acc < 90) return 'Too many crashes — accuracy first.';
+    if (wpm >= 80) return 'BLAZING FAST!';
+    if (wpm >= 60) return 'Great pace, racer!';
+    if (wpm >= 40) return 'Solid speed — keep pushing!';
+    if (wpm >= 25) return 'Warming up nicely.';
+    return 'Every racer starts somewhere.';
   }
 
   function finish() {
@@ -346,17 +465,30 @@
     clearInterval(timer);
     updateStats();
     var ms = elapsedMs();
-    var mins = ms / 60000;
-    var wpm = mins > 0 ? Math.round((correctCharCount() / 5) / mins) : 0;
+    var wpm = curWpm();
     var acc = keystrokes > 0 ? Math.round((correctKeystrokes / keystrokes) * 100) : 100;
     document.getElementById('finalWpm').textContent = wpm;
     document.getElementById('finalAcc').textContent = acc + '%';
     document.getElementById('finalTime').textContent = (ms / 1000).toFixed(1) + 's';
     document.getElementById('finalErr').textContent = keystrokes - correctKeystrokes;
+    document.getElementById('finalStreak').textContent = bestStreak;
     document.getElementById('grade').textContent = grade(wpm, acc);
+    var nr = document.getElementById('newrec');
+    if (wpm > bestWpm && acc >= 85) {
+      bestWpm = wpm;
+      localStorage.setItem('tr_best', bestWpm);
+      nr.textContent = 'NEW PERSONAL BEST!';
+      SFX.record();
+      renderPb();
+    } else nr.textContent = '';
+    SFX.finish();
     resultsEl.classList.add('show');
     input.blur();
     restartBtn.focus();
+  }
+
+  function renderPb() {
+    pbEl.innerHTML = bestWpm ? 'PERSONAL BEST: <b>' + bestWpm + ' WPM</b>' : '';
   }
 
   function restart() {
@@ -369,11 +501,14 @@
     startTime = 0;
     keystrokes = 0;
     correctKeystrokes = 0;
-    errorChars = 0;
+    streak = 0; bestStreak = 0;
+    milestones = {};
     wpmEl.textContent = '0';
     accEl.textContent = '100%';
     timeEl.textContent = '0.0s';
+    streakEl.textContent = '0';
     carEl.style.left = '0%';
+    carEl.classList.remove('go');
     hintEl.classList.remove('hidden');
     resultsEl.classList.remove('show');
   }
@@ -384,17 +519,23 @@
     if (finished) { input.value = input.value.slice(0, target.length); return; }
     startIfNeeded();
 
-    // Clamp to sentence length
-    if (input.value.length > target.length) {
-      input.value = input.value.slice(0, target.length);
-    }
+    if (input.value.length > target.length) input.value = input.value.slice(0, target.length);
 
-    // Each newly added character counts as a keystroke
     var v = input.value;
     if (v.length > lastLen) {
       for (var i = lastLen; i < v.length; i++) {
         keystrokes++;
-        if (v[i] === target[i]) correctKeystrokes++;
+        if (v[i] === target[i]) {
+          correctKeystrokes++;
+          streak++;
+          if (streak > bestStreak) bestStreak = streak;
+          SFX.key(streak);
+        } else {
+          streak = 0;
+          SFX.wrong();
+          wrapEl.classList.remove('errflash'); void wrapEl.offsetWidth;
+          wrapEl.classList.add('errflash');
+        }
       }
     }
     lastLen = v.length;
@@ -406,14 +547,6 @@
     if (v.length === target.length) finish();
   });
 
-  wrapEl.addEventListener('click', function () { if (!finished) input.focus(); });
-  document.getElementById('card').addEventListener('click', function () {
-    if (!finished) input.focus();
-  });
-  input.addEventListener('focus', function () {
-    if (!started && !finished) hintEl.classList.remove('hidden');
-  });
-
   restartBtn.addEventListener('click', restart);
   document.addEventListener('keydown', function (e) {
     if (finished && e.key === 'Enter') {
@@ -423,7 +556,7 @@
     }
   });
 
-  // Init
+  renderPb();
   target = pickSentence();
   renderSentence();
 })();

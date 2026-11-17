@@ -36,7 +36,7 @@ button:hover{filter:brightness(1.1)}
 <div id="game">
   <div id="hud">
     <div><div class="lbl">Score</div><div id="score">0</div></div>
-    <div id="hint">D F J K tap &middot; R restart &middot; Esc pause</div>
+    <div id="hint">D F J K or tap lanes &middot; R restart &middot; Esc pause</div>
   </div>
   <div id="stage">
     <canvas id="cv"></canvas>
@@ -80,6 +80,8 @@ let notes=[],music=[],musicIdx=0,songStart=0,schedTimer=null;
 let score=0,combo=0,maxCombo=0,counts={p:0,g:0,m:0};
 let flash=[0,0,0,0],fx=[];
 let dpr=1,stageW=0,stageH=0;
+let best=0;
+try{best=parseInt(localStorage.getItem('rhythmTapBest'),10)||0;}catch(e){}
 
 /* ---------- audio ---------- */
 function initAudio(){
@@ -152,11 +154,15 @@ function start(){
 function finish(){
   state='done';clearInterval(schedTimer);
   const tot=notes.length,acc=tot?((counts.p*300+counts.g*100)/(tot*300)*100):0;
+  const newBest=score>best;
+  if(newBest){best=score;try{localStorage.setItem('rhythmTapBest',String(best));}catch(e){}}
   statsEl.innerHTML=
-    'SCORE <b>'+score+'</b><br>'+
+    'SCORE <b>'+score+'</b>'+(newBest?' <b style="color:#ffd166">NEW BEST!</b>':'')+'<br>'+
     'MAX COMBO <b>'+maxCombo+'</b><br>'+
     'PERFECT <b>'+counts.p+'</b> &middot; GOOD <b>'+counts.g+'</b> &middot; MISS <b>'+counts.m+'</b><br>'+
-    'ACCURACY <b>'+acc.toFixed(1)+'%</b>';
+    'ACCURACY <b>'+acc.toFixed(1)+'%</b><br>'+
+    'BEST <b>'+best+'</b>';
+  if(window.AAA){if(newBest){AAA.sfx.win();AAA.flash(0.22);}else AAA.sfx.level();}
   ovDone.classList.remove('hidden');
 }
 function hideOverlays(){ovMenu.classList.add('hidden');ovDone.classList.add('hidden');ovPause.classList.add('hidden');}

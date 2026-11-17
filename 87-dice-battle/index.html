@@ -512,7 +512,7 @@ header{
 
   <div class="hint" id="hint">Tap a die to hold it, then re-roll the rest.</div>
 
-  <button class="sound" id="btnSound" title="Toggle sound">♪</button>
+  <button class="sound" id="btnSound" title="Toggle sound" aria-label="Toggle sound"><svg viewBox="0 0 24 24" style="width:1.1em;height:1.1em;vertical-align:-.15em"><path d="M4 9.5h3l4-3.2v11.4l-4-3.2H4z" fill="currentColor"/><path d="M15 8.5a5 5 0 0 1 0 7M17.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
 </div>
 
 <div class="banner" id="banner"></div>
@@ -1085,7 +1085,9 @@ $("ovBtn").addEventListener("click", resetMatch);
 
 $("btnSound").addEventListener("click", function(){
   soundOn = !soundOn;
-  this.textContent = soundOn ? "♪" : "✕";
+  this.innerHTML = soundOn
+  ? '<svg viewBox="0 0 24 24" style="width:1.1em;height:1.1em;vertical-align:-.15em"><path d="M4 9.5h3l4-3.2v11.4l-4-3.2H4z" fill="currentColor"/><path d="M15 8.5a5 5 0 0 1 0 7M17.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>'
+  : '<svg viewBox="0 0 24 24" style="width:1.1em;height:1.1em;vertical-align:-.15em"><path d="M4 9.5h3l4-3.2v11.4l-4-3.2H4z" fill="currentColor"/><path d="M15 10l5 5M20 10l-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
   this.style.color = soundOn ? "" : "#5a6a86";
   if (soundOn) SFX.hold();
 });

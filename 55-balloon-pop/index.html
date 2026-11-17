@@ -165,9 +165,45 @@
   .hidden { display: none !important; }
 
   .hint { font-size: 14px; opacity: .65; margin-top: 22px; }
+
+  /* ---------- ambient clouds ---------- */
+  .cloud {
+    position: fixed;
+    width: var(--w, 160px);
+    height: calc(var(--w, 160px) * .36);
+    background: rgba(255,255,255,.28);
+    border-radius: 999px;
+    filter: blur(1px);
+    z-index: 1;
+    pointer-events: none;
+    animation: drift var(--t, 70s) linear infinite;
+    animation-delay: var(--d, 0s);
+  }
+  .cloud::before, .cloud::after {
+    content: '';
+    position: absolute;
+    background: inherit;
+    border-radius: 50%;
+  }
+  .cloud::before { width: 45%; height: 160%; top: -90%; left: 14%; }
+  .cloud::after  { width: 32%; height: 120%; top: -58%; left: 52%; }
+  @keyframes drift {
+    from { transform: translateX(-30vw); }
+    to   { transform: translateX(115vw); }
+  }
+
+  /* ---------- score pop shimmer ---------- */
+  #score { display: inline-block; transition: transform .08s; }
+  #score.bump { transform: scale(1.18); }
+  #bestLine { font-size: 13px; opacity: .8; margin-top: 4px; letter-spacing: 1px; }
 </style>
 </head>
 <body>
+
+  <div class="cloud" style="--w:190px;top:14%;--t:85s"></div>
+  <div class="cloud" style="--w:120px;top:32%;--t:60s;--d:-22s;opacity:.7"></div>
+  <div class="cloud" style="--w:230px;top:8%;--t:110s;--d:-48s;opacity:.55"></div>
+  <div class="cloud" style="--w:140px;top:55%;--t:75s;--d:-60s;opacity:.5"></div>
 
   <div id="hud">
     <div class="hud-box">
@@ -190,6 +226,7 @@
     <p>Golden balloons are worth <b style="color:#ffd700">5 points</b>.</p>
     <button class="btn" id="startBtn">Start</button>
     <div class="hint">You have 45 seconds. Click or tap to pop.</div>
+    <div id="bestLine"></div>
   </div>
 
   <div class="overlay hidden" id="endScreen">
@@ -236,6 +273,11 @@
   var spawnTimer = 0;
   var clockTimer = null;
   var rafId     = null;
+  var best      = 0;
+  var lastTickSfx = -1;
+
+  try { best = parseInt(localStorage.getItem('balloonPopBest'), 10) || 0; } catch (e) {}
+  if (best > 0) document.getElementById('bestLine').textContent = 'Best score: ' + best;
 
   function rand(min, max) { return min + Math.random() * (max - min); }
 
@@ -293,10 +335,19 @@
     popped++;
     scoreEl.textContent = score;
     poppedEl.textContent = popped;
+    scoreEl.classList.remove('bump');
+    void scoreEl.offsetWidth;
+    scoreEl.classList.add('bump');
 
     var rect = b.el.getBoundingClientRect();
     var px = rect.left + rect.width / 2;
     var py = rect.top + rect.height / 2;
+
+    if (window.AAA) {
+      AAA.sfx.pop();
+      if (b.golden) { AAA.sfx.coin(); AAA.burst(px, py, '#ffd700', 14); }
+      else AAA.burst(px, py, b.el.style.color || '#fff', 8);
+    }
 
     var burst = document.createElement('div');
     burst.className = 'burst';
@@ -376,7 +427,10 @@
     clockTimer = setInterval(function () {
       timeLeft--;
       timerEl.textContent = Math.max(0, timeLeft);
-      if (timeLeft <= 10) timerEl.classList.add('low');
+      if (timeLeft <= 10) {
+        timerEl.classList.add('low');
+        if (window.AAA && timeLeft !== lastTickSfx && timeLeft > 0) { lastTickSfx = timeLeft; AAA.sfx.tick(); }
+      }
       if (timeLeft <= 0) endGame();
     }, 1000);
   }
@@ -389,10 +443,18 @@
     for (var i = 0; i < balloons.length; i++) balloons[i].el.remove();
     balloons = [];
 
+    var newBest = score > best;
+    if (newBest) {
+      best = score;
+      try { localStorage.setItem('balloonPopBest', String(best)); } catch (e) {}
+      document.getElementById('bestLine').textContent = 'Best score: ' + best;
+    }
     finalScore.textContent = score;
     finalStats.textContent =
       'You popped ' + popped + ' balloon' + (popped === 1 ? '' : 's') +
-      ' — ' + escaped + ' escaped.';
+      ' — ' + escaped + ' escaped.' +
+      (newBest ? ' NEW BEST!' : ' Best: ' + best + '.');
+    if (window.AAA) { newBest ? AAA.sfx.win() : AAA.sfx.over(); if (newBest) AAA.flash(0.22); }
     endScr.classList.remove('hidden');
   }
 

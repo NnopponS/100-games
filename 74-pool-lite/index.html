@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Pool Lite</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -16,7 +16,21 @@
     min-height: 100vh;
     padding: 12px;
     user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+    position: relative;
+    overflow-x: hidden;
   }
+  body::before {
+    content: "";
+    position: fixed; inset: -20%; z-index: -2; pointer-events: none;
+    background:
+      radial-gradient(45% 55% at 20% 22%, rgba(46,125,70,.18), transparent 70%),
+      radial-gradient(45% 55% at 82% 20%, rgba(255,215,102,.07), transparent 70%),
+      radial-gradient(55% 60% at 55% 85%, rgba(31,95,208,.12), transparent 70%);
+    animation: aurora 22s ease-in-out infinite alternate;
+  }
+  @keyframes aurora { from { transform: rotate(-2deg) scale(1); } to { transform: rotate(2deg) scale(1.07); } }
   #hud {
     display: flex;
     align-items: center;
@@ -24,27 +38,43 @@
     margin-bottom: 10px;
     flex-wrap: wrap;
     justify-content: center;
+    background: rgba(28,28,38,.8);
+    backdrop-filter: blur(8px);
+    border: 1px solid #34344a;
+    border-radius: 14px;
+    padding: 10px 22px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.4);
   }
-  #hud h1 { font-size: 20px; letter-spacing: 2px; color: #7fd68a; }
+  #hud h1 {
+    font-size: 20px; letter-spacing: 3px;
+    background: linear-gradient(90deg, #7fd68a, #4fae5c);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    text-shadow: 0 0 24px rgba(127,214,138,.25);
+  }
   .stat { font-size: 15px; }
-  .stat b { color: #ffd766; font-size: 17px; }
+  .stat b { color: #ffd766; font-size: 17px; font-variant-numeric: tabular-nums; }
   #restart {
-    background: #2e7d46;
+    background: linear-gradient(180deg, #37a05a, #2e7d46);
     color: #fff;
     border: 0;
-    border-radius: 6px;
-    padding: 7px 16px;
+    border-radius: 8px;
+    padding: 9px 18px;
     font-size: 14px;
+    font-weight: 700;
     cursor: pointer;
+    transition: filter .12s, transform .1s;
   }
-  #restart:hover { background: #3a9457; }
+  #restart:hover { filter: brightness(1.12); }
+  #restart:active { transform: scale(.96); }
   canvas {
     background: transparent;
     max-width: 96vw;
+    max-height: 72vh;
     height: auto;
     border-radius: 14px;
     cursor: crosshair;
     touch-action: none;
+    box-shadow: 0 18px 50px rgba(0,0,0,.55);
   }
   #msg {
     margin-top: 10px;
@@ -52,8 +82,10 @@
     min-height: 22px;
     color: #ffd766;
     font-weight: 600;
+    text-align: center;
+    text-shadow: 0 0 14px rgba(255,215,102,.3);
   }
-  #hint { margin-top: 4px; font-size: 12px; color: #888; }
+  #hint { margin-top: 4px; font-size: 12px; color: #888; text-align: center; padding: 0 8px; }
 </style>
 </head>
 <body>
@@ -76,6 +108,74 @@ const shotsEl = document.getElementById("shots");
 const leftEl = document.getElementById("left");
 const msgEl = document.getElementById("msg");
 const restartBtn = document.getElementById("restart");
+
+/* ---------- procedural SFX (respects the overlay's speaker preference) ---------- */
+const Sfx = (() => {
+  let actx = null;
+  const ac = () => {
+    if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
+    if (actx && actx.state === 'suspended') { try { actx.resume(); } catch (e) {} }
+    return actx;
+  };
+  const on = () => { try { return localStorage.getItem('aaa_sfx') !== '0'; } catch (e) { return true; } };
+  const tone = (f, d, type, vol, slide, delay) => {
+    if (!on()) return;
+    const a = ac(); if (!a) return;
+    try {
+      const t = a.currentTime + (delay || 0);
+      const o = a.createOscillator(), g = a.createGain();
+      o.type = type || 'sine';
+      o.frequency.setValueAtTime(Math.max(30, f), t);
+      if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, slide), t + d);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.linearRampToValueAtTime(vol || 0.05, t + 0.008);
+      g.gain.exponentialRampToValueAtTime(0.0006, t + d);
+      o.connect(g); g.connect(a.destination);
+      o.start(t); o.stop(t + d + 0.05);
+    } catch (e) {}
+  };
+  const noise = (d, vol, freq, q, delay) => {
+    if (!on()) return;
+    const a = ac(); if (!a) return;
+    try {
+      const t = a.currentTime + (delay || 0);
+      const n = Math.max(32, (a.sampleRate * d) | 0);
+      const buf = a.createBuffer(1, n, a.sampleRate);
+      const ch = buf.getChannelData(0);
+      for (let i = 0; i < n; i++) ch[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 1.8);
+      const src = a.createBufferSource(); src.buffer = buf;
+      const f = a.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = freq || 1800; f.Q.value = q || 1;
+      const g = a.createGain(); g.gain.value = vol || 0.05;
+      src.connect(f); f.connect(g); g.connect(a.destination);
+      src.start(t);
+    } catch (e) {}
+  };
+  let lastClack = 0, lastRail = 0;
+  return {
+    unlock: ac,
+    strike: p => { noise(.05, .05 + p * .09, 2000, 1.2); tone(320, .05, 'triangle', .05, 200); },
+    clack: speed => {
+      const now = performance.now();
+      if (now - lastClack < 45) return;
+      lastClack = now;
+      const v = Math.min(.13, .03 + speed * .006);
+      noise(.04, v, 2600, 2);
+      tone(2300, .035, 'triangle', v * .8);
+    },
+    rail: () => {
+      const now = performance.now();
+      if (now - lastRail < 60) return;
+      lastRail = now;
+      noise(.06, .06, 700, 1);
+    },
+    pocket: () => { tone(620, .07, 'sine', .06, 400); noise(.12, .06, 500, 1, .02); tone(280, .14, 'sine', .045, 180, .04); },
+    scratch: () => { [400, 300, 210].forEach((f, i) => tone(f, .16, 'square', .04, null, i * .09)); },
+    win: () => { [523, 659, 784, 1046, 1318].forEach((f, i) => tone(f, .26, 'triangle', .05, null, i * .11)); }
+  };
+})();
+
+let best = 0;
+try { best = Number(localStorage.getItem('pool_best') || 0); } catch (e) {}
 
 // ---------- Table geometry ----------
 const T = { x: 55, y: 55, w: 810, h: 450 };        // playable felt area (inside cushions)
@@ -171,7 +271,7 @@ function step() {
       if (dx * dx + dy * dy < POCKET_R * POCKET_R) {
         b.pocketed = true;
         b.vx = b.vy = 0;
-        if (b.n === 0) cuePocketed = true; else pocketedThisShot++;
+        if (b.n === 0) { cuePocketed = true; } else { pocketedThisShot++; Sfx.pocket(); }
         break;
       }
     }
@@ -186,10 +286,13 @@ function step() {
       if (dx * dx + dy * dy < POCKET_GAP * POCKET_GAP) { nearPocket = true; break; }
     }
     if (nearPocket) continue;
-    if (b.x - BALL_R < T.x)         { b.x = T.x + BALL_R;         b.vx = -b.vx * RAIL_BOUNCE; }
-    if (b.x + BALL_R > T.x + T.w)   { b.x = T.x + T.w - BALL_R;   b.vx = -b.vx * RAIL_BOUNCE; }
-    if (b.y - BALL_R < T.y)         { b.y = T.y + BALL_R;         b.vy = -b.vy * RAIL_BOUNCE; }
-    if (b.y + BALL_R > T.y + T.h)   { b.y = T.y + T.h - BALL_R;   b.vy = -b.vy * RAIL_BOUNCE; }
+    const spd = Math.hypot(b.vx, b.vy);
+    let railed = false;
+    if (b.x - BALL_R < T.x)         { b.x = T.x + BALL_R;         b.vx = -b.vx * RAIL_BOUNCE; railed = true; }
+    if (b.x + BALL_R > T.x + T.w)   { b.x = T.x + T.w - BALL_R;   b.vx = -b.vx * RAIL_BOUNCE; railed = true; }
+    if (b.y - BALL_R < T.y)         { b.y = T.y + BALL_R;         b.vy = -b.vy * RAIL_BOUNCE; railed = true; }
+    if (b.y + BALL_R > T.y + T.h)   { b.y = T.y + T.h - BALL_R;   b.vy = -b.vy * RAIL_BOUNCE; railed = true; }
+    if (railed && spd > 3) Sfx.rail();
   }
 
   // ball-ball collisions
@@ -213,16 +316,26 @@ function step() {
         const imp = -rel * BALL_BOUNCE;
         a.vx -= imp * nx; a.vy -= imp * ny;
         c.vx += imp * nx; c.vy += imp * ny;
+        Sfx.clack(imp);
       }
     }
   }
 
   // end-of-shot bookkeeping
   if (!gameOver && allStopped()) {
-    if (cuePocketed) respotCue();
+    if (cuePocketed) { respotCue(); Sfx.scratch(); }
     if (balls.every(b => b.n === 0 || b.pocketed)) {
       gameOver = true;
-      msgEl.textContent = "Table cleared in " + shots + " shot" + (shots === 1 ? "" : "s") + "! Press R to play again.";
+      const improved = shots > 0 && (best === 0 || shots < best);
+      if (improved) {
+        best = shots;
+        try { localStorage.setItem('pool_best', String(best)); } catch (e) {}
+      }
+      msgEl.textContent = (improved ? "New best! " : "") +
+        "Table cleared in " + shots + " shot" + (shots === 1 ? "" : "s") + "!" +
+        (best ? " Best: " + best + "." : "") + " Press R to play again.";
+      Sfx.win();
+      if (window.AAA) { AAA.flash(0.26); AAA.shockwave(innerWidth / 2, innerHeight / 2, "#7fd68a", 190); }
     }
     updateHud();
   }
@@ -494,6 +607,7 @@ function toCanvas(e) {
 }
 
 canvas.addEventListener("pointerdown", e => {
+  Sfx.unlock();
   const p = toCanvas(e);
   mouse.x = p.x; mouse.y = p.y; mouse.down = true; mouse.inside = true;
   if (!gameOver && allStopped() && !cueBall().pocketed) {
@@ -520,6 +634,7 @@ canvas.addEventListener("pointerup", e => {
     c.vx = a.nx * speed;
     c.vy = a.ny * speed;
     shots++;
+    Sfx.strike(a.power);
     pocketedThisShot = 0;
     if (!gameOver) msgEl.textContent = "";
     updateHud();

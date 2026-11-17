@@ -53,6 +53,21 @@ const flakes = [];
 for (let i = 0; i < 80; i++)
   flakes.push({ x: rand(0, W), y: rand(0, H), r: rand(1, 2.6), s: rand(18, 55), ph: rand(0, TAU) });
 
+// ===== AAA audio kit (procedural; honors overlay prefs) =====
+let AC = null;
+function ac(){if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(AC&&AC.state==='suspended')AC.resume();return AC}
+function sfxOn(){try{return localStorage.getItem('aaa_sfx')!=='0'}catch(e){return true}}
+function bgmOn(){try{return localStorage.getItem('aaa_bgm')!=='0'}catch(e){return true}}
+function tone(f,d,ty,v,sl,t){if(!sfxOn())return;const c=ac();if(!c)return;try{const n=c.currentTime+(t||0),o=c.createOscillator(),g=c.createGain();o.type=ty||'sine';o.frequency.setValueAtTime(f,n);if(sl)o.frequency.exponentialRampToValueAtTime(Math.max(30,sl),n+d);g.gain.setValueAtTime(.0008,n);g.gain.linearRampToValueAtTime(v||.08,n+.012);g.gain.exponentialRampToValueAtTime(.0006,n+d);o.connect(g);g.connect(c.destination);o.start(n);o.stop(n+d+.05)}catch(e){}}
+function nz(d,v,f,q,ty,t){if(!sfxOn())return;const c=ac();if(!c)return;try{const n=c.currentTime+(t||0),L=Math.ceil(c.sampleRate*d),b=c.createBuffer(1,L,c.sampleRate),dd=b.getChannelData(0);for(let i=0;i<L;i++)dd[i]=(Math.random()*2-1)*(1-i/L);const s=c.createBufferSource();s.buffer=b;const fl=c.createBiquadFilter();fl.type=ty||'bandpass';fl.frequency.value=f||1400;fl.Q.value=q||.8;const g=c.createGain();g.gain.setValueAtTime(v||.1,n);g.gain.exponentialRampToValueAtTime(.0006,n+d);s.connect(fl);fl.connect(g);g.connect(c.destination);s.start(n)}catch(e){}}
+function mtone(f,d,ty,v,sl,t){const c=ac();if(!c)return;try{const n=c.currentTime+(t||0),o=c.createOscillator(),g=c.createGain();o.type=ty||'sine';o.frequency.setValueAtTime(f,n);if(sl)o.frequency.exponentialRampToValueAtTime(Math.max(30,sl),n+d);g.gain.setValueAtTime(.0008,n);g.gain.linearRampToValueAtTime(v||.05,n+.02);g.gain.exponentialRampToValueAtTime(.0006,n+d);o.connect(g);g.connect(c.destination);o.start(n);o.stop(n+d+.05)}catch(e){}}
+function mnz(d,v,f,q,ty,t){const c=ac();if(!c)return;try{const n=c.currentTime+(t||0),L=Math.ceil(c.sampleRate*d),b=c.createBuffer(1,L,c.sampleRate),dd=b.getChannelData(0);for(let i=0;i<L;i++)dd[i]=(Math.random()*2-1)*(1-i/L);const s=c.createBufferSource();s.buffer=b;const fl=c.createBiquadFilter();fl.type=ty||'highpass';fl.frequency.value=f||8000;fl.Q.value=q||1;const g=c.createGain();g.gain.setValueAtTime(v||.05,n);g.gain.exponentialRampToValueAtTime(.0006,n+d);s.connect(fl);fl.connect(g);g.connect(c.destination);s.start(n)}catch(e){}}
+function stinger(w){(w?[523,659,784,1047]:[392,349,311,262]).forEach(function(f,i){tone(f,w?.18:.22,w?'triangle':'sawtooth',w?.09:.05,null,i*(w?.09:.11))})}
+let bgmI=0,bgmNext=-1;const BSTEP=60/122/2;let bgmHeat=.4;
+const BASS=[55,55,82.41,65.41,55,55,98,73.42],ARP=[220,261.63,329.63,261.63,440,392,329.63,246.94];
+setInterval(()=>{if(!bgmOn()){bgmNext=-1;return}const c=ac();if(!c||c.state!=='running')return;if(bgmNext<0)bgmNext=c.currentTime+.06;const a=c.currentTime+.32;while(bgmNext<a){const s=bgmI%16,t=bgmNext;if(s===0||s===8||(bgmHeat>.6&&(s===4||s===12)))mtone(150,.16,'sine',.18,44,t);if(s%4===2)mnz(.045,.026*(.5+bgmHeat),8500,1.2,'highpass',t);if(s%2===0)mtone(BASS[(bgmI>>1)%8]*.5,.24,'triangle',.04+.03*bgmHeat,null,t);if(bgmHeat>.35&&s%4===0)mtone(ARP[(bgmI>>2)%8],.12,'sine',.024,null,t);bgmNext+=BSTEP;bgmI++}},80);
+
+let nextMile = 500;
 const keys = {};
 const pointer = { down: false, x: 0 };
 const isSteer = c => c === 'ArrowLeft' || c === 'ArrowRight' || c === 'KeyA' || c === 'KeyD';
@@ -84,6 +99,9 @@ function crash() {
     best = dist;
     try { localStorage.setItem('skiSlopeBest', String(best)); } catch (e) {}
   }
+  nz(.55,.26,420,.8,'lowpass');
+  tone(150,.45,'sawtooth',.1,55);
+  stinger(false);
   const py = playerY();
   for (let i = 0; i < 24; i++)
     puffs.push({ x: player.x + rand(-10, 10), y: py + rand(-8, 8),
@@ -122,6 +140,18 @@ function update(dt) {
 
   speed = Math.min(240 + dist * 0.85, 720);
   dist += speed * dt * 0.045;
+  bgmHeat = Math.min(1, .4 + (speed - 240) / 560);
+  if (Math.floor(dist) >= nextMile) {
+    nextMile += 500;
+    tone(660,.09,'sine',.05); tone(880,.14,'sine',.05,null,.09); tone(1108,.18,'sine',.045,null,.18);
+  }
+  // carve hiss + snow spray on hard turns
+  if (Math.abs(player.vx) > 300 && Math.random() < dt * 14) {
+    nz(.16,.028,600,.9);
+    for (let i = 0; i < 2; i++)
+      puffs.push({ x: player.x + rand(-8, 8), y: py + 14,
+        vx: -player.vx * .12 + rand(-30, 30), vy: rand(-60, -10), life: rand(.25, .5), r: rand(1.5, 3.5) });
+  }
 
   gapAcc += speed * dt;
   if (gapAcc >= nextGap) {
@@ -240,6 +270,23 @@ function draw() {
   g.addColorStop(1, '#eef5fb');
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
 
+  // distant mountain ridge (parallax)
+  const moff = scroll * 0.12;
+  ctx.fillStyle = 'rgba(120,150,185,0.28)';
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  for (let x = 0; x <= W; x += 30) {
+    const wx = x + moff;
+    ctx.lineTo(x, H * 0.10 + Math.sin(wx * 0.006) * 26 + Math.sin(wx * 0.017) * 12);
+  }
+  ctx.lineTo(W, 0); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  for (let x = 0; x <= W; x += 30) {
+    const wx = x + moff;
+    const my = H * 0.10 + Math.sin(wx * 0.006) * 26 + Math.sin(wx * 0.017) * 12;
+    if (my < H * 0.115) { ctx.beginPath(); ctx.moveTo(x - 9, my + 12); ctx.lineTo(x, my); ctx.lineTo(x + 9, my + 12); ctx.fill(); }
+  }
+
   ctx.strokeStyle = 'rgba(150,175,205,0.35)'; ctx.lineWidth = 1.5;
   const sp = 90, off = scroll % sp;
   for (let y = -sp + off; y < H + sp; y += sp) {
@@ -263,6 +310,17 @@ function draw() {
 
   const sorted = obstacles.slice().sort((a, b) => a.y - b.y);
   for (const o of sorted) o.type === 'tree' ? drawTree(o) : drawRock(o);
+
+  // speed streaks at high velocity
+  if (state === 'play' && speed > 380) {
+    ctx.strokeStyle = 'rgba(255,255,255,' + Math.min(0.3, (speed - 380) / 900).toFixed(3) + ')';
+    ctx.lineWidth = 2;
+    for (let i = 0; i < 8; i++) {
+      const ly = (i * 173 + t * 1400) % H;
+      const lx = (i * 211 + t * 260) % W;
+      ctx.beginPath(); ctx.moveTo(lx, ly - 60); ctx.lineTo(lx, ly); ctx.stroke();
+    }
+  }
 
   drawPlayer();
 

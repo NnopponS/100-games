@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Target Shooter</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -16,6 +16,8 @@
     color: #e6edf3;
     user-select: none;
     -webkit-user-select: none;
+    touch-action: none;
+    overscroll-behavior: none;
   }
 
   #arena {
@@ -234,6 +236,20 @@
 (function () {
   "use strict";
 
+  // ===== AAA audio kit (procedural; honors overlay prefs) =====
+  var AC = null;
+  function ac(){if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(AC&&AC.state==='suspended')AC.resume();return AC}
+  function sfxOn(){try{return localStorage.getItem('aaa_sfx')!=='0'}catch(e){return true}}
+  function bgmOn(){try{return localStorage.getItem('aaa_bgm')!=='0'}catch(e){return true}}
+  function tone(f,d,ty,v,sl,t){if(!sfxOn())return;var c=ac();if(!c)return;try{var n=c.currentTime+(t||0),o=c.createOscillator(),g=c.createGain();o.type=ty||'sine';o.frequency.setValueAtTime(f,n);if(sl)o.frequency.exponentialRampToValueAtTime(Math.max(30,sl),n+d);g.gain.setValueAtTime(.0008,n);g.gain.linearRampToValueAtTime(v||.08,n+.012);g.gain.exponentialRampToValueAtTime(.0006,n+d);o.connect(g);g.connect(c.destination);o.start(n);o.stop(n+d+.05)}catch(e){}}
+  function nz(d,v,f,q,ty,t){if(!sfxOn())return;var c=ac();if(!c)return;try{var n=c.currentTime+(t||0),L=Math.ceil(c.sampleRate*d),b=c.createBuffer(1,L,c.sampleRate),dd=b.getChannelData(0);for(var i=0;i<L;i++)dd[i]=(Math.random()*2-1)*(1-i/L);var s=c.createBufferSource();s.buffer=b;var fl=c.createBiquadFilter();fl.type=ty||'bandpass';fl.frequency.value=f||1400;fl.Q.value=q||.8;var g=c.createGain();g.gain.setValueAtTime(v||.1,n);g.gain.exponentialRampToValueAtTime(.0006,n+d);s.connect(fl);fl.connect(g);g.connect(c.destination);s.start(n)}catch(e){}}
+  function mtone(f,d,ty,v,sl,t){var c=ac();if(!c)return;try{var n=c.currentTime+(t||0),o=c.createOscillator(),g=c.createGain();o.type=ty||'sine';o.frequency.setValueAtTime(f,n);if(sl)o.frequency.exponentialRampToValueAtTime(Math.max(30,sl),n+d);g.gain.setValueAtTime(.0008,n);g.gain.linearRampToValueAtTime(v||.05,n+.02);g.gain.exponentialRampToValueAtTime(.0006,n+d);o.connect(g);g.connect(c.destination);o.start(n);o.stop(n+d+.05)}catch(e){}}
+  function mnz(d,v,f,q,ty,t){var c=ac();if(!c)return;try{var n=c.currentTime+(t||0),L=Math.ceil(c.sampleRate*d),b=c.createBuffer(1,L,c.sampleRate),dd=b.getChannelData(0);for(var i=0;i<L;i++)dd[i]=(Math.random()*2-1)*(1-i/L);var s=c.createBufferSource();s.buffer=b;var fl=c.createBiquadFilter();fl.type=ty||'highpass';fl.frequency.value=f||8000;fl.Q.value=q||1;var g=c.createGain();g.gain.setValueAtTime(v||.05,n);g.gain.exponentialRampToValueAtTime(.0006,n+d);s.connect(fl);fl.connect(g);g.connect(c.destination);s.start(n)}catch(e){}}
+  function stinger(w){(w?[523,659,784,1047]:[392,349,311,262]).forEach(function(f,i){tone(f,w?.18:.22,w?'triangle':'sawtooth',w?.09:.05,null,i*(w?.09:.11))})}
+  var bgmI=0,bgmNext=-1,BSTEP=60/128/2;
+  var BASS=[55,55,82.41,65.41,55,55,98,73.42],ARP=[220,261.63,329.63,261.63,440,392,329.63,246.94];
+  setInterval(function(){if(!bgmOn()){bgmNext=-1;return}var c=ac();if(!c||c.state!=='running')return;if(bgmNext<0)bgmNext=c.currentTime+.06;var a=c.currentTime+.32;while(bgmNext<a){var s=bgmI%16,t=bgmNext;if(s===0||s===8||(running&&(s===4||s===12)))mtone(150,.16,'sine',.18,44,t);if(s%4===2)mnz(.045,.028,8500,1.2,'highpass',t);if(s%2===0)mtone(BASS[(bgmI>>1)%8]*.5,.24,'triangle',.05,null,t);if(running&&s%4===0)mtone(ARP[(bgmI>>2)%8],.12,'sine',.024,null,t);bgmNext+=BSTEP;bgmI++}},80);
+
   var GAME_SECONDS = 30;
   var arena = document.getElementById("arena");
   var timebar = document.getElementById("timebar");
@@ -249,7 +265,9 @@
 
   var targets = [];       // {el, x, y, vx, vy, r, born, life, points}
   var running = false;
-  var score, hits, misses, escaped;
+  var score, hits, misses, escaped, combo, prevLeft;
+  var best = 0;
+  try { best = parseInt(localStorage.getItem('ts_best') || '0', 10) || 0; } catch (e) {}
   var startTime, lastSpawn, rafId;
   var elapsed = 0;
 
@@ -312,6 +330,14 @@
     t.dead = true;
     score += t.points;
     hits++;
+    combo++;
+    nz(.05,.14,1900,2.5);
+    tone(540 + t.points * 1.6,.1,'triangle',.1);
+    if (t.points >= 100) { tone(1046,.14,'sine',.07,null,.05); tone(1568,.18,'sine',.05,null,.11); }
+    if (combo > 0 && combo % 5 === 0) {
+      pop("COMBO x" + combo, t.x, t.y - t.r - 22, "#f2cc60");
+      tone(880,.1,'sine',.06); tone(1174,.14,'sine',.06,null,.08);
+    }
     pop("+" + t.points, t.x, t.y - t.r, t.points >= 100 ? "#bc8cff" : "#3fb950");
     removeTarget(t);
     updateHud();
@@ -345,7 +371,10 @@
 
   arena.addEventListener("pointerdown", function (e) {
     if (!running) return;
+    nz(.07,.09,2600,1.2,'highpass');  // shot crack
     misses++;
+    combo = 0;
+    tone(160,.12,'square',.05,90);
     missMark(e.clientX, e.clientY);
     updateHud();
   });
@@ -373,6 +402,7 @@
 
       if (age >= t.life) {
         escaped++;
+        nz(.09,.04,700,1,'lowpass');
         removeTarget(t);
         continue;
       }
@@ -396,6 +426,8 @@
 
     // timer
     var left = Math.ceil(GAME_SECONDS - elapsed);
+    if (left !== prevLeft && left <= 5 && left > 0) tone(920,.05,'square',.06);
+    prevLeft = left;
     timeEl.textContent = left;
     var frac = 1 - elapsed / GAME_SECONDS;
     timebar.style.transform = "scaleX(" + frac + ")";
@@ -418,7 +450,10 @@
     arena.querySelectorAll(".pop,.miss-mark").forEach(function (n) { n.remove(); });
 
     score = 0; hits = 0; misses = 0; escaped = 0; elapsed = 0;
+    combo = 0; prevLeft = GAME_SECONDS;
     running = true;
+    ac();
+    tone(240,.22,'sine',.08,620);
     updateHud();
     timeEl.textContent = GAME_SECONDS;
     timebar.style.transform = "scaleX(1)";
@@ -452,7 +487,10 @@
       score >= 1400 ? "MARKSMAN" :
       score >= 900  ? "DEADEYE" :
       score >= 500  ? "ROOKIE" : "KEEP PRACTICING";
-    document.getElementById("rankLine").textContent = "Rank: " + rank;
+    var newBest = score > best;
+    if (newBest) { best = score; try { localStorage.setItem('ts_best', String(best)); } catch (e) {} }
+    document.getElementById("rankLine").textContent = "Rank: " + rank + "  ·  Best: " + best + (newBest ? " (NEW!)" : "");
+    stinger(newBest);
 
     endOverlay.classList.remove("hidden");
   }

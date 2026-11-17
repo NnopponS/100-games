@@ -2,19 +2,23 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Reaction Timer</title>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js" defer></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { height: 100%; }
+  html, body { height: 100%; overscroll-behavior: none; }
   body {
     font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
     overflow: hidden;
     user-select: none;
     -webkit-user-select: none;
-    touch-action: manipulation;
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
   }
+  #bg3d { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; opacity: .9; }
   #pad {
+    position: relative;
     height: 100%;
     display: flex;
     flex-direction: column;
@@ -26,24 +30,57 @@
     padding: 24px;
     text-align: center;
     color: #fff;
+    z-index: 1;
   }
-  .bg-idle    { background: #2b2d42; }
-  .bg-wait    { background: #c0392b; }
-  .bg-go      { background: #27ae60; transition: none; }
-  .bg-fail    { background: #e67e22; }
-  .bg-result  { background: #2b2d42; }
-  .bg-done    { background: #1d3557; }
+  .bg-idle {
+    background:
+      radial-gradient(ellipse 75% 55% at 50% 38%, rgba(90,110,255,0.22) 0%, transparent 60%),
+      linear-gradient(180deg, #161a35 0%, #0d0f22 100%);
+  }
+  .bg-wait {
+    background:
+      radial-gradient(ellipse 75% 55% at 50% 38%, rgba(255,90,70,0.30) 0%, transparent 62%),
+      linear-gradient(180deg, #8e2620 0%, #4a110d 100%);
+  }
+  .bg-go {
+    background:
+      radial-gradient(ellipse 80% 60% at 50% 40%, rgba(160,255,180,0.32) 0%, transparent 62%),
+      linear-gradient(180deg, #1e9e57 0%, #0a4d28 100%);
+    transition: none;
+  }
+  .bg-fail {
+    background:
+      radial-gradient(ellipse 75% 55% at 50% 38%, rgba(255,190,80,0.28) 0%, transparent 60%),
+      linear-gradient(180deg, #a35a12 0%, #522b06 100%);
+  }
+  .bg-result {
+    background:
+      radial-gradient(ellipse 75% 55% at 50% 38%, rgba(80,200,255,0.22) 0%, transparent 60%),
+      linear-gradient(180deg, #16203c 0%, #0b1024 100%);
+  }
+  .bg-done {
+    background:
+      radial-gradient(ellipse 75% 55% at 50% 38%, rgba(120,110,255,0.26) 0%, transparent 60%),
+      linear-gradient(180deg, #1a2150 0%, #0d1130 100%);
+  }
+  #pad.bump { animation: bump .3s ease; }
+  @keyframes bump { 30% { transform: scale(1.012); } }
 
   #big {
-    font-size: clamp(40px, 9vw, 96px);
-    font-weight: 800;
-    letter-spacing: 1px;
-    line-height: 1.1;
+    font-size: clamp(42px, 9.5vw, 104px);
+    font-weight: 900;
+    letter-spacing: 2px;
+    line-height: 1.05;
+    text-shadow: 0 4px 30px rgba(0,0,0,0.45), 0 0 40px rgba(255,255,255,0.12);
   }
+  #big.flash { animation: flashpop .28s cubic-bezier(.2,1.6,.4,1); }
+  @keyframes flashpop { 0% { transform: scale(1.25); } 100% { transform: scale(1); } }
   #sub {
-    font-size: clamp(16px, 3vw, 24px);
-    opacity: 0.85;
+    font-size: clamp(15px, 3vw, 22px);
+    opacity: 0.88;
     max-width: 640px;
+    line-height: 1.6;
+    font-weight: 500;
   }
   #hud {
     position: fixed;
@@ -52,57 +89,89 @@
     right: 18px;
     display: flex;
     justify-content: space-between;
-    font-size: 15px;
+    gap: 10px;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
     color: rgba(255,255,255,0.9);
     pointer-events: none;
     font-variant-numeric: tabular-nums;
+    z-index: 2;
+  }
+  #hud span {
+    padding: 6px 14px;
+    border-radius: 999px;
+    background: rgba(0,0,0,0.25);
+    border: 1px solid rgba(255,255,255,0.15);
+    backdrop-filter: blur(6px);
   }
   #rounds {
     display: flex;
-    gap: 10px;
+    gap: 9px;
     margin-top: 8px;
     flex-wrap: wrap;
     justify-content: center;
   }
   .dot {
-    min-width: 64px;
+    min-width: 66px;
     padding: 8px 10px;
-    border-radius: 10px;
-    background: rgba(255,255,255,0.15);
+    border-radius: 12px;
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.14);
     font-size: 14px;
+    font-weight: 800;
     font-variant-numeric: tabular-nums;
+    transition: transform .2s;
   }
-  .dot.ok   { background: rgba(46,204,113,0.35); }
-  .dot.bad  { background: rgba(231,76,60,0.45); }
+  .dot.ok   { background: rgba(46,204,113,0.3); border-color: rgba(94,227,136,0.5); box-shadow: 0 0 14px rgba(74,222,128,0.3); }
+  .dot.bad  { background: rgba(231,76,60,0.4); border-color: rgba(255,107,107,0.5); }
+  .dot.new  { animation: dotpop .35s cubic-bezier(.2,1.6,.4,1); }
+  @keyframes dotpop { 0% { transform: scale(.4); } 100% { transform: scale(1); } }
   #restart {
     margin-top: 10px;
-    font-size: 18px;
-    font-weight: 700;
-    padding: 14px 34px;
+    font-size: .95rem;
+    font-weight: 800;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    padding: 15px 38px;
     border: none;
     border-radius: 12px;
-    background: #fff;
-    color: #1d3557;
+    background: linear-gradient(135deg, #7e8cff, #5a64e8);
+    color: #fff;
     cursor: pointer;
     display: none;
+    box-shadow: 0 8px 26px rgba(100,115,255,0.45), inset 0 1px 0 rgba(255,255,255,0.4);
+    transition: transform .12s, filter .15s;
+    font-family: inherit;
+    touch-action: manipulation;
   }
-  #restart:hover { transform: scale(1.04); }
-  .hint { font-size: 13px; opacity: 0.6; }
+  #restart:active { transform: translateY(2px); }
+  @media (hover: hover) { #restart:hover { filter: brightness(1.12); transform: translateY(-2px); } }
+  .hint { font-size: 12px; opacity: 0.55; letter-spacing: .18em; text-transform: uppercase; }
+  #pb {
+    font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.65);
+    letter-spacing: .08em;
+  }
+  #pb b { color: #ffd166; }
 </style>
 </head>
 <body>
+<canvas id="bg3d"></canvas>
 <div id="pad" class="bg-idle">
   <div id="hud"><span id="roundLabel">Reaction Timer</span><span id="avgLabel"></span></div>
-  <div id="big">Click to start</div>
-  <div id="sub">Wait for the screen to turn green, then click as fast as you can.<br>
-    Click too early and the round is failed. Best of 5 &mdash; lowest average wins.</div>
+  <div id="big">TAP TO START</div>
+  <div id="sub">Wait for the screen to turn green, then tap as fast as you can.<br>
+    Tap too early and the round is failed. Best of 5 &mdash; lowest average wins.</div>
+  <div id="pb"></div>
   <div id="rounds"></div>
   <button id="restart">Play again</button>
-  <div class="hint">Spacebar works too &middot; 5 rounds</div>
+  <div class="hint">Tap anywhere &middot; Spacebar works too</div>
 </div>
 
 <script>
 (function () {
+  'use strict';
   var pad = document.getElementById('pad');
   var big = document.getElementById('big');
   var sub = document.getElementById('sub');
@@ -110,17 +179,72 @@
   var restartBtn = document.getElementById('restart');
   var roundLabel = document.getElementById('roundLabel');
   var avgLabel = document.getElementById('avgLabel');
+  var pbEl = document.getElementById('pb');
 
   var TOTAL = 5;
-  var state = 'idle';      // idle | wait | go | between | fail | done
-  var results = [];        // {ms: number|null, fail: bool}
+  var state = 'idle';
+  var results = [];
   var timer = null;
   var goTime = 0;
+  var pb = { best: 0, avg: 0 };
+  try { Object.assign(pb, JSON.parse(localStorage.getItem('rt_pb') || '{}')); } catch (e) {}
 
-  function setState(bg, bigText, subText) {
+  // ---------- Procedural SFX ----------
+  var SFX = (function () {
+    var ctx = null;
+    function ac() {
+      if (ctx === null) { var A = window.AudioContext || window.webkitAudioContext; ctx = A ? new A() : false; }
+      if (ctx && ctx.state === 'suspended') ctx.resume().catch(function () {});
+      return ctx || null;
+    }
+    var ok = function () { return localStorage.getItem('aaa_sfx') !== '0'; };
+    function tone(f, d, type, v, slide, when) {
+      if (!ok()) return; var c = ac(); if (!c) return;
+      try {
+        var t = c.currentTime + (when || 0);
+        var o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sine'; o.frequency.setValueAtTime(f, t);
+        if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, slide), t + d);
+        g.gain.setValueAtTime(0.001, t);
+        g.gain.linearRampToValueAtTime(v || 0.08, t + 0.012);
+        g.gain.exponentialRampToValueAtTime(0.0006, t + d);
+        o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + d + 0.03);
+      } catch (e) {}
+    }
+    function noise(dur, v, fq, when) {
+      if (!ok()) return; var c = ac(); if (!c) return;
+      try {
+        var t = c.currentTime + (when || 0), n = Math.floor(c.sampleRate * dur);
+        var b = c.createBuffer(1, n, c.sampleRate), d = b.getChannelData(0);
+        for (var i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
+        var s = c.createBufferSource(); s.buffer = b;
+        var f = c.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = fq || 1200;
+        var g = c.createGain(); g.gain.value = v || 0.1;
+        s.connect(f); f.connect(g); g.connect(c.destination); s.start(t);
+      } catch (e) {}
+    }
+    return {
+      unlock: ac,
+      arm: function () { tone(220, 0.18, 'sine', 0.06, 180); },
+      go: function () { tone(880, 0.14, 'square', 0.08, 1320); noise(0.1, 0.06, 3200); },
+      hit: function (ms) {
+        var f = ms < 200 ? 1180 : ms < 300 ? 980 : ms < 400 ? 780 : 620;
+        tone(f, 0.12, 'triangle', 0.09, f * 1.2); tone(f * 1.5, 0.16, 'sine', 0.06, null, 0.06);
+      },
+      fail: function () { tone(150, 0.3, 'sawtooth', 0.09, 80); noise(0.22, 0.09, 700); },
+      done: function () { [523, 659, 784, 1047].forEach(function (f, i) { tone(f, 0.2, 'triangle', 0.08, null, i * 0.1); }); }
+    };
+  })();
+  window.addEventListener('pointerdown', SFX.unlock, { passive: true });
+  window.addEventListener('keydown', SFX.unlock);
+
+  function setState(bg, bigText, subText, flash) {
     pad.className = bg;
     big.textContent = bigText;
     sub.innerHTML = subText || '';
+    if (flash) { big.classList.remove('flash'); void big.offsetWidth; big.classList.add('flash'); }
+    pad.classList.remove('bump'); void pad.offsetWidth; pad.classList.add('bump');
+    if (window.__rtOrb) window.__rtOrb(bg);
   }
 
   function updateHud() {
@@ -128,9 +252,10 @@
     roundLabel.textContent = results.length >= TOTAL ? 'Done' : 'Round ' + n + ' / ' + TOTAL;
     var times = results.filter(function (r) { return !r.fail; }).map(function (r) { return r.ms; });
     avgLabel.textContent = times.length ? 'Avg ' + Math.round(avg(times)) + ' ms' : '';
+    pbEl.innerHTML = pb.best ? 'Personal best: <b>' + Math.round(pb.best) + ' ms</b>' + (pb.avg ? ' &middot; avg <b>' + Math.round(pb.avg) + ' ms</b>' : '') : '';
   }
 
-  function renderDots() {
+  function renderDots(newIdx) {
     dots.innerHTML = '';
     for (var i = 0; i < TOTAL; i++) {
       var d = document.createElement('div');
@@ -139,6 +264,7 @@
       if (!r) d.textContent = '—';
       else if (r.fail) { d.textContent = 'FAIL'; d.classList.add('bad'); }
       else { d.textContent = Math.round(r.ms) + ' ms'; d.classList.add('ok'); }
+      if (i === newIdx) d.classList.add('new');
       dots.appendChild(d);
     }
   }
@@ -151,24 +277,21 @@
 
   function startWait() {
     state = 'wait';
-    setState('bg-wait', 'Wait for green…', 'Do not click yet!');
+    setState('bg-wait', 'WAIT FOR GREEN…', 'Do not tap yet!');
+    SFX.arm();
     var delay = 1200 + Math.random() * 2800;
     timer = setTimeout(function () {
       state = 'go';
       goTime = performance.now();
-      setState('bg-go', 'CLICK!', '');
+      setState('bg-go', 'TAP!', '', true);
+      SFX.go();
     }, delay);
   }
 
   function nextOrFinish() {
     updateHud();
-    renderDots();
-    if (results.length >= TOTAL) {
-      finish();
-    } else {
-      state = 'between';
-      timer = setTimeout(startWait, 900);
-    }
+    if (results.length >= TOTAL) finish();
+    else { state = 'between'; timer = setTimeout(startWait, 900); }
   }
 
   function finish() {
@@ -178,15 +301,22 @@
     if (times.length) {
       var best = Math.min.apply(null, times);
       var a = avg(times);
-      var verdict = a < 200 ? 'Superhuman!' : a < 250 ? 'Blazing fast!' :
-                    a < 300 ? 'Great reflexes!' : a < 400 ? 'Not bad.' : 'Keep practicing.';
+      var newBest = !pb.best || best < pb.best, newAvg = !pb.avg || a < pb.avg;
+      if (newBest) pb.best = best;
+      if (newAvg) pb.avg = a;
+      localStorage.setItem('rt_pb', JSON.stringify(pb));
+      var verdict = a < 200 ? 'SUPERHUMAN!' : a < 250 ? 'BLAZING FAST!' :
+                    a < 300 ? 'GREAT REFLEXES!' : a < 400 ? 'Not bad.' : 'Keep practicing.';
       setState('bg-done', Math.round(a) + ' ms avg',
         'Best: ' + Math.round(best) + ' ms' +
         (fails ? ' &middot; ' + fails + ' failed round' + (fails > 1 ? 's' : '') : '') +
-        '<br>' + verdict);
+        '<br>' + verdict + (newBest || newAvg ? ' <b style="color:#ffd166">NEW PERSONAL BEST</b>' : ''), true);
+      SFX.done();
     } else {
-      setState('bg-done', 'All failed!', 'Every click was too early. Patience, young grasshopper.');
+      setState('bg-done', 'ALL FAILED!', 'Every tap was too early. Patience, young grasshopper.');
+      SFX.fail();
     }
+    updateHud();
     restartBtn.style.display = 'inline-block';
   }
 
@@ -196,26 +326,25 @@
       results = [];
       renderDots();
       updateHud();
-      state = 'between';
       startWait();
     } else if (state === 'wait') {
       clearTimeout(timer);
       state = 'fail-flash';
       results.push({ fail: true });
-      setState('bg-fail', 'Too soon!', 'You clicked before it turned green. Round failed.');
-      renderDots();
+      SFX.fail();
+      setState('bg-fail', 'TOO SOON!', 'You tapped before it turned green. Round failed.', true);
+      renderDots(results.length - 1);
       timer = setTimeout(nextOrFinish, 1100);
     } else if (state === 'go') {
       var ms = performance.now() - goTime;
       results.push({ ms: ms });
       state = 'between';
+      SFX.hit(ms);
       setState('bg-result', Math.round(ms) + ' ms',
-        ms < 200 ? 'Insane.' : ms < 300 ? 'Nice one.' : 'A little slow…');
+        ms < 200 ? 'Insane.' : ms < 300 ? 'Nice one.' : 'A little slow…', true);
+      renderDots(results.length - 1);
       timer = setTimeout(nextOrFinish, 900);
-    } else if (state === 'done') {
-      // ignore presses on the pad while the restart button is up
     }
-    // 'between' / 'fail-flash': ignore
   }
 
   pad.addEventListener('pointerdown', function (e) {
@@ -230,8 +359,8 @@
     restartBtn.style.display = 'none';
     renderDots();
     updateHud();
-    setState('bg-idle', 'Click to start',
-      'Wait for green, then click fast. Early click = failed round.');
+    setState('bg-idle', 'TAP TO START',
+      'Wait for green, then tap fast. Early tap = failed round.');
   });
 
   window.addEventListener('keydown', function (e) {
@@ -244,6 +373,79 @@
 
   renderDots();
   updateHud();
+})();
+
+// ---------- 3D energy orb (progressive enhancement) ----------
+(function () {
+  function go() {
+    if (!window.THREE) return;
+    try {
+      var canvas = document.getElementById('bg3d');
+      var renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
+      renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.8));
+      var scene = new THREE.Scene();
+      var cam = new THREE.PerspectiveCamera(50, 1, 0.1, 50);
+      cam.position.z = 6;
+      scene.add(new THREE.AmbientLight(0x445088, 1.4));
+      var pl = new THREE.PointLight(0x8090ff, 60, 30);
+      pl.position.set(3, 2, 4); scene.add(pl);
+
+      var orb = new THREE.Group();
+      var core = new THREE.Mesh(
+        new THREE.IcosahedronGeometry(1.15, 2),
+        new THREE.MeshStandardMaterial({ color: 0x3344aa, roughness: 0.25, metalness: 0.6, emissive: 0x2233cc, emissiveIntensity: 0.35, flatShading: true })
+      );
+      orb.add(core);
+      var wire = new THREE.Mesh(
+        new THREE.IcosahedronGeometry(1.5, 1),
+        new THREE.MeshBasicMaterial({ color: 0x8899ff, wireframe: true, transparent: true, opacity: 0.35 })
+      );
+      orb.add(wire);
+      var ring = new THREE.Mesh(
+        new THREE.TorusGeometry(2.2, 0.04, 10, 80),
+        new THREE.MeshBasicMaterial({ color: 0x99aaff, transparent: true, opacity: 0.5 })
+      );
+      ring.rotation.x = Math.PI / 2.4;
+      orb.add(ring);
+      orb.position.y = -0.2;
+      scene.add(orb);
+
+      var targetColor = new THREE.Color(0x2233cc);
+      var targetEmissive = 0.35, pulse = 1;
+      var COLORS = {
+        'bg-idle': [0x2233cc, 0.35], 'bg-wait': [0xcc2e1e, 0.55], 'bg-go': [0x2ecc71, 1.4],
+        'bg-fail': [0xdd7711, 0.8], 'bg-result': [0x2288cc, 0.5], 'bg-done': [0x6a55ee, 0.9]
+      };
+      window.__rtOrb = function (bg) {
+        var c = COLORS[bg];
+        if (c) { targetColor.setHex(c[0]); targetEmissive = c[1]; }
+        pulse = bg === 'bg-go' ? 3.2 : 1;
+        if (bg === 'bg-go') { orb.scale.setScalar(1.3); }
+      };
+
+      function resize() {
+        renderer.setSize(innerWidth, innerHeight, false);
+        cam.aspect = innerWidth / innerHeight; cam.updateProjectionMatrix();
+      }
+      addEventListener('resize', resize); resize();
+      var last = performance.now();
+      (function loop(now) {
+        requestAnimationFrame(loop);
+        var dt = Math.min(0.05, (now - last) / 1000); last = now;
+        var t = now / 1000;
+        orb.rotation.y += dt * 0.5; orb.rotation.x = Math.sin(t * 0.4) * 0.15;
+        wire.rotation.y -= dt * 0.8; wire.rotation.z += dt * 0.3;
+        ring.rotation.z += dt * 0.6;
+        var s = 1 + Math.sin(t * 2.2 * pulse) * 0.05 * pulse;
+        orb.scale.setScalar(orb.scale.x + (s - orb.scale.x) * 0.12);
+        core.material.emissive.lerp(targetColor, 0.06);
+        core.material.emissiveIntensity += (targetEmissive - core.material.emissiveIntensity) * 0.08;
+        pl.color.lerp(targetColor, 0.06);
+        renderer.render(scene, cam);
+      })(last);
+    } catch (e) {}
+  }
+  if (document.readyState === 'loading') addEventListener('DOMContentLoaded', go); else go();
 })();
 </script>
 

@@ -2,61 +2,158 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Color Match Rush</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
-  body{min-height:100vh;background:linear-gradient(135deg,#0f172a,#1e293b);color:#fff;font-family:system-ui,-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;padding:16px}
-  .card{width:min(480px,100%);background:#0b1120;border:1px solid rgba(255,255,255,.12);border-radius:24px;padding:24px;display:flex;flex-direction:column;gap:16px;box-shadow:0 24px 60px rgba(0,0,0,.55);text-align:center}
-  .hud{display:flex;justify-content:space-between;font-weight:800}
-  .pill{background:rgba(255,255,255,.07);padding:7px 14px;border-radius:999px}
-  .pill b{color:#38bdf8}
-  .word-box{height:170px;background:#111827;border-radius:18px;border:2px solid #1f2937;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}
-  .word{font-size:3.4rem;font-weight:900;letter-spacing:.06em;text-transform:uppercase;user-select:none}
-  .sub{font-size:.86rem;color:#94a3b8}
+  html,body{height:100%}
+  body{
+    min-height:100vh;color:#fff;font-family:system-ui,-apple-system,sans-serif;
+    display:flex;align-items:center;justify-content:center;padding:14px;
+    background:
+      radial-gradient(900px 620px at 50% -10%, rgba(37,99,235,.35), transparent 60%),
+      radial-gradient(700px 500px at 92% 110%, rgba(99,102,241,.3), transparent 60%),
+      #0f172a;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .card{
+    position:relative;width:min(480px,100%);
+    background:rgba(11,17,32,.92);border:1px solid rgba(125,211,252,.2);
+    border-radius:24px;padding:22px;display:flex;flex-direction:column;gap:14px;
+    box-shadow:0 24px 60px rgba(0,0,0,.55),0 0 60px -18px rgba(56,189,248,.3);
+    text-align:center;backdrop-filter:blur(8px);
+  }
+  .hud{display:flex;justify-content:space-between;gap:8px}
+  .pill{
+    background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
+    padding:7px 13px;border-radius:999px;font-weight:800;font-size:.85rem;
+  }
+  .pill .lab{font-size:.56rem;letter-spacing:.14em;color:#7f93b8;display:block;text-transform:uppercase}
+  .pill b{color:#38bdf8;font-variant-numeric:tabular-nums;text-shadow:0 0 10px rgba(56,189,248,.5)}
+  .pill .cm{color:#fdba74;text-shadow:0 0 10px rgba(253,186,116,.5)}
+  .pill .tm{color:#fda4af;text-shadow:0 0 10px rgba(253,164,175,.5)}
+  .pill .bb{color:#fde047;text-shadow:0 0 10px rgba(253,224,71,.5)}
+  .word-box{
+    position:relative;height:180px;border-radius:18px;overflow:hidden;
+    background:radial-gradient(ellipse at 50% 30%, #1a2340, #0d1326 75%);
+    border:1px solid rgba(255,255,255,.12);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+    transition:box-shadow .15s;
+  }
+  .word-box.good{box-shadow:0 0 0 3px rgba(74,222,128,.7),0 0 40px rgba(74,222,128,.4)}
+  .word-box.bad{box-shadow:0 0 0 3px rgba(248,113,113,.7),0 0 40px rgba(248,113,113,.4)}
+  .word{
+    font-size:clamp(2.6rem,11vw,3.6rem);font-weight:900;letter-spacing:.06em;
+    text-transform:uppercase;user-select:none;line-height:1;
+    text-shadow:0 0 24px currentColor;
+    transition:transform .12s;
+  }
+  .word.pop{animation:pop .22s cubic-bezier(.3,1.6,.5,1)}
+  @keyframes pop{0%{transform:scale(.4);opacity:0}100%{transform:scale(1);opacity:1}}
+  .sub{font-size:.86rem;color:#94a3b8;min-height:1.2em;font-weight:600}
+  .timerbar{height:6px;background:rgba(255,255,255,.08);border-radius:99px;overflow:hidden}
+  .timerbar i{display:block;height:100%;width:100%;border-radius:99px;background:linear-gradient(90deg,#38bdf8,#818cf8);transition:width .3s linear}
   .btns{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-  button{padding:15px;border:none;border-radius:14px;font-weight:900;font-size:1.1rem;cursor:pointer;transition:.12s}
-  button:active{transform:scale(.96)}
-  .yes{background:#22c55e;color:#052e16}
-  .no{background:#ef4444;color:#450a0a}
-  .start{background:linear-gradient(135deg,#38bdf8,#818cf8);color:#0f172a}
+  .btns button{
+    padding:17px;border:none;border-radius:15px;font-weight:900;font-size:1.05rem;
+    cursor:pointer;font-family:inherit;transition:transform .1s;
+    display:flex;flex-direction:column;align-items:center;gap:4px;
+  }
+  .btns button small{font-size:.62rem;font-weight:800;letter-spacing:.12em;opacity:.75}
+  .btns button:active{transform:scale(.96)}
+  .yes{background:linear-gradient(135deg,#4ade80,#16a34a);color:#052e16;box-shadow:0 10px 26px -8px rgba(74,222,128,.5)}
+  .no{background:linear-gradient(135deg,#f87171,#dc2626);color:#450a0a;box-shadow:0 10px 26px -8px rgba(248,113,113,.5)}
+  .ov{
+    position:absolute;inset:0;border-radius:24px;z-index:5;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    text-align:center;padding:22px;gap:14px;
+    background:radial-gradient(ellipse at 50% 40%, rgba(30,45,90,.6), rgba(9,13,26,.95) 75%);
+    backdrop-filter:blur(5px);transition:opacity .3s,visibility .3s;
+  }
+  .ov.hidden{opacity:0;visibility:hidden;pointer-events:none}
+  .title{
+    font-size:clamp(1.9rem,7.5vw,2.8rem);font-weight:900;letter-spacing:.04em;line-height:1;
+    background:linear-gradient(180deg,#fff,#7dd3fc 45%,#818cf8);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 0 22px rgba(96,165,250,.5));
+  }
+  .ov p{color:#b9c6e4;max-width:330px;font-size:.92rem;line-height:1.55}
+  .statline{display:flex;gap:18px;font-weight:800;font-size:1.02rem}
+  .statline b{color:#fde047}
+  .btn{
+    padding:13px 36px;border:none;border-radius:999px;cursor:pointer;font-family:inherit;
+    background:linear-gradient(135deg,#38bdf8,#818cf8);color:#0a0f1e;
+    font-weight:900;font-size:1rem;letter-spacing:.05em;
+    box-shadow:0 12px 30px -8px rgba(56,189,248,.6),inset 0 1px 0 rgba(255,255,255,.5);
+    transition:transform .12s;
+  }
+  .btn:active{transform:scale(.96)}
+  .hint{font-size:.75rem;color:#5f7299;font-weight:600}
 </style>
 </head>
 <body>
 <div class="card">
   <div class="hud">
-    <div class="pill">Score: <b id="score">0</b></div>
-    <div class="pill">Combo: <b id="combo">x1</b></div>
-    <div class="pill">Time: <b id="time">40s</b></div>
+    <div class="pill"><span class="lab">Score</span><b id="score">0</b></div>
+    <div class="pill"><span class="lab">Combo</span><b class="cm" id="combo">x1</b></div>
+    <div class="pill"><span class="lab">Best</span><b class="bb" id="best">0</b></div>
+    <div class="pill"><span class="lab">Time</span><b class="tm" id="time">40s</b></div>
   </div>
-  <div class="word-box">
+  <div class="word-box" id="wordBox">
     <div class="word" id="word" style="color:#38bdf8">READY</div>
     <div class="sub" id="sub">Does the WORD match its INK COLOR?</div>
+    <div class="timerbar" style="width:70%"><i id="tbar"></i></div>
   </div>
   <div class="btns" id="playBtns" style="display:none">
-    <button class="no" id="noBtn">✕ NO MATCH (◀)</button>
-    <button class="yes" id="yesBtn">✓ MATCH (▶)</button>
+    <button class="no" id="noBtn">NO MATCH<small>LEFT / SWIPE LEFT</small></button>
+    <button class="yes" id="yesBtn">MATCH<small>RIGHT / SWIPE RIGHT</small></button>
   </div>
-  <button class="start" id="startBtn">Start 40s Rush</button>
+  <div class="ov" id="ov">
+    <h1 class="title" id="ovT">COLOR MATCH<br>RUSH</h1>
+    <p id="ovP">A color word appears — does the <b>ink</b> match the word? Trust your eyes, not your brain. 40 seconds, build streaks for bigger multipliers!</p>
+    <div class="statline" id="ovStats" style="display:none"></div>
+    <button class="btn" id="startBtn">START RUSH</button>
+    <div class="hint">Swipe or tap a side · Arrow keys on desktop</div>
+  </div>
 </div>
 <script>
 (() => {
   const PALETTE = [
-    { name: 'RED',    hex: '#ef4444' },
-    { name: 'BLUE',   hex: '#3b82f6' },
-    { name: 'GREEN',  hex: '#22c55e' },
-    { name: 'YELLOW', hex: '#facc15' },
-    { name: 'PURPLE', hex: '#c084fc' }
+    { name:'RED',    hex:'#f87171' },
+    { name:'BLUE',   hex:'#60a5fa' },
+    { name:'GREEN',  hex:'#4ade80' },
+    { name:'YELLOW', hex:'#fde047' },
+    { name:'PURPLE', hex:'#c084fc' }
   ];
-  const scoreEl = document.getElementById('score'), comboEl = document.getElementById('combo'), timeEl = document.getElementById('time');
-  const wordEl = document.getElementById('word'), subEl = document.getElementById('sub');
-  const playBtns = document.getElementById('playBtns'), startBtn = document.getElementById('startBtn');
+  const scoreEl = document.getElementById('score'), comboEl = document.getElementById('combo'), timeEl = document.getElementById('time'), bestEl = document.getElementById('best'), tbar = document.getElementById('tbar');
+  const wordEl = document.getElementById('word'), subEl = document.getElementById('sub'), wordBox = document.getElementById('wordBox');
+  const playBtns = document.getElementById('playBtns');
+  const ov = document.getElementById('ov'), ovT = document.getElementById('ovT'), ovP = document.getElementById('ovP'), ovStats = document.getElementById('ovStats'), startBtn = document.getElementById('startBtn');
 
-  let playing = false, score = 0, streak = 0, timeLeft = 40, isMatch = false, timer = null;
+  let ac = null;
+  const audio = () => { const A = window.AudioContext || window.webkitAudioContext; if (!ac && A) ac = new A(); if (ac && ac.state === 'suspended') ac.resume().catch(()=>{}); return ac; };
+  const sfxOn = () => localStorage.getItem('aaa_sfx') !== '0';
+  function tone(f, d, type='sine', vol=0.06, slide=null){
+    if (!sfxOn()) return; const x = audio(); if (!x) return;
+    try {
+      const t = x.currentTime, o = x.createOscillator(), g = x.createGain();
+      o.type = type; o.frequency.setValueAtTime(f, t);
+      if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, slide), t + d);
+      g.gain.setValueAtTime(0.001, t); g.gain.linearRampToValueAtTime(vol, t + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.0006, t + d);
+      o.connect(g); g.connect(x.destination); o.start(t); o.stop(t + d + 0.03);
+    } catch {}
+  }
+
+  let best = Number(localStorage.getItem('stroop_best') || 0);
+  bestEl.textContent = best;
+  let playing = false, score = 0, streak = 0, maxStreak = 0, answers = 0, timeLeft = 40, isMatch = false, timer = null, flashT = null;
 
   function nextPrompt() {
+    // difficulty: later prompts mismatch more often (harder reads)
+    const hard = answers > 15;
     const w = PALETTE[Math.floor(Math.random()*PALETTE.length)];
-    isMatch = Math.random() < 0.5;
+    isMatch = Math.random() < (hard ? .4 : .5);
     let c = w;
     if (!isMatch) {
       const others = PALETTE.filter(x => x.name !== w.name);
@@ -64,57 +161,87 @@
     }
     wordEl.textContent = w.name;
     wordEl.style.color = c.hex;
+    wordEl.classList.remove('pop');
+    void wordEl.offsetWidth;
+    wordEl.classList.add('pop');
   }
 
   function start() {
-    playing = true; score = 0; streak = 0; timeLeft = 40;
+    playing = true; score = 0; streak = 0; maxStreak = 0; answers = 0; timeLeft = 40;
     scoreEl.textContent = '0'; comboEl.textContent = 'x1'; timeEl.textContent = '40s';
-    startBtn.style.display = 'none';
+    tbar.style.width = '100%';
     playBtns.style.display = 'grid';
+    ov.classList.add('hidden');
     subEl.textContent = 'Does the WORD match its INK COLOR?';
     nextPrompt();
+    audio();
     clearInterval(timer);
     timer = setInterval(() => {
       timeLeft--;
       timeEl.textContent = timeLeft + 's';
+      tbar.style.width = (timeLeft / 40 * 100) + '%';
+      if (timeLeft <= 5 && timeLeft > 0) tone(440, .07, 'square', .04);
       if (timeLeft <= 0) {
         clearInterval(timer);
         playing = false;
         playBtns.style.display = 'none';
-        startBtn.style.display = 'block';
-        startBtn.textContent = 'Play Again';
-        wordEl.textContent = 'DONE!';
-        wordEl.style.color = '#38bdf8';
-        subEl.textContent = `Final Score: ${score}!`;
+        const isRec = score > best;
+        if (isRec) { best = score; localStorage.setItem('stroop_best', String(best)); bestEl.textContent = best; }
+        ovT.textContent = 'TIME UP!';
+        ovP.innerHTML = isRec ? 'A new personal best!' : 'Reflexes logged.';
+        ovStats.style.display = 'flex';
+        ovStats.innerHTML = `<div>Score <b>${score}</b></div><div>Max Streak <b>${maxStreak}</b></div><div>Best <b>${best}</b></div>`;
+        startBtn.textContent = 'PLAY AGAIN';
+        ov.classList.remove('hidden');
+        tone(320, .5, 'sine', .09, 80);
       }
     }, 1000);
   }
 
   function answer(choice) {
     if (!playing) return;
+    answers++;
+    clearTimeout(flashT);
     if (choice === isMatch) {
       streak++;
+      maxStreak = Math.max(maxStreak, streak);
       const mult = Math.min(5, 1 + Math.floor(streak / 4));
       score += 10 * mult;
       comboEl.textContent = 'x' + mult;
-      subEl.textContent = 'Nice! +' + (10 * mult);
+      subEl.textContent = '+' + (10 * mult) + ' · streak ' + streak;
+      wordBox.classList.remove('bad'); wordBox.classList.add('good');
+      tone(620 + mult * 60, .09, 'triangle', .06, 820);
     } else {
       streak = 0;
       score = Math.max(0, score - 5);
       comboEl.textContent = 'x1';
-      subEl.textContent = 'Wrong! -5';
+      subEl.textContent = 'Wrong! −5';
+      wordBox.classList.remove('good'); wordBox.classList.add('bad');
+      tone(190, .14, 'sawtooth', .07, 120);
     }
+    flashT = setTimeout(() => wordBox.classList.remove('good', 'bad'), 190);
     scoreEl.textContent = score;
     nextPrompt();
   }
 
   document.getElementById('yesBtn').onclick = () => answer(true);
   document.getElementById('noBtn').onclick = () => answer(false);
-  startBtn.onclick = start;
+  startBtn.onclick = () => { ovStats.style.display = 'none'; start(); };
   window.addEventListener('keydown', e => {
+    if (e.code === 'Enter' && !playing) { startBtn.click(); return; }
     if (!playing) return;
     if (e.code === 'ArrowRight' || e.code === 'KeyD') answer(true);
     if (e.code === 'ArrowLeft' || e.code === 'KeyA') answer(false);
+  });
+  // swipe left/right = no match / match
+  let swipeX = null;
+  const card = document.querySelector('.card');
+  card.addEventListener('pointerdown', e => { swipeX = e.clientX; });
+  card.addEventListener('pointerup', e => {
+    if (swipeX === null || !playing) return;
+    const dx = e.clientX - swipeX;
+    if (Math.abs(dx) > 45) answer(dx > 0);
+    swipeX = null;
   });
 })();
 </script>

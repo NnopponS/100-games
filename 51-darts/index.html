@@ -2,12 +2,16 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Darts — 301</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  html,body{touch-action:none;overscroll-behavior:none;-webkit-user-select:none;user-select:none}
   body {
-    background: #14171c;
+    background:
+      radial-gradient(1100px 700px at 50% -10%, rgba(224,83,61,.10), transparent 60%),
+      radial-gradient(900px 620px at 85% 110%, rgba(46,125,70,.12), transparent 60%),
+      radial-gradient(circle at 50% 42%, #1d2129 0%, #0d0f13 78%);
     color: #e8e6df;
     font-family: "Segoe UI", system-ui, sans-serif;
     min-height: 100vh;
@@ -30,24 +34,33 @@
     display: block;
     max-width: min(92vw, 560px);
     height: auto;
+    touch-action: none;
+    box-shadow: 0 24px 60px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.06);
   }
   .panel {
     width: 250px;
-    background: #1c2027;
-    border: 1px solid #2c313a;
-    border-radius: 12px;
+    background: linear-gradient(180deg, rgba(38,43,54,.92), rgba(22,25,32,.94));
+    border: 1px solid rgba(255,255,255,.10);
+    border-radius: 14px;
     padding: 18px;
     display: flex;
     flex-direction: column;
     gap: 14px;
+    box-shadow: 0 18px 50px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.07);
+    backdrop-filter: blur(8px);
   }
-  h1 { font-size: 20px; letter-spacing: 2px; }
-  h1 span { color: #e0533d; }
+  h1 { font-size: 20px; letter-spacing: 3px; font-weight: 800; }
+  h1 span {
+    color: #e0533d;
+    text-shadow: 0 0 16px rgba(224,83,61,.6);
+  }
   .score-big {
     font-size: 46px;
-    font-weight: 700;
+    font-weight: 800;
     line-height: 1;
     color: #ffd75e;
+    text-shadow: 0 0 22px rgba(255,215,94,.4), 0 2px 0 rgba(0,0,0,.4);
+    font-variant-numeric: tabular-nums;
   }
   .label { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #8b919c; }
   .darts { display: flex; gap: 8px; }
@@ -60,7 +73,7 @@
     font-size: 16px;
     transition: all .15s;
   }
-  .dart-pip.used { background: #e0533d; border-color: #e0533d; }
+  .dart-pip.used { background: linear-gradient(160deg,#f0644d,#c33a2b); border-color: #f0644d; box-shadow: 0 0 12px rgba(224,83,61,.5); }
   #log {
     font-size: 13px;
     line-height: 1.5;
@@ -78,17 +91,20 @@
     font-weight: 600;
   }
   button {
-    background: #e0533d;
+    background: linear-gradient(160deg, #f0644d, #c33a2b);
     color: #fff;
     border: none;
     border-radius: 8px;
     padding: 10px 14px;
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 700;
     cursor: pointer;
     letter-spacing: .5px;
+    box-shadow: 0 6px 18px rgba(224,83,61,.3), inset 0 1px 0 rgba(255,255,255,.2);
+    transition: transform .12s, box-shadow .12s, filter .12s;
   }
-  button:hover { background: #f0644d; }
+  button:hover { filter: brightness(1.12); transform: translateY(-1px); box-shadow: 0 8px 24px rgba(224,83,61,.45), inset 0 1px 0 rgba(255,255,255,.2); }
+  button:active { transform: translateY(1px); }
   .opt { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #b8bdc7; cursor: pointer; }
   .hint { font-size: 12px; color: #6d747f; }
   kbd {
@@ -104,14 +120,14 @@
     <h1>DARTS <span>301</span></h1>
     <div>
       <div class="label">Score remaining</div>
-      <div class="score-big" id="score">301</div>
+      <div class="score-big" id="remaining">301</div>
     </div>
     <div>
       <div class="label">Darts this turn</div>
       <div class="darts" id="darts">
-        <div class="dart-pip">&#10112;</div>
-        <div class="dart-pip">&#10113;</div>
-        <div class="dart-pip">&#10114;</div>
+        <div class="dart-pip">1</div>
+        <div class="dart-pip">2</div>
+        <div class="dart-pip">3</div>
       </div>
     </div>
     <div id="msg">Aim with the moving reticle — click or press <kbd>Space</kbd> to throw.</div>
@@ -131,7 +147,26 @@
   // Ring boundaries as fraction of R
   const BULL_IN = 0.065, BULL_OUT = 0.16, TRIP_IN = 0.47, TRIP_OUT = 0.55, DBL_IN = 0.93;
 
-  const scoreEl = document.getElementById('score');
+  // ===== AAA audio kit (procedural; honors overlay prefs) =====
+  let AC=null;
+  function ac(){if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(AC&&AC.state==='suspended')AC.resume();return AC}
+  function sfxOn(){try{return localStorage.getItem('aaa_sfx')!=='0'}catch(e){return true}}
+  function bgmOn(){try{return localStorage.getItem('aaa_bgm')!=='0'}catch(e){return true}}
+  function tone(f,d,ty,v,sl,t){if(!sfxOn())return;const c=ac();if(!c)return;try{const n=c.currentTime+(t||0),o=c.createOscillator(),g=c.createGain();o.type=ty||'sine';o.frequency.setValueAtTime(f,n);if(sl)o.frequency.exponentialRampToValueAtTime(Math.max(30,sl),n+d);g.gain.setValueAtTime(.0008,n);g.gain.linearRampToValueAtTime(v||.08,n+.012);g.gain.exponentialRampToValueAtTime(.0006,n+d);o.connect(g);g.connect(c.destination);o.start(n);o.stop(n+d+.05)}catch(e){}}
+  function nz(d,v,f,q,ty,t){if(!sfxOn())return;const c=ac();if(!c)return;try{const n=c.currentTime+(t||0),L=Math.ceil(c.sampleRate*d),b=c.createBuffer(1,L,c.sampleRate),dd=b.getChannelData(0);for(let i=0;i<L;i++)dd[i]=(Math.random()*2-1)*(1-i/L);const s=c.createBufferSource();s.buffer=b;const fl=c.createBiquadFilter();fl.type=ty||'bandpass';fl.frequency.value=f||1400;fl.Q.value=q||.8;const g=c.createGain();g.gain.setValueAtTime(v||.1,n);g.gain.exponentialRampToValueAtTime(.0006,n+d);s.connect(fl);fl.connect(g);g.connect(c.destination);s.start(n)}catch(e){}}
+  function mtone(f,d,ty,v,sl,t){const c=ac();if(!c)return;try{const n=c.currentTime+(t||0),o=c.createOscillator(),g=c.createGain();o.type=ty||'sine';o.frequency.setValueAtTime(f,n);if(sl)o.frequency.exponentialRampToValueAtTime(Math.max(30,sl),n+d);g.gain.setValueAtTime(.0008,n);g.gain.linearRampToValueAtTime(v||.05,n+.02);g.gain.exponentialRampToValueAtTime(.0006,n+d);o.connect(g);g.connect(c.destination);o.start(n);o.stop(n+d+.05)}catch(e){}}
+  function stinger(w){(w?[523,659,784,1047]:[392,349,311,262]).forEach(function(f,i){(w?mtone:tone)(f,w?.2:.24,w?'triangle':'sawtooth',w?.09:.05,null,i*(w?.1:.12))})}
+  // pub-room groove
+  let bgmI=0,bgmNext=-1;const BSTEP=60/100/2;const BASS=[55,55,65.41,73.42],ARP=[220,261.63,329.63,392];
+  setInterval(()=>{if(!bgmOn()){bgmNext=-1;return}const c=ac();if(!c||c.state!=='running')return;if(bgmNext<0)bgmNext=c.currentTime+.06;const a=c.currentTime+.32;while(bgmNext<a){const s=bgmI%16,t=bgmNext;
+    if(s===0||s===8)mtone(110,.16,'sine',.12,48,t);
+    if(s%2===0)mtone(BASS[(bgmI>>1)%4]*.5,.26,'triangle',.04,null,t);
+    if(s%4===0)mtone(ARP[(bgmI>>2)%4],.16,'sine',.018,null,t);
+    bgmNext+=BSTEP;bgmI++}},80);
+  let shakeT=0,puffs=[],popups=[],bestDarts=0;
+  try{bestDarts=+localStorage.getItem('darts_best')||0}catch(e){}
+
+  const scoreEl = document.getElementById('remaining');
   const logEl = document.getElementById('log');
   const msgEl = document.getElementById('msg');
   const pips = document.querySelectorAll('.dart-pip');
@@ -292,6 +327,7 @@
     const tx = p.x + (Math.random() + Math.random() + Math.random() - 1.5) * spread;
     const ty = p.y + (Math.random() + Math.random() + Math.random() - 1.5) * spread;
     flying = { sx: CX, sy: W + 40, tx, ty, t: 0, dur: 16 };
+    nz(.18,.09,1500,1.2); tone(320,.08,'sine',.04,600);
   }
 
   function landDart(f) {
@@ -309,15 +345,32 @@
 
     log(`${res.label} — ${res.pts}`);
 
+    // impact feedback
+    if (res.pts > 0) {
+      nz(.07,.16,2400,2); tone(180+res.pts*4,.07,'triangle',.09);
+      if (res.pts >= 40) { shakeT = 10; nz(.12,.12,700,1,'lowpass'); }
+      if (res.pts === 50) { tone(880,.16,'sine',.08,null,.05); tone(1174,.2,'sine',.07,null,.13); if (window.AAA) AAA.flash(0.16); }
+      popups.push({x:f.tx,y:f.ty-14,txt:res.label==='BULL 50'?'BULLSEYE!':res.label,t:0});
+      for(let i=0;i<7;i++)puffs.push({x:f.tx,y:f.ty,vx:(Math.random()-.5)*120,vy:(Math.random()-.5)*120,t:0});
+    } else {
+      nz(.15,.1,300,.8,'lowpass'); tone(120,.15,'triangle',.05);
+      popups.push({x:f.tx,y:f.ty-14,txt:'MISS',t:0});
+    }
+
     if (bust) {
       score = turnStart;
       logEl.innerHTML += `<div class="bust">BUST! Back to ${turnStart}.</div>`;
       msgEl.textContent = `Bust on ${res.label}. Score stays ${turnStart}.`;
+      [392,330,262].forEach((f,i)=>tone(f,.18,'sawtooth',.05,null,i*.1));
       endTurn();
     } else if (win) {
       score = 0; gameOver = true;
-      logEl.innerHTML += `<div class="win">CHECKOUT on ${res.label}!</div>`;
-      msgEl.textContent = `You win in ${totalDarts} darts! Hit Restart to play again.`;
+      const nb=!bestDarts||totalDarts<bestDarts;
+      if(nb){bestDarts=totalDarts;try{localStorage.setItem('darts_best',String(bestDarts))}catch(e){}}
+      logEl.innerHTML += `<div class="win">CHECKOUT on ${res.label}!${nb?' NEW BEST!':''}</div>`;
+      msgEl.textContent = `You win in ${totalDarts} darts${bestDarts?` (best ${bestDarts})`:''}! Hit Restart to play again.`;
+      stinger(true);
+      if (window.AAA) { AAA.flash(0.3); shakeT = 14; }
     } else {
       score = next;
       msgEl.textContent = `${res.label} scored ${res.pts}. ${dartsUsed}/3 darts thrown.`;
@@ -349,8 +402,7 @@
     const cy = (e.touches ? e.touches[0].clientY : e.clientY) - r.top;
     return { x: cx * W / r.width, y: cy * W / r.height };
   }
-  cv.addEventListener('click', throwDart);
-  cv.addEventListener('touchstart', e => { e.preventDefault(); throwDart(); }, { passive: false });
+  cv.addEventListener('pointerdown', e => { e.preventDefault(); throwDart(); });
   window.addEventListener('keydown', e => {
     if (e.code === 'Space') { e.preventDefault(); throwDart(); }
   });
@@ -359,8 +411,27 @@
   // ---- main loop ----
   function frame() {
     const t = performance.now() / 1000;
+    ctx.save();
+    if (shakeT > 0) { shakeT--; ctx.translate((Math.random()-.5)*shakeT*.8,(Math.random()-.5)*shakeT*.8); }
     drawBoard();
     marks.forEach(drawMark);
+    // cork puffs + score popups
+    for (let i = puffs.length - 1; i >= 0; i--) {
+      const p = puffs[i]; p.x += p.vx/60; p.y += p.vy/60; p.vy += 60/60; p.t++;
+      if (p.t > 30) { puffs.splice(i,1); continue; }
+      ctx.globalAlpha = 1 - p.t/30; ctx.fillStyle = '#c9b89a';
+      ctx.beginPath(); ctx.arc(p.x,p.y,2,0,7); ctx.fill(); ctx.globalAlpha=1;
+    }
+    for (let i = popups.length - 1; i >= 0; i--) {
+      const p = popups[i]; p.t++;
+      if (p.t > 55) { popups.splice(i,1); continue; }
+      ctx.globalAlpha = Math.max(0,1-p.t/55);
+      ctx.font='bold 19px "Segoe UI"'; ctx.textAlign='center';
+      ctx.strokeStyle='rgba(0,0,0,.7)';ctx.lineWidth=4;
+      ctx.strokeText(p.txt,p.x,p.y-p.t*.7);
+      ctx.fillStyle='#ffd75e';ctx.fillText(p.txt,p.x,p.y-p.t*.7);
+      ctx.globalAlpha=1;
+    }
     if (flying) {
       flying.t++;
       drawFlying(flying);
@@ -370,6 +441,7 @@
       }
     }
     if (!gameOver) drawReticle(reticlePos(t), t);
+    ctx.restore();
     requestAnimationFrame(frame);
   }
 

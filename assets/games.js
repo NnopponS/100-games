@@ -1081,7 +1081,7 @@ window.GAMES_DATA = [
   {
     "id": 84,
     "dir": "84-emoji-match",
-    "title": "Emoji Match",
+    "title": "Symbol Match",
     "cat": "brain",
     "motif": "cards",
     "c1": "#ec4899",

@@ -5,13 +5,14 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
 <title>Archery</title>
 <style>
-  html,body{margin:0;padding:0;height:100%;background:#101723;display:flex;align-items:center;justify-content:center;font-family:'Segoe UI',system-ui,sans-serif;overflow:hidden}
-  #wrap{width:min(96vw,170vh)}
+  html,body{margin:0;padding:0;height:100%;background:#101723;display:flex;align-items:center;justify-content:center;font-family:'Segoe UI',system-ui,sans-serif;overflow:hidden;touch-action:none;overscroll-behavior:none;user-select:none;-webkit-user-select:none}
+  #wrap{width:min(96vw,170vh);position:relative}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
   canvas{width:100%;display:block;border-radius:12px;box-shadow:0 18px 60px rgba(0,0,0,.5);touch-action:none;cursor:crosshair}
 </style>
 </head>
 <body>
-<div id="wrap"><canvas id="c" width="960" height="540"></canvas></div>
+<div id="wrap"><canvas id="c" width="960" height="540"></canvas><div id="aaa-score" class="sr">0</div></div>
 <script>
 'use strict';
 const cv = document.getElementById('c'), ctx = cv.getContext('2d');
@@ -24,6 +25,7 @@ const RINGW = TG.r / 10;
 let phase, wind, windAcc, arrowsLeft, total, marks, arrow, power, drawT0, lastShot, floats, clouds, restartBtn, now = 0;
 let aim = { x: 620, y: 300 };
 let AC = null;
+const trail = [];
 
 function newWind(){ const w = (Math.random() < .5 ? -1 : 1) * (2.5 + Math.random() * 6.5); return Math.round(w * 2) / 2; }
 
@@ -34,17 +36,33 @@ function reset(){
   clouds = [{x:140,y:82,s:1},{x:430,y:58,s:.7},{x:690,y:112,s:1.25}];
 }
 
+function sfxOn(){try{return localStorage.getItem('aaa_sfx')!=='0'}catch(e){return true}}
+function bgmOn(){try{return localStorage.getItem('aaa_bgm')!=='0'}catch(e){return true}}
+function ac(){if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(AC&&AC.state==='suspended')AC.resume();return AC}
 function tone(f, d, type, g){
+  if(!sfxOn())return;
   try{
-    AC = AC || new (window.AudioContext || window.webkitAudioContext)();
-    const o = AC.createOscillator(), v = AC.createGain();
+    const c = ac(); if(!c)return;
+    const o = c.createOscillator(), v = c.createGain();
     o.type = type || 'triangle'; o.frequency.value = f;
-    v.gain.setValueAtTime(g || .15, AC.currentTime);
-    v.gain.exponentialRampToValueAtTime(.001, AC.currentTime + d);
-    o.connect(v); v.connect(AC.destination);
-    o.start(); o.stop(AC.currentTime + d);
+    v.gain.setValueAtTime(g || .15, c.currentTime);
+    v.gain.exponentialRampToValueAtTime(.001, c.currentTime + d);
+    o.connect(v); v.connect(c.destination);
+    o.start(); o.stop(c.currentTime + d);
   }catch(e){}
 }
+function nz(d,v,f,q,ty,t){if(!sfxOn())return;const c=ac();if(!c)return;try{const n=c.currentTime+(t||0),L=Math.ceil(c.sampleRate*d),b=c.createBuffer(1,L,c.sampleRate),dd=b.getChannelData(0);for(let i=0;i<L;i++)dd[i]=(Math.random()*2-1)*(1-i/L);const s=c.createBufferSource();s.buffer=b;const fl=c.createBiquadFilter();fl.type=ty||'bandpass';fl.frequency.value=f||1400;fl.Q.value=q||.8;const g=c.createGain();g.gain.setValueAtTime(v||.1,n);g.gain.exponentialRampToValueAtTime(.0006,n+d);s.connect(fl);fl.connect(g);g.connect(c.destination);s.start(n)}catch(e){}}
+function mtone(f,d,ty,v,sl,t){const c=ac();if(!c)return;try{const n=c.currentTime+(t||0),o=c.createOscillator(),g=c.createGain();o.type=ty||'sine';o.frequency.setValueAtTime(f,n);if(sl)o.frequency.exponentialRampToValueAtTime(Math.max(30,sl),n+d);g.gain.setValueAtTime(.0008,n);g.gain.linearRampToValueAtTime(v||.05,n+.02);g.gain.exponentialRampToValueAtTime(.0006,n+d);o.connect(g);g.connect(c.destination);o.start(n);o.stop(n+d+.05)}catch(e){}}
+function stinger(w){(w?[523,659,784,1047]:[392,349,311,262]).forEach((f,i)=>setTimeout(()=>{if(w){mtone(f,.2,'triangle',.09)}else{tone(f*.6,.24,'sawtooth',.05)}},i*(w?100:120)))}
+// field ambient: soft pads + occasional birdsong chirps
+let bgmI=0,bgmNext=-1;const BSTEP=60/84/2;const ROOTS=[110,98,87.31,73.42];
+setInterval(()=>{if(!bgmOn()){bgmNext=-1;return}const c=ac();if(!c||c.state!=='running')return;if(bgmNext<0)bgmNext=c.currentTime+.06;const a=c.currentTime+.32;while(bgmNext<a){const s=bgmI%16,t=bgmNext,R=ROOTS[(bgmI>>4)%4];
+  if(s===0){mtone(R,3,'sine',.03,null,t);mtone(R*1.5,3,'sine',.018,null,t);mtone(R*2.003,3,'sine',.012,null,t)}
+  if(s===6&&Math.random()<.4)mtone(1800+Math.random()*900,.12,'sine',.014,2400+Math.random()*800,t);
+  if(s===13&&Math.random()<.25)mtone(2200+Math.random()*800,.09,'sine',.012,1600,t);
+  bgmNext+=BSTEP;bgmI++}},80);
+const scoreChip=document.getElementById('aaa-score');
+let best=0;try{best=+localStorage.getItem('archery_best')||0}catch(e){}
 
 function line(x1, y1, x2, y2){ ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); }
 
@@ -74,6 +92,8 @@ function release(){
             vx: Math.cos(a) * sp, vy: Math.sin(a) * sp };
   phase = 'fly';
   tone(160 + power * 160, 0.12, 'triangle', 0.25);
+  nz(.16,.1,1100,1,'bandpass');
+  trail.length = 0;
 }
 
 function scoreShot(s, fx, fy){
@@ -82,14 +102,22 @@ function scoreShot(s, fx, fy){
     total += s;
     floats.push({ x: fx, y: fy, txt: '+' + s, col: s >= 9 ? '#ffd23a' : s >= 6 ? '#ff8a4b' : '#fff', t0: now });
     tone(140, 0.15, 'square', 0.18);
-    if(s >= 9) tone(880, 0.25, 'sine', 0.15);
+    if(s >= 9) { tone(880, 0.25, 'sine', 0.15); stinger(true); }
+    else nz(.1,.12,300,1,'lowpass');
   }else{
     floats.push({ x: fx, y: fy, txt: 'MISS', col: '#ff6b6b', t0: now });
     tone(90, 0.2, 'sawtooth', 0.12);
+    nz(.18,.1,240,.9,'lowpass');
   }
+  if(scoreChip)scoreChip.textContent=total;
   arrow = null;
   if(arrowsLeft > 0){ wind = newWind(); windAcc = wind * 26; phase = 'ready'; }
-  else phase = 'over';
+  else {
+    phase = 'over';
+    const nb = total > best;
+    if(nb){best=total;try{localStorage.setItem('archery_best',String(best))}catch(e){}}
+    stinger(nb);
+  }
 }
 
 function update(dt){
@@ -109,6 +137,8 @@ function update(dt){
     const px = arrow.x, py = arrow.y;
     arrow.x += arrow.vx * dt;
     arrow.y += arrow.vy * dt;
+    trail.push({ x: arrow.x, y: arrow.y });
+    if (trail.length > 26) trail.shift();
 
     if(px < TG.x && arrow.x >= TG.x){
       const f = (TG.x - px) / (arrow.x - px);
@@ -217,6 +247,14 @@ function drawPower(){
 
 function drawArrow(){
   if(!arrow) return;
+  // dashed flight trail
+  ctx.fillStyle = 'rgba(120,140,170,.4)';
+  for(let i = 0; i < trail.length; i += 2){
+    const p = trail[i], a = i / trail.length;
+    ctx.globalAlpha = a * .5;
+    ctx.beginPath(); ctx.arc(p.x, p.y, 2.5, 0, 7); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
   ctx.save(); ctx.translate(arrow.x, arrow.y); ctx.rotate(Math.atan2(arrow.vy, arrow.vx));
   ctx.strokeStyle = '#e8e2d0'; ctx.lineWidth = 3;
   ctx.beginPath(); ctx.moveTo(-34, 0); ctx.lineTo(8, 0); ctx.stroke();
@@ -300,6 +338,8 @@ function drawOver(){
   ctx.fillText(total + ' pts', W / 2, H / 2 - 14);
   ctx.fillStyle = '#9fc3e8'; ctx.font = '16px sans-serif';
   ctx.fillText(rating(), W / 2, H / 2 + 16);
+  ctx.fillStyle = '#8fd3ff'; ctx.font = '13px sans-serif';
+  ctx.fillText('best ' + best + ' pts', W / 2, H / 2 + 38);
   restartBtn = { x: W / 2 - 85, y: H / 2 + 46, w: 170, h: 46 };
   ctx.fillStyle = '#4caf6d';
   roundRect(restartBtn.x, restartBtn.y, restartBtn.w, restartBtn.h, 10); ctx.fill();
@@ -326,6 +366,25 @@ function render(){
 
   ctx.fillStyle = '#7fa64e'; ctx.fillRect(0, GROUND, W, H - GROUND);
   ctx.fillStyle = '#6a8c3f'; ctx.fillRect(0, GROUND, W, 5);
+
+  // grass tufts swaying with wind
+  ctx.strokeStyle = '#5d7f38'; ctx.lineWidth = 2; ctx.lineCap = 'round';
+  for(let gx = 20; gx < W; gx += 46){
+    const sway = Math.sin(now * .003 + gx) * (2 + wind * .5);
+    ctx.beginPath(); ctx.moveTo(gx, GROUND + 2);
+    ctx.quadraticCurveTo(gx + sway * .5, GROUND - 7, gx + sway, GROUND - 12);
+    ctx.stroke();
+  }
+
+  // wind ribbon on the target stand
+  const ribbon = 14 + Math.abs(wind) * 4, wdir = wind > 0 ? 1 : -1;
+  const flap = Math.sin(now * .02) * (2 + Math.abs(wind) * .8);
+  ctx.fillStyle = '#e0624f';
+  ctx.beginPath();
+  ctx.moveTo(TG.x - 4, TG.cy + TG.r - 4);
+  ctx.lineTo(TG.x - 4 + wdir * (ribbon + 18), TG.cy + TG.r - 4 + flap);
+  ctx.lineTo(TG.x - 4, TG.cy + TG.r + 6);
+  ctx.closePath(); ctx.fill();
 
   drawTarget();
   drawArcher();

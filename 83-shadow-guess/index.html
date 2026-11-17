@@ -2,122 +2,283 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Shadow Guess</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
-  body{min-height:100vh;background:linear-gradient(135deg,#1e1b4b,#311042);color:#fff;font-family:system-ui,-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;padding:14px}
-  .card{width:min(500px,100%);background:rgba(15,23,42,.92);border:1px solid rgba(255,255,255,.14);border-radius:22px;padding:24px;display:flex;flex-direction:column;gap:16px;box-shadow:0 24px 60px rgba(0,0,0,.5)}
-  .top{display:flex;justify-content:space-between;font-weight:800;font-size:.95rem}
-  .pill{background:rgba(255,255,255,.08);padding:6px 12px;border-radius:999px}
-  .pill b{color:#f472b6}
-  .stage{height:200px;background:radial-gradient(circle,#fde047 0%,#f59e0b 100%);border-radius:16px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
-  .stage svg{width:140px;height:140px;transition:filter .35s,transform .35s}
-  .stage.dark svg{filter:brightness(0)}
+  html,body{height:100%}
+  body{
+    min-height:100vh;color:#fff;font-family:system-ui,-apple-system,sans-serif;
+    display:flex;align-items:center;justify-content:center;padding:14px;
+    background:
+      radial-gradient(900px 600px at 50% -10%, rgba(88,28,135,.5), transparent 60%),
+      radial-gradient(700px 500px at 90% 110%, rgba(30,27,75,.6), transparent 60%),
+      #07060f;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .card{
+    width:min(500px,100%);background:rgba(14,13,30,.92);position:relative;
+    border:1px solid rgba(167,139,250,.22);border-radius:24px;padding:20px;
+    display:flex;flex-direction:column;gap:14px;
+    box-shadow:0 24px 60px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.06);
+  }
+  .top{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+  .pill{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);padding:7px 13px;border-radius:999px;font-weight:800;font-size:.85rem}
+  .pill .lab{font-size:.6rem;letter-spacing:.14em;color:#8f83b8;display:block;text-transform:uppercase}
+  .pill b{color:#f472b6;font-variant-numeric:tabular-nums;text-shadow:0 0 12px rgba(244,114,182,.5)}
+  .pill.best b{color:#fde047;text-shadow:0 0 12px rgba(253,224,71,.5)}
+  .stage{
+    height:210px;border-radius:18px;position:relative;overflow:hidden;
+    background:
+      radial-gradient(ellipse 70% 90% at 50% -20%, rgba(253,224,71,.28), transparent 60%),
+      linear-gradient(180deg,#17122e,#0c0a1c);
+    border:1px solid rgba(253,224,71,.18);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .stage::before{ /* spotlight cone */
+    content:'';position:absolute;left:50%;top:-14px;width:240px;height:280px;
+    transform:translateX(-50%);
+    background:linear-gradient(180deg,rgba(253,224,71,.16),rgba(253,224,71,.02) 70%,transparent);
+    clip-path:polygon(38% 0,62% 0,100% 100%,0 100%);
+    animation:sway 7s ease-in-out infinite alternate;
+  }
+  @keyframes sway{from{transform:translateX(-56%) rotate(-4deg)}to{transform:translateX(-44%) rotate(4deg)}}
+  .stage::after{ /* floor glow */
+    content:'';position:absolute;left:50%;bottom:8px;width:200px;height:26px;transform:translateX(-50%);
+    background:radial-gradient(ellipse,rgba(253,224,71,.22),transparent 70%);border-radius:50%;
+  }
+  .stage svg{width:128px;height:128px;z-index:1;transition:filter .4s,transform .4s;filter:brightness(0) drop-shadow(0 10px 14px rgba(0,0,0,.7));transform:scale(.96)}
+  .stage.reveal svg{filter:brightness(1) drop-shadow(0 10px 18px rgba(0,0,0,.55));transform:scale(1.05)}
+  .timer{position:absolute;top:10px;left:12px;right:12px;height:5px;background:rgba(255,255,255,.08);border-radius:99px;overflow:hidden;z-index:2}
+  .timer i{display:block;height:100%;width:100%;border-radius:99px;background:linear-gradient(90deg,#f472b6,#facc15);transition:width .1s linear}
   .choices{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-  .cbtn{padding:14px;border:1px solid rgba(255,255,255,.14);border-radius:12px;background:#1e293b;color:#fff;font-weight:800;font-size:1rem;cursor:pointer;transition:.15s}
-  .cbtn:hover:not(:disabled){background:#334155}
-  .cbtn.ok{background:#16a34a;border-color:#4ade80}
-  .cbtn.bad{background:#dc2626;border-color:#f87171}
-  .foot{display:flex;justify-content:space-between;align-items:center;color:#cbd5e1;font-size:.9rem}
-  .res{padding:9px 18px;border:none;border-radius:10px;background:#f472b6;color:#111827;font-weight:900;cursor:pointer}
+  .cbtn{
+    padding:14px 10px;border:1px solid rgba(255,255,255,.14);border-radius:14px;
+    background:#1a1832;color:#fff;font-weight:800;font-size:.98rem;cursor:pointer;
+    transition:transform .12s,background .15s,border-color .15s;font-family:inherit;
+    touch-action:manipulation;min-height:52px;
+  }
+  .cbtn:active{transform:scale(.96)}
+  .cbtn.ok{background:linear-gradient(135deg,#15803d,#16a34a);border-color:#4ade80;box-shadow:0 0 18px rgba(74,222,128,.4)}
+  .cbtn.bad{background:linear-gradient(135deg,#b91c1c,#dc2626);border-color:#f87171;animation:shakeX .3s}
+  @keyframes shakeX{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+  .dots{display:flex;gap:5px;justify-content:center}
+  .dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.14);transition:.2s}
+  .dot.done{background:#f472b6;box-shadow:0 0 8px rgba(244,114,182,.6)}
+  .foot{display:flex;justify-content:space-between;align-items:center;gap:10px;color:#a79cc8;font-size:.88rem;min-height:40px}
+  .res{padding:11px 22px;border:none;border-radius:999px;cursor:pointer;font-family:inherit;
+    background:linear-gradient(135deg,#f472b6,#a78bfa);color:#150a24;font-weight:900;letter-spacing:.04em;
+    box-shadow:0 8px 22px -6px rgba(244,114,182,.55);transition:transform .12s}
+  .res:active{transform:scale(.96)}
+  .ov{
+    position:absolute;inset:0;border-radius:24px;z-index:5;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
+    padding:24px;gap:14px;background:rgba(9,7,20,.94);backdrop-filter:blur(6px);
+    transition:opacity .3s,visibility .3s;
+  }
+  .ov.hidden{opacity:0;visibility:hidden;pointer-events:none}
+  .title{
+    font-size:clamp(2rem,8vw,2.8rem);font-weight:900;letter-spacing:.05em;line-height:1;
+    background:linear-gradient(180deg,#fff,#f0abfc 55%,#f472b6);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 0 22px rgba(244,114,182,.4));
+  }
+  .ov p{color:#c3b8e2;max-width:330px;font-size:.95rem;line-height:1.55}
+  .grade{font-size:3rem;font-weight:900;line-height:1;background:linear-gradient(135deg,#fde047,#fb923c);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 20px rgba(253,224,71,.4))}
+  .statline{display:flex;gap:20px;font-weight:800}
+  .statline b{color:#fde047}
+  .btn{
+    padding:13px 34px;border:none;border-radius:999px;cursor:pointer;font-family:inherit;
+    background:linear-gradient(135deg,#f472b6,#a78bfa);color:#170a24;
+    font-weight:900;font-size:1rem;letter-spacing:.05em;
+    box-shadow:0 12px 30px -8px rgba(244,114,182,.6),inset 0 1px 0 rgba(255,255,255,.5);
+    transition:transform .12s;
+  }
+  .btn:active{transform:scale(.96)}
+  .hint{font-size:.76rem;color:#6f6399;font-weight:600}
 </style>
 </head>
 <body>
 <div class="card">
   <div class="top">
-    <div class="pill">Score: <b id="score">0</b></div>
-    <div class="pill">Streak: <b id="streak">0</b></div>
-    <div class="pill">Round: <b id="round">1</b>/12</div>
+    <div class="pill"><span class="lab">Score</span><b id="score">0</b></div>
+    <div class="pill"><span class="lab">Streak</span><b id="streak">0</b></div>
+    <div class="pill best"><span class="lab">Best</span><b id="best">0</b></div>
   </div>
-  <div class="stage dark" id="stage"></div>
+  <div class="stage" id="stage">
+    <div class="timer"><i id="tfill"></i></div>
+    <div id="svgHost" style="z-index:1;display:flex"></div>
+  </div>
+  <div class="dots" id="dots"></div>
   <div class="choices" id="choices"></div>
   <div class="foot">
-    <span id="msg">Guess the object from its silhouette!</span>
+    <span id="msg">What's hiding in the spotlight?</span>
     <button class="res" id="resBtn">Restart</button>
+  </div>
+  <div class="ov" id="ov">
+    <h1 class="title">SHADOW<br>GUESS</h1>
+    <p id="ovP">Identify each silhouette before the spotlight fades. Fast answers earn time bonuses — streaks multiply your score!</p>
+    <div class="grade" id="ovGrade" style="display:none"></div>
+    <div class="statline" id="ovStats" style="display:none"></div>
+    <button class="btn" id="startBtn">START SHOW</button>
+    <div class="hint">Tap an answer · 12 rounds · wrong pick reveals the shadow</div>
   </div>
 </div>
 <script>
 (() => {
   const ITEMS = [
     { name:'Rocket', svg:'<path d="M50 8 C66 24 68 50 62 72 L38 72 C32 50 34 24 50 8Z" fill="#ef4444"/><circle cx="50" cy="40" r="9" fill="#38bdf8"/><path d="M38 56 L22 76 L38 70Z M62 56 L78 76 L62 70Z" fill="#1d4ed8"/><path d="M42 72 L50 92 L58 72Z" fill="#f97316"/>' },
-    { name:'Crown', svg:'<path d="M14 75 L10 30 L34 50 L50 20 L66 50 L90 30 L86 75 Z" fill="#eab308"/><rect x="14" y="75" width="72" height="10" rx="3" fill="#ca8a04"/>' },
-    { name:'Anchor', svg:'<circle cx="50" cy="20" r="8" fill="none" stroke="#1e293b" stroke-width="6"/><path d="M50 28 L50 82 M32 42 L68 42 M20 62 C20 84 80 84 80 62" fill="none" stroke="#1e293b" stroke-width="8" stroke-linecap="round"/>' },
-    { name:'Umbrella', svg:'<path d="M12 52 C12 22 88 22 88 52 Z" fill="#ec4899"/><path d="M50 52 L50 82 C50 90 62 90 62 82" fill="none" stroke="#1e293b" stroke-width="6" stroke-linecap="round"/>' },
+    { name:'Crown', svg:'<path d="M14 75 L10 30 L34 50 L50 20 L66 50 L90 30 L86 75 Z" fill="#eab308"/><rect x="14" y="75" width="72" height="10" rx="3" fill="#ca8a04"/><circle cx="50" cy="55" r="7" fill="#f43f5e"/>' },
+    { name:'Anchor', svg:'<circle cx="50" cy="20" r="8" fill="none" stroke="#94a3b8" stroke-width="6"/><path d="M50 28 L50 82 M32 42 L68 42 M20 62 C20 84 80 84 80 62" fill="none" stroke="#94a3b8" stroke-width="8" stroke-linecap="round"/>' },
+    { name:'Umbrella', svg:'<path d="M12 52 C12 22 88 22 88 52 Z" fill="#ec4899"/><path d="M50 52 L50 82 C50 90 62 90 62 82" fill="none" stroke="#cbd5e1" stroke-width="6" stroke-linecap="round"/>' },
     { name:'Key', svg:'<circle cx="30" cy="50" r="16" fill="none" stroke="#eab308" stroke-width="9"/><path d="M46 50 L88 50 M72 50 L72 64 M84 50 L84 68" stroke="#eab308" stroke-width="8" stroke-linecap="round"/>' },
     { name:'Trophy', svg:'<path d="M26 18 L74 18 L70 50 C68 62 32 62 30 50 Z" fill="#f59e0b"/><path d="M26 24 C12 24 12 46 28 46 M74 24 C88 24 88 46 72 46" fill="none" stroke="#d97706" stroke-width="6"/><rect x="44" y="58" width="12" height="18" fill="#d97706"/><rect x="30" y="76" width="40" height="10" rx="3" fill="#92400e"/>' },
     { name:'Cactus', svg:'<rect x="42" y="16" width="16" height="72" rx="8" fill="#16a34a"/><path d="M42 52 L24 52 L24 34" fill="none" stroke="#16a34a" stroke-width="12" stroke-linecap="round"/><path d="M58 44 L76 44 L76 26" fill="none" stroke="#16a34a" stroke-width="12" stroke-linecap="round"/>' },
-    { name:'Camera', svg:'<rect x="14" y="30" width="72" height="50" rx="10" fill="#334155"/><rect x="34" y="18" width="32" height="14" rx="4" fill="#475569"/><circle cx="50" cy="55" r="16" fill="#38bdf8" stroke="#e2e8f0" stroke-width="4"/>' },
-    { name:'Headphones', svg:'<path d="M20 56 C20 20 80 20 80 56" fill="none" stroke="#1e293b" stroke-width="9"/><rect x="12" y="50" width="16" height="30" rx="6" fill="#ec4899"/><rect x="72" y="50" width="16" height="30" rx="6" fill="#ec4899"/>' },
+    { name:'Camera', svg:'<rect x="14" y="30" width="72" height="50" rx="10" fill="#334155"/><rect x="34" y="18" width="32" height="14" rx="4" fill="#475569"/><circle cx="50" cy="55" r="16" fill="#38bdf8" stroke="#e2e8f0" stroke-width="4"/><circle cx="50" cy="55" r="8" fill="#0f172a"/>' },
+    { name:'Headphones', svg:'<path d="M20 56 C20 20 80 20 80 56" fill="none" stroke="#a78bfa" stroke-width="9"/><rect x="12" y="50" width="16" height="30" rx="6" fill="#ec4899"/><rect x="72" y="50" width="16" height="30" rx="6" fill="#ec4899"/>' },
     { name:'House', svg:'<path d="M12 48 L50 16 L88 48 Z" fill="#dc2626"/><rect x="22" y="48" width="56" height="38" fill="#f8fafc"/><rect x="42" y="60" width="16" height="26" fill="#7c2d12"/>' },
-    { name:'Lightning', svg:'<path d="M56 10 L24 54 L48 54 L42 90 L76 44 L52 44 Z" fill="#2563eb"/>' },
-    { name:'Crescent Moon', svg:'<path d="M62 16 C36 16 20 38 22 60 C24 80 44 90 66 84 C48 80 42 62 44 46 C46 32 54 22 62 16Z" fill="#1e293b"/>' },
-    { name:'Hourglass', svg:'<rect x="24" y="14" width="52" height="8" rx="3" fill="#7c2d12"/><rect x="24" y="78" width="52" height="8" rx="3" fill="#7c2d12"/><path d="M30 22 L70 22 L50 50 L70 78 L30 78 L50 50 Z" fill="#38bdf8"/>' },
+    { name:'Lightning', svg:'<path d="M56 10 L24 54 L48 54 L42 90 L76 44 L52 44 Z" fill="#facc15"/>' },
+    { name:'Moon', svg:'<path d="M62 16 C36 16 20 38 22 60 C24 80 44 90 66 84 C48 80 42 62 44 46 C46 32 54 22 62 16Z" fill="#e2e8f0"/>' },
+    { name:'Hourglass', svg:'<rect x="24" y="14" width="52" height="8" rx="3" fill="#92400e"/><rect x="24" y="78" width="52" height="8" rx="3" fill="#92400e"/><path d="M30 22 L70 22 L50 50 L70 78 L30 78 L50 50 Z" fill="#38bdf8"/>' },
     { name:'Butterfly', svg:'<ellipse cx="32" cy="36" rx="20" ry="18" fill="#a855f7"/><ellipse cx="68" cy="36" rx="20" ry="18" fill="#a855f7"/><ellipse cx="34" cy="64" rx="14" ry="14" fill="#ec4899"/><ellipse cx="66" cy="64" rx="14" ry="14" fill="#ec4899"/><rect x="47" y="24" width="6" height="54" rx="3" fill="#1e293b"/>' },
-    { name:'Pine Tree', svg:'<path d="M50 10 L76 42 L62 42 L82 68 L18 68 L38 42 L24 42 Z" fill="#15803d"/><rect x="44" y="68" width="12" height="20" fill="#78350f"/>' }
+    { name:'Pine Tree', svg:'<path d="M50 10 L76 42 L62 42 L82 68 L18 68 L38 42 L24 42 Z" fill="#15803d"/><rect x="44" y="68" width="12" height="20" fill="#78350f"/>' },
+    { name:'Diamond', svg:'<path d="M30 24 L70 24 L88 44 L50 86 L12 44 Z" fill="#22d3ee"/><path d="M30 24 L50 44 L70 24 M12 44 L88 44 M50 44 L50 86" fill="none" stroke="#a5f3fc" stroke-width="3"/>' },
+    { name:'Heart', svg:'<path d="M50 84 C20 62 12 44 16 30 C20 18 36 14 50 30 C64 14 80 18 84 30 C88 44 80 62 50 84Z" fill="#ef4444"/>' },
+    { name:'Ghost', svg:'<path d="M26 84 L26 44 C26 22 74 22 74 44 L74 84 L62 74 L50 84 L38 74 Z" fill="#e2e8f0"/><circle cx="40" cy="46" r="5" fill="#1e293b"/><circle cx="60" cy="46" r="5" fill="#1e293b"/>' },
+    { name:'Skull', svg:'<path d="M50 14 C26 14 18 34 20 50 C22 62 30 68 38 70 L38 84 L62 84 L62 70 C70 68 78 62 80 50 C82 34 74 14 50 14Z" fill="#e2e8f0"/><circle cx="38" cy="48" r="8" fill="#0f172a"/><circle cx="62" cy="48" r="8" fill="#0f172a"/><rect x="46" y="60" width="8" height="10" fill="#0f172a"/>' },
+    { name:'Robot', svg:'<rect x="24" y="30" width="52" height="46" rx="8" fill="#64748b"/><rect x="40" y="14" width="20" height="16" rx="4" fill="#64748b"/><circle cx="38" cy="50" r="7" fill="#22d3ee"/><circle cx="62" cy="50" r="7" fill="#22d3ee"/><rect x="34" y="64" width="32" height="6" rx="3" fill="#0f172a"/>' },
+    { name:'Mushroom', svg:'<path d="M14 46 C14 20 86 20 86 46 Z" fill="#dc2626"/><circle cx="32" cy="34" r="6" fill="#fecaca"/><circle cx="58" cy="28" r="7" fill="#fecaca"/><rect x="38" y="46" width="24" height="38" rx="8" fill="#fef3c7"/>' },
+    { name:'Guitar', svg:'<circle cx="36" cy="66" r="20" fill="#b45309"/><circle cx="36" cy="66" r="8" fill="#451a03"/><rect x="46" y="20" width="10" height="52" rx="4" fill="#78350f" transform="rotate(38 51 46)"/><rect x="60" y="10" width="18" height="12" rx="3" fill="#78350f" transform="rotate(38 69 16)"/>' },
+    { name:'Sword', svg:'<path d="M70 8 L78 16 L38 56 L30 48 Z" fill="#cbd5e1"/><rect x="24" y="52" width="22" height="8" rx="3" fill="#eab308" transform="rotate(45 35 56)"/><rect x="14" y="62" width="14" height="14" rx="3" fill="#78350f" transform="rotate(45 21 69)"/>' },
+    { name:'Alien', svg:'<ellipse cx="50" cy="44" rx="26" ry="30" fill="#4ade80"/><ellipse cx="38" cy="42" rx="9" ry="12" fill="#052e16"/><ellipse cx="62" cy="42" rx="9" ry="12" fill="#052e16"/><path d="M38 68 Q50 76 62 68" fill="none" stroke="#052e16" stroke-width="4" stroke-linecap="round"/>' },
+    { name:'Saturn', svg:'<circle cx="50" cy="50" r="24" fill="#f59e0b"/><ellipse cx="50" cy="50" rx="42" ry="12" fill="none" stroke="#fcd34d" stroke-width="6" transform="rotate(-16 50 50)"/>' },
+    { name:'Ice Cream', svg:'<path d="M32 50 L50 88 L68 50 Z" fill="#d97706"/><circle cx="38" cy="40" r="14" fill="#f9a8d4"/><circle cx="62" cy="40" r="14" fill="#f9a8d4"/><circle cx="50" cy="28" r="14" fill="#fbcfe8"/>' },
+    { name:'Bomb', svg:'<circle cx="46" cy="58" r="28" fill="#1e293b"/><rect x="40" y="24" width="14" height="10" rx="3" fill="#64748b"/><path d="M52 26 C60 16 70 14 78 18" fill="none" stroke="#eab308" stroke-width="5" stroke-linecap="round"/><circle cx="80" cy="16" r="6" fill="#f97316"/>' },
+    { name:'Magnet', svg:'<path d="M26 18 L26 52 C26 78 74 78 74 52 L74 18 L58 18 L58 52 C58 64 42 64 42 52 L42 18 Z" fill="#dc2626"/><rect x="26" y="18" width="16" height="14" fill="#e2e8f0"/><rect x="58" y="18" width="16" height="14" fill="#e2e8f0"/>' }
   ];
+  const ROUNDS_N = 12;
 
-  const stage = document.getElementById('stage'), choicesEl = document.getElementById('choices');
-  const scoreEl = document.getElementById('score'), streakEl = document.getElementById('streak'), roundEl = document.getElementById('round'), msgEl = document.getElementById('msg');
+  const stage = document.getElementById('stage'), svgHost = document.getElementById('svgHost'), choicesEl = document.getElementById('choices');
+  const scoreEl = document.getElementById('score'), streakEl = document.getElementById('streak'), bestEl = document.getElementById('best');
+  const dotsEl = document.getElementById('dots'), msgEl = document.getElementById('msg'), tfill = document.getElementById('tfill');
+  const ov = document.getElementById('ov'), ovP = document.getElementById('ovP'), ovGrade = document.getElementById('ovGrade'), ovStats = document.getElementById('ovStats'), startBtn = document.getElementById('startBtn');
 
-  let deck = [], idx = 0, score = 0, streak = 0, locked = false;
-  const shuffle = a => [...a].sort(() => Math.random() - 0.5);
+  // sfx helper honoring shared pref
+  let ac = null;
+  const audio = () => { const A = window.AudioContext || window.webkitAudioContext; if (!ac && A) ac = new A(); if (ac && ac.state === 'suspended') ac.resume().catch(()=>{}); return ac; };
+  const sfxOn = () => localStorage.getItem('aaa_sfx') !== '0';
+  function tone(f, d, type='sine', vol=0.06, slide=null){
+    if (!sfxOn()) return; const x = audio(); if (!x) return;
+    try {
+      const t = x.currentTime, o = x.createOscillator(), g = x.createGain();
+      o.type = type; o.frequency.setValueAtTime(f, t);
+      if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, slide), t + d);
+      g.gain.setValueAtTime(0.001, t); g.gain.linearRampToValueAtTime(vol, t + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.0006, t + d);
+      o.connect(g); g.connect(x.destination); o.start(t); o.stop(t + d + 0.03);
+    } catch {}
+  }
+
+  let best = Number(localStorage.getItem('shadow_best') || 0);
+  bestEl.textContent = best;
+
+  let deck = [], idx = 0, score = 0, streak = 0, locked = true, playing = false;
+  let roundT = 0, roundMax = 6, rafId = 0, lastTick = 0;
+  const shuffle = a => [...a].sort(() => Math.random() - .5);
+
+  function buildDots() {
+    dotsEl.innerHTML = '';
+    for (let i = 0; i < ROUNDS_N; i++) dotsEl.appendChild(document.createElement('div')).className = 'dot';
+  }
 
   function start() {
-    deck = shuffle(ITEMS).slice(0, 12);
-    idx = 0; score = 0; streak = 0; locked = false;
+    deck = shuffle(ITEMS).slice(0, ROUNDS_N);
+    idx = 0; score = 0; streak = 0; playing = true;
     scoreEl.textContent = '0'; streakEl.textContent = '0';
+    buildDots();
+    ov.classList.add('hidden');
+    audio();
     render();
   }
 
   function render() {
-    if (idx >= deck.length) {
-      stage.classList.remove('dark');
-      stage.innerHTML = '<div style="color:#0f172a;text-align:center"><h2>All 12 Revealed!</h2><p style="font-weight:800;margin-top:6px">Score: ' + score + '</p></div>';
-      choicesEl.innerHTML = '';
-      msgEl.textContent = 'Press Restart to play again!';
-      return;
-    }
+    if (idx >= deck.length) { finish(); return; }
     locked = false;
-    roundEl.textContent = idx + 1;
+    stage.classList.remove('reveal');
     const item = deck[idx];
-    stage.classList.add('dark');
-    stage.innerHTML = `<svg viewBox="0 0 100 100">${item.svg}</svg>`;
+    svgHost.innerHTML = `<svg viewBox="0 0 100 100">${item.svg}</svg>`;
     const opts = shuffle([item, ...shuffle(ITEMS.filter(x => x.name !== item.name)).slice(0, 3)]);
     choicesEl.innerHTML = '';
-    msgEl.textContent = 'Guess the object from its silhouette!';
+    msgEl.textContent = "What's hiding in the spotlight?";
     opts.forEach(o => {
       const b = document.createElement('button');
       b.className = 'cbtn'; b.textContent = o.name;
       b.onclick = () => choose(b, o.name === item.name, item.name);
       choicesEl.appendChild(b);
     });
+    // difficulty ramp: less time each round
+    roundMax = Math.max(3, 6.5 - idx * 0.3);
+    roundT = roundMax;
+    lastTick = performance.now();
+    cancelAnimationFrame(rafId);
+    tickTimer();
+  }
+
+  function tickTimer() {
+    if (!playing) return;
+    const now = performance.now();
+    roundT -= (now - lastTick) / 1000;
+    lastTick = now;
+    tfill.style.width = Math.max(0, roundT / roundMax * 100) + '%';
+    if (roundT <= 0) { choose(null, false, deck[idx].name); return; }
+    if (!locked) rafId = requestAnimationFrame(tickTimer);
   }
 
   function choose(btn, ok, right) {
-    if (locked) return;
+    if (locked || !playing) return;
     locked = true;
-    stage.classList.remove('dark');
+    cancelAnimationFrame(rafId);
+    stage.classList.add('reveal');
     [...choicesEl.children].forEach(b => {
       b.disabled = true;
       if (b.textContent === right) b.classList.add('ok');
     });
     if (ok) {
       streak++;
-      score += 10 + (streak - 1) * 3;
-      msgEl.textContent = `Yes! It's a ${right}!`;
+      const timeBonus = Math.round(roundT * 6);
+      const pts = 20 + timeBonus + Math.min(5, streak - 1) * 8;
+      score += pts;
+      msgEl.textContent = `It's a ${right}! +${pts} pts`;
+      tone(660 + Math.min(6, streak) * 60, .14, 'triangle', .07, 880);
     } else {
-      btn.classList.add('bad');
+      if (btn) btn.classList.add('bad');
       streak = 0;
-      msgEl.textContent = `It was ${right}!`;
+      msgEl.textContent = `It was a ${right}!`;
+      tone(200, .25, 'sawtooth', .06, 90);
     }
+    dotsEl.children[idx].classList.add('done');
     scoreEl.textContent = score;
     streakEl.textContent = streak;
-    setTimeout(() => { idx++; render(); }, 1100);
+    if (score > best) { best = score; bestEl.textContent = best; localStorage.setItem('shadow_best', String(best)); }
+    setTimeout(() => { idx++; render(); }, 1250);
+  }
+
+  function finish() {
+    playing = false;
+    const grade = score >= 420 ? 'S' : score >= 320 ? 'A' : score >= 220 ? 'B' : score >= 140 ? 'C' : 'D';
+    ovP.innerHTML = 'The show is over — all 12 shadows revealed!';
+    ovGrade.style.display = 'block';
+    ovGrade.textContent = grade;
+    ovStats.style.display = 'flex';
+    ovStats.innerHTML = `<div>Score <b>${score}</b></div><div>Best <b>${best}</b></div>`;
+    startBtn.textContent = 'PLAY AGAIN';
+    ov.classList.remove('hidden');
+    tone(523, .16, 'triangle', .07); setTimeout(()=>tone(659,.16,'triangle',.07),110); setTimeout(()=>tone(784,.22,'triangle',.07),220);
   }
 
   document.getElementById('resBtn').onclick = start;
-  start();
+  startBtn.onclick = () => { ovGrade.style.display = 'none'; ovStats.style.display = 'none'; start(); };
+  buildDots();
 })();
 </script>
 

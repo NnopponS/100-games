@@ -2,51 +2,139 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Fireworks</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { width: 100%; height: 100%; overflow: hidden; background: #05060f; }
-  canvas { display: block; cursor: crosshair; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #05060f;
+    font-family: "Segoe UI", system-ui, sans-serif;
+    -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+  canvas { display: block; cursor: crosshair; touch-action: none; }
+
   #hud {
-    position: fixed;
-    top: 12px;
-    left: 50%;
-    transform: translateX(-50%);
-    color: rgba(255, 255, 255, 0.55);
-    font-family: "Segoe UI", system-ui, sans-serif;
-    font-size: 13px;
-    letter-spacing: 0.08em;
-    text-align: center;
-    pointer-events: none;
-    user-select: none;
-    transition: opacity 1.5s;
+    position: fixed; inset: 0; pointer-events: none; z-index: 3;
+    padding: clamp(10px, 2.4vmin, 22px);
+    display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;
   }
-  #hud.hidden { opacity: 0; }
-  #auto {
-    position: fixed;
-    bottom: 14px;
-    right: 16px;
-    color: rgba(255, 255, 255, 0.4);
-    font-family: "Segoe UI", system-ui, sans-serif;
-    font-size: 12px;
-    pointer-events: none;
-    user-select: none;
+  .stat { display: flex; flex-direction: column; gap: 3px; }
+  .stat.mid { align-items: center; }
+  .stat.right { align-items: flex-end; }
+  .lbl { font: 700 9px/1 ui-monospace, Menlo, monospace; letter-spacing: .28em; text-transform: uppercase; color: rgba(190,205,240,.5); }
+  .val { font: 800 clamp(18px, 3.4vmin, 30px)/1 ui-monospace, Menlo, monospace; color: #f4f8ff; text-shadow: 0 0 18px rgba(140,180,255,.4); font-variant-numeric: tabular-nums; }
+  .val.small { font-size: clamp(12px, 2vmin, 18px); color: rgba(220,232,255,.8); }
+  .val.gold { color: #ffd97a; text-shadow: 0 0 18px rgba(255,190,80,.5); }
+
+  #comboWrap {
+    position: fixed; left: 50%; bottom: clamp(70px, 12vh, 110px); transform: translateX(-50%);
+    z-index: 3; pointer-events: none; text-align: center; opacity: 0; transition: opacity .3s;
   }
+  #comboWrap.show { opacity: 1; }
+  #comboVal { font: 900 clamp(20px, 4.6vmin, 34px)/1 ui-monospace, Menlo, monospace; color: #ffe9a8; text-shadow: 0 0 22px rgba(255,190,80,.75); }
+  #comboBar { width: 120px; height: 5px; margin: 7px auto 0; border-radius: 99px; background: rgba(255,255,255,.12); overflow: hidden; }
+  #comboFill { height: 100%; width: 100%; border-radius: 99px; background: linear-gradient(90deg, #ffd97a, #ff8a5c); transform-origin: left; }
+
+  #hint {
+    position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%);
+    color: rgba(255,255,255,.42); font-size: 12px; letter-spacing: .1em;
+    pointer-events: none; transition: opacity 1s; text-align: center; z-index: 3; white-space: nowrap;
+  }
+  #hint.hidden { opacity: 0; }
+  #auto { position: fixed; bottom: 14px; right: 16px; color: rgba(255,255,255,.4); font-size: 12px; pointer-events: none; z-index: 3; }
+
+  #overlay {
+    position: fixed; inset: 0; z-index: 6; display: grid; place-items: center; padding: 20px;
+    background: radial-gradient(ellipse at 50% 42%, rgba(30,22,64,.5), rgba(4,5,12,.88) 75%);
+    -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+    transition: opacity .3s, visibility .3s;
+  }
+  #overlay.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+  .panel {
+    width: min(460px, 100%); text-align: center; padding: clamp(22px, 5vmin, 40px);
+    border-radius: 22px; border: 1px solid rgba(255,210,140,.2);
+    background: linear-gradient(165deg, rgba(26,20,52,.9), rgba(10,9,24,.95));
+    box-shadow: 0 30px 90px -20px rgba(0,0,0,.9), 0 0 90px -30px rgba(255,160,80,.4), inset 0 1px 0 rgba(255,255,255,.08);
+    animation: panelIn .34s cubic-bezier(.2,.9,.3,1.2);
+  }
+  .panel.hidden { display: none; }
+  @keyframes panelIn { from { opacity: 0; transform: translateY(14px) scale(.97); } to { opacity: 1; transform: none; } }
+  .kicker { margin: 0 0 10px; font: 800 10px/1 ui-monospace, monospace; letter-spacing: .34em; text-transform: uppercase; color: rgba(255,190,120,.85); }
+  h1 {
+    margin: 0; font: 900 clamp(38px, 9vmin, 64px)/1 system-ui; letter-spacing: .02em;
+    background: linear-gradient(180deg, #fff 15%, #ffd9a0 55%, #ff8a5c);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 0 26px rgba(255,150,80,.4));
+  }
+  .tag { margin: 14px auto 0; max-width: 36ch; color: rgba(205,215,245,.66); font-size: clamp(12px, 1.8vmin, 15px); line-height: 1.6; }
+  .tag b { color: #ffe4b3; }
+  .btn {
+    margin-top: 24px; appearance: none; border: 0; cursor: pointer;
+    padding: 15px 40px; border-radius: 999px;
+    font: 800 14px/1 system-ui; letter-spacing: .2em; color: #2a1503;
+    background: linear-gradient(180deg, #ffe9b0, #ffb35c 55%, #ff7a3c);
+    box-shadow: 0 12px 36px -10px rgba(255,150,60,.9), inset 0 1px 0 rgba(255,255,255,.7);
+    transition: transform .12s, box-shadow .2s;
+  }
+  .btn:hover { transform: translateY(-1px); }
+  .btn:active { transform: translateY(1px) scale(.98); }
+  .final { margin: 4px 0 0; font: 800 clamp(44px, 10vmin, 70px)/1 ui-monospace, monospace; color: #fff; text-shadow: 0 0 40px rgba(255,190,80,.5); font-variant-numeric: tabular-nums; }
+  .sub { margin: 10px 0 0; font: 600 12px/1 ui-monospace, monospace; letter-spacing: .16em; color: rgba(190,205,240,.55); text-transform: uppercase; }
+  .sub b { color: #ffd97a; }
+  .micro { margin: 14px 0 0; font-size: 11px; letter-spacing: .1em; color: rgba(180,200,240,.4); }
+  .micro b { color: rgba(220,235,255,.75); }
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
-<div id="hud">CLICK / TAP TO LAUNCH &nbsp;&middot;&nbsp; A = AUTO SHOW</div>
+
+<div id="hud">
+  <div class="stat"><span class="lbl">Score</span><span class="val" id="scoreVal">0</span></div>
+  <div class="stat mid"><span class="lbl">Showtime</span><span class="val small" id="timeVal">60</span></div>
+  <div class="stat right"><span class="lbl">Best</span><span class="val small" id="bestVal">0</span></div>
+</div>
+
+<div id="comboWrap"><div id="comboVal">x2</div><div id="comboBar"><div id="comboFill"></div></div></div>
+<div id="hint">TAP / CLICK TO LAUNCH &nbsp;&middot;&nbsp; A = AUTO SHOW</div>
 <div id="auto"></div>
+
+<div id="overlay">
+  <div class="panel" id="titlePanel">
+    <p class="kicker">Pyro director</p>
+    <h1>FIREWORKS</h1>
+    <p class="tag">Conduct a <b>60-second</b> sky show. Tap anywhere to launch — chain bursts quickly to raise your <b>combo</b> and light up the skyline.</p>
+    <button class="btn" id="startBtn">START THE SHOW</button>
+    <p class="micro">Press <b>SPACE</b> to start &middot; <b>A</b> for auto show</p>
+  </div>
+  <div class="panel hidden" id="overPanel">
+    <p class="kicker">Grand finale</p>
+    <h1 id="overTitle" style="font-size:clamp(28px,6vmin,44px)">SHOW'S OVER</h1>
+    <p class="final" id="finalScore">0</p>
+    <p class="sub" id="finalSub">Best 0 &middot; biggest combo x1</p>
+    <button class="btn" id="againBtn">ENCORE</button>
+    <p class="micro">Press <b>R</b> or <b>SPACE</b></p>
+  </div>
+</div>
+
 <script>
 (function () {
   var canvas = document.getElementById('c');
   var ctx = canvas.getContext('2d');
-  var hud = document.getElementById('hud');
+  var hudHint = document.getElementById('hint');
   var autoLabel = document.getElementById('auto');
+  var elScore = document.getElementById('scoreVal');
+  var elTime = document.getElementById('timeVal');
+  var elBest = document.getElementById('bestVal');
+  var comboWrap = document.getElementById('comboWrap');
+  var comboVal = document.getElementById('comboVal');
+  var comboFill = document.getElementById('comboFill');
+  var overlay = document.getElementById('overlay');
+  var titlePanel = document.getElementById('titlePanel');
+  var overPanel = document.getElementById('overPanel');
+  var finalScore = document.getElementById('finalScore');
+  var finalSub = document.getElementById('finalSub');
 
   var W, H, DPR;
+  var skyline = null;
+
   function resize() {
     DPR = Math.min(window.devicePixelRatio || 1, 2);
     W = window.innerWidth;
@@ -57,6 +145,7 @@
     canvas.style.height = H + 'px';
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
     buildStars();
+    buildSkyline();
   }
 
   // ---- Night sky stars ----
@@ -74,6 +163,46 @@
         ts: Math.random() * 0.03 + 0.005
       });
     }
+  }
+
+  // ---- City skyline silhouette (pre-rendered) ----
+  function buildSkyline() {
+    skyline = document.createElement('canvas');
+    skyline.width = W; skyline.height = H;
+    var s = skyline.getContext('2d');
+    var base = H * 0.985;
+    var x = -10;
+    s.fillStyle = '#070a18';
+    while (x < W + 10) {
+      var bw = 26 + Math.random() * 60;
+      var bh = H * (0.05 + Math.random() * 0.13);
+      s.fillRect(x, base - bh, bw, bh + 10);
+      // lit windows
+      for (var wy = base - bh + 8; wy < base - 8; wy += 12) {
+        for (var wx = x + 5; wx < x + bw - 6; wx += 10) {
+          if (Math.random() < 0.16) {
+            s.fillStyle = 'rgba(255,214,130,' + (0.25 + Math.random() * 0.4) + ')';
+            s.fillRect(wx, wy, 3, 4);
+            s.fillStyle = '#070a18';
+          }
+        }
+      }
+      // antenna
+      if (Math.random() < 0.3 && bh > H * 0.1) {
+        s.strokeStyle = '#070a18';
+        s.lineWidth = 2;
+        s.beginPath();
+        s.moveTo(x + bw / 2, base - bh);
+        s.lineTo(x + bw / 2, base - bh - 14);
+        s.stroke();
+      }
+      x += bw + 4 + Math.random() * 16;
+    }
+    // ground strip
+    var g = s.createLinearGradient(0, base, 0, H);
+    g.addColorStop(0, '#0b0f22'); g.addColorStop(1, '#04060f');
+    s.fillStyle = g;
+    s.fillRect(0, base, W, H - base);
   }
 
   // ---- Moon ----
@@ -97,12 +226,57 @@
     });
   }
 
+  // ---- Audio (procedural, via AAA overlay when present) ----
+  var actx = null;
+  function ac() {
+    if (window.AAA && AAA.ensureAudio) { try { return AAA.ensureAudio(); } catch (e) {} }
+    if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { actx = null; } }
+    if (actx && actx.state === 'suspended') actx.resume();
+    return actx;
+  }
+  function sfxLaunch() {
+    var c = ac(); if (!c) return;
+    var t = c.currentTime;
+    var o = c.createOscillator(), g = c.createGain();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(280, t);
+    o.frequency.exponentialRampToValueAtTime(950, t + 0.5);
+    g.gain.setValueAtTime(0.05, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.55);
+    o.connect(g); g.connect(c.destination);
+    o.start(t); o.stop(t + 0.6);
+  }
+  function sfxBoom(big) {
+    var c = ac(); if (!c) return;
+    var t = c.currentTime;
+    // low thud
+    var o = c.createOscillator(), g = c.createGain();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(big ? 110 : 85, t);
+    o.frequency.exponentialRampToValueAtTime(38, t + 0.4);
+    g.gain.setValueAtTime(big ? 0.22 : 0.15, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + (big ? 0.7 : 0.45));
+    o.connect(g); g.connect(c.destination);
+    o.start(t); o.stop(t + 0.75);
+    // noise crackle
+    var len = Math.floor(c.sampleRate * 0.3);
+    var buf = c.createBuffer(1, len, c.sampleRate);
+    var d = buf.getChannelData(0);
+    for (var i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.2);
+    var src = c.createBufferSource(); src.buffer = buf;
+    var f = c.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 2400; f.Q.value = 0.7;
+    var g2 = c.createGain(); g2.gain.value = big ? 0.14 : 0.09;
+    src.connect(f); f.connect(g2); g2.connect(c.destination);
+    src.start(t);
+  }
+
   // ---- Entities ----
   var rockets = [];
   var particles = [];
+  var flashes = [];
+  var floating = []; // floating +score texts
 
   var GRAVITY = 0.045;
-  var AIR = 0.985;
 
   function pickHue() { return Math.floor(Math.random() * 360); }
 
@@ -110,14 +284,14 @@
     var startX = (tx !== undefined) ? tx + (Math.random() - 0.5) * 40 : W * (0.2 + Math.random() * 0.6);
     var targetY = (ty !== undefined) ? Math.min(ty, H * 0.8) : H * (0.15 + Math.random() * 0.35);
     rockets.push({
-      x: startX,
-      y: H + 5,
+      x: startX, y: H + 5,
       vx: (tx !== undefined ? (tx - startX) * 0.012 : (Math.random() - 0.5) * 0.6),
       vy: -(9.5 + Math.random() * 2.5),
       targetY: targetY,
       hue: pickHue(),
       trail: []
     });
+    sfxLaunch();
   }
 
   function explode(r) {
@@ -126,27 +300,16 @@
     var i, a, sp;
     for (i = 0; i < count; i++) {
       a = (i / count) * Math.PI * 2 + Math.random() * 0.15;
-      if (type < 0.45) {
-        // sphere shell
-        sp = 2.5 + Math.random() * 3.5;
-      } else if (type < 0.7) {
-        // ring
-        sp = 4.6 + Math.random() * 0.6;
-      } else if (type < 0.9) {
-        // double burst speeds
-        sp = (i % 2 === 0) ? 2 + Math.random() : 4.5 + Math.random();
-      } else {
-        // willow / long droop
-        sp = 1.8 + Math.random() * 3;
-      }
+      if (type < 0.45) sp = 2.5 + Math.random() * 3.5;
+      else if (type < 0.7) sp = 4.6 + Math.random() * 0.6;
+      else if (type < 0.9) sp = (i % 2 === 0) ? 2 + Math.random() : 4.5 + Math.random();
+      else sp = 1.8 + Math.random() * 3;
       var life = 70 + Math.random() * 50;
       particles.push({
         x: r.x, y: r.y,
-        vx: Math.cos(a) * sp,
-        vy: Math.sin(a) * sp,
+        vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
         hue: r.hue + (Math.random() - 0.5) * 30,
-        life: life,
-        maxLife: life,
+        life: life, maxLife: life,
         drag: type >= 0.9 ? 0.965 : 0.985,
         grav: type >= 0.9 ? 0.06 : 0.04,
         size: Math.random() * 1.6 + 1.1,
@@ -154,47 +317,136 @@
         trail: []
       });
     }
-    // flash
     flashes.push({ x: r.x, y: r.y, r: 10, max: 130 + Math.random() * 60, a: 0.55 });
+    scoreBurst(r, count);
   }
 
-  var flashes = [];
+  // ---- Score & combo ----
+  var SHOW_LEN = 60;
+  var game = { playing: false, t: 0, score: 0, combo: 1, comboT: 0, bestCombo: 1, best: 0 };
+  try { game.best = Math.max(0, parseInt(localStorage.getItem('fireworks.best') || '0', 10) || 0); } catch (e) {}
+  elBest.textContent = game.best;
 
-  // ---- Input ----
+  function scoreBurst(r, count) {
+    if (!game.playing) { sfxBoom(false); return; }
+    var now = performance.now();
+    if (now - game.comboT < 2600) game.combo = Math.min(9, game.combo + 1);
+    else game.combo = 1;
+    game.comboT = now;
+    game.bestCombo = Math.max(game.bestCombo, game.combo);
+    var pts = Math.round((count / 10) * 10 * game.combo);
+    game.score += pts;
+    elScore.textContent = game.score;
+    floating.push({ x: r.x, y: r.y, txt: '+' + pts, life: 55, hue: r.hue });
+    sfxBoom(game.combo >= 4);
+    if (window.AAA) {
+      try {
+        if (game.combo >= 3) AAA.shockwave && AAA.shockwave();
+      } catch (e) {}
+    }
+    comboVal.textContent = 'x' + game.combo;
+    comboWrap.classList.add('show');
+  }
+
+  // ---- Flow ----
   var auto = false;
   var interacted = false;
+  var frame = 0;
 
-  function onTap(x, y) {
-    launch(x, y);
-    if (!interacted) { interacted = true; setTimeout(function () { hud.classList.add('hidden'); }, 1200); }
+  function startShow() {
+    game.playing = true;
+    game.t = 0;
+    game.score = 0;
+    game.combo = 1; game.comboT = 0; game.bestCombo = 1;
+    rockets.length = 0; particles.length = 0; flashes.length = 0; floating.length = 0;
+    elScore.textContent = '0';
+    elTime.textContent = SHOW_LEN;
+    overlay.classList.add('hidden');
+    titlePanel.classList.add('hidden');
+    overPanel.classList.add('hidden');
+    if (!interacted) { interacted = true; setTimeout(function () { hudHint.classList.add('hidden'); }, 2600); }
+    // opening volley
+    launch(W * 0.5, H * 0.3);
+    launch(W * 0.3, H * 0.35);
+    launch(W * 0.7, H * 0.28);
   }
 
-  canvas.addEventListener('mousedown', function (e) { onTap(e.clientX, e.clientY); });
-  canvas.addEventListener('touchstart', function (e) {
-    e.preventDefault();
-    for (var i = 0; i < e.changedTouches.length; i++) {
-      onTap(e.changedTouches[i].clientX, e.changedTouches[i].clientY);
+  function endShow() {
+    game.playing = false;
+    // grand finale volley
+    for (var i = 0; i < 6; i++) {
+      (function (k) { setTimeout(function () { launch(W * (0.15 + 0.14 * k), H * (0.18 + Math.random() * 0.3)); }, k * 160); })(i);
     }
-  }, { passive: false });
+    if (game.score > game.best) {
+      game.best = game.score;
+      try { localStorage.setItem('fireworks.best', String(game.best)); } catch (e) {}
+      elBest.textContent = game.best;
+    }
+    finalScore.textContent = game.score;
+    finalSub.innerHTML = 'Best <b>' + game.best + '</b> &middot; biggest combo <b>x' + game.bestCombo + '</b>';
+    setTimeout(function () {
+      titlePanel.classList.add('hidden');
+      overPanel.classList.remove('hidden');
+      overlay.classList.remove('hidden');
+    }, 1400);
+  }
+
+  // ---- Input ----
+  function onTap(x, y) {
+    if (!game.playing) return;
+    launch(x, y);
+  }
+
+  canvas.addEventListener('pointerdown', function (e) {
+    e.preventDefault();
+    onTap(e.clientX, e.clientY);
+  });
 
   window.addEventListener('keydown', function (e) {
     if (e.key === 'a' || e.key === 'A') {
       auto = !auto;
       autoLabel.textContent = auto ? 'AUTO SHOW ON' : '';
     }
+    if ((e.key === ' ' || e.key === 'Enter') && !game.playing) { e.preventDefault(); startShow(); }
+    if ((e.key === 'r' || e.key === 'R') && !game.playing) startShow();
   });
 
+  document.getElementById('startBtn').addEventListener('click', startShow);
+  document.getElementById('againBtn').addEventListener('click', startShow);
+
   // ---- Loop ----
-  var frame = 0;
+  var lastT = performance.now();
   function tick() {
+    var now = performance.now();
+    var dt = Math.min(0.05, (now - lastT) / 1000);
+    lastT = now;
     frame++;
+
+    if (game.playing) {
+      game.t += dt;
+      var remain = Math.max(0, SHOW_LEN - game.t);
+      elTime.textContent = Math.ceil(remain);
+      if (remain <= 0) endShow();
+      // difficulty ramp: showtime pushes slight auto-assist so the sky stays busy
+      if (frame % Math.max(50, 110 - Math.floor(game.t)) === 0 && rockets.length < 3) {
+        launch(undefined, undefined);
+      }
+    }
+
+    // combo decay
+    if (game.combo > 1 && now - game.comboT > 2600) { game.combo = 1; comboWrap.classList.remove('show'); }
+    if (game.combo > 1) {
+      var frac = Math.max(0, 1 - (now - game.comboT) / 2600);
+      comboFill.style.transform = 'scaleX(' + frac.toFixed(3) + ')';
+    } else {
+      comboWrap.classList.remove('show');
+    }
 
     // trail fade instead of clear — this is what makes the streaks
     ctx.globalCompositeOperation = 'source-over';
     ctx.fillStyle = 'rgba(5,6,15,0.22)';
     ctx.fillRect(0, 0, W, H);
 
-    // stars twinkle (drawn dim so they leave soft trails too)
     ctx.fillStyle = '#ffffff';
     for (var s = 0; s < stars.length; s++) {
       var st = stars[s];
@@ -208,10 +460,7 @@
     ctx.globalAlpha = 1;
     drawMoon();
 
-    // auto show
-    if (auto && frame % 45 === 0 && rockets.length < 4) {
-      launch(undefined, undefined);
-    }
+    if (auto && frame % 45 === 0 && rockets.length < 4) launch(undefined, undefined);
 
     ctx.globalCompositeOperation = 'lighter';
 
@@ -235,11 +484,10 @@
       var r = rockets[i];
       r.trail.push({ x: r.x, y: r.y });
       if (r.trail.length > 10) r.trail.shift();
-      r.vy += 0.06; // slight gravity while climbing
+      r.vy += 0.06;
       r.x += r.vx;
       r.y += r.vy;
 
-      // trail
       ctx.strokeStyle = 'hsla(' + r.hue + ',90%,70%,0.6)';
       ctx.lineWidth = 2;
       ctx.beginPath();
@@ -248,18 +496,15 @@
         else ctx.lineTo(r.trail[t].x, r.trail[t].y);
       }
       ctx.stroke();
-      // head
       ctx.fillStyle = 'hsl(' + r.hue + ',100%,80%)';
       ctx.beginPath();
       ctx.arc(r.x, r.y, 2.2, 0, Math.PI * 2);
       ctx.fill();
 
-      // exhaust sparks
       if (Math.random() < 0.6) {
         particles.push({
           x: r.x, y: r.y,
-          vx: (Math.random() - 0.5) * 0.8,
-          vy: Math.random() * 1 + 0.5,
+          vx: (Math.random() - 0.5) * 0.8, vy: Math.random() * 1 + 0.5,
           hue: 40, life: 20, maxLife: 20,
           drag: 0.95, grav: 0.03, size: 1, flicker: false, trail: []
         });
@@ -284,7 +529,7 @@
       pt.life--;
 
       var k = pt.life / pt.maxLife;
-      if (pt.flicker && Math.random() < 0.25) continue; // strobing sparks
+      if (pt.flicker && Math.random() < 0.25) continue;
       var alpha = Math.max(0, k) * 0.9;
       ctx.strokeStyle = 'hsla(' + pt.hue + ',100%,' + (55 + k * 25) + '%,' + alpha + ')';
       ctx.lineWidth = pt.size;
@@ -296,14 +541,30 @@
       if (pt.life <= 0 || pt.y > H + 20) particles.splice(p, 1);
     }
 
+    // floating score texts
+    ctx.globalCompositeOperation = 'lighter';
+    for (var ft = floating.length - 1; ft >= 0; ft--) {
+      var flt = floating[ft];
+      flt.y -= 0.7; flt.life--;
+      var fa = Math.min(1, flt.life / 30);
+      ctx.globalAlpha = fa;
+      ctx.font = '800 15px ui-monospace, Menlo, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = 'hsl(' + flt.hue + ',95%,78%)';
+      ctx.fillText(flt.txt, flt.x, flt.y);
+      if (flt.life <= 0) floating.splice(ft, 1);
+    }
+    ctx.globalAlpha = 1;
+
+    // skyline silhouette on top of everything
+    ctx.globalCompositeOperation = 'source-over';
+    if (skyline) ctx.drawImage(skyline, 0, 0, W, H);
+
     requestAnimationFrame(tick);
   }
 
   window.addEventListener('resize', resize);
   resize();
-
-  // opening volley so it is alive even before a click
-  setTimeout(function () { launch(W * 0.5, H * 0.3); }, 400);
   tick();
 })();
 </script>

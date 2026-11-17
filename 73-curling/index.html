@@ -2,30 +2,45 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
 <title>Ice Curling</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
-  body{min-height:100vh;background:#0a192f;color:#fff;font-family:system-ui,-apple-system,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px}
+  body{min-height:100vh;background:#0a192f;color:#fff;font-family:system-ui,-apple-system,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px;position:relative;overflow-x:hidden;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+  body::before{content:"";position:fixed;inset:-20%;z-index:-2;pointer-events:none;
+    background:
+      radial-gradient(45% 55% at 20% 22%,rgba(56,189,248,.14),transparent 70%),
+      radial-gradient(45% 55% at 80% 20%,rgba(147,197,253,.10),transparent 70%),
+      radial-gradient(55% 60% at 55% 85%,rgba(239,68,68,.08),transparent 70%);
+    animation:aurora 22s ease-in-out infinite alternate}
+  @keyframes aurora{from{transform:rotate(-2deg) scale(1)}to{transform:rotate(2deg) scale(1.07)}}
   .wrap{width:min(540px,100%);display:flex;flex-direction:column;gap:8px}
-  .hud{display:flex;justify-content:space-between;background:#112240;border:1px solid #233554;padding:8px 14px;border-radius:12px;font-weight:800;font-size:.9rem}
-  canvas{width:100%;height:auto;max-height:66vh;aspect-ratio:420/560;border-radius:14px;border:2px solid #38bdf8;display:block;margin:0 auto}
-  .ctrl{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;background:#112240;padding:10px 14px;border-radius:12px}
+  .topline{display:flex;align-items:center;gap:12px}
+  #three-stone{width:64px;height:64px;flex:none}
+  .hud{flex:1;display:flex;justify-content:space-between;background:rgba(17,34,64,.85);backdrop-filter:blur(8px);border:1px solid #233554;padding:8px 14px;border-radius:12px;font-weight:800;font-size:.9rem;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+  canvas{width:100%;height:auto;max-height:62vh;aspect-ratio:420/560;border-radius:14px;border:2px solid #38bdf8;display:block;margin:0 auto;box-shadow:0 0 26px rgba(56,189,248,.25),0 16px 40px rgba(0,0,0,.5)}
+  .ctrl{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;background:rgba(17,34,64,.85);backdrop-filter:blur(8px);padding:10px 14px;border-radius:12px}
   label{font-size:.82rem;font-weight:700;display:flex;align-items:center;gap:6px;color:#cbd5e1}
-  button{padding:9px 16px;border:none;border-radius:10px;font-weight:900;cursor:pointer}
-  .btn-go{background:#ef4444;color:#fff}
-  .btn-sweep{background:#38bdf8;color:#0f172a}
+  input[type=range]{accent-color:#38bdf8;max-width:110px}
+  button{padding:10px 16px;border:none;border-radius:10px;font-weight:900;cursor:pointer;font-family:inherit;font-size:.85rem;transition:filter .12s,transform .1s}
+  button:active{transform:scale(.96)}
+  .btn-go{background:linear-gradient(180deg,#ef4444,#c02626);color:#fff;box-shadow:0 4px 14px rgba(239,68,68,.35)}
+  .btn-sweep{background:linear-gradient(180deg,#38bdf8,#0284c7);color:#041525;box-shadow:0 4px 14px rgba(56,189,248,.3)}
   .btn-res{background:#334155;color:#fff}
+  #msg{text-align:center;font-weight:800;color:#93c5fd;text-shadow:0 0 12px rgba(56,189,248,.35);min-height:1.4em}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="hud">
-    <div>End: <span id="end" style="color:#38bdf8">1/8</span></div>
-    <div>You (Red): <span id="pScore" style="color:#f87171">0</span></div>
-    <div>CPU (Yellow): <span id="cScore" style="color:#facc15">0</span></div>
+  <div class="topline">
+    <canvas id="three-stone" width="128" height="128" aria-hidden="true"></canvas>
+    <div class="hud">
+      <div>End: <span id="end" style="color:#38bdf8">1/8</span></div>
+      <div>You (Red): <span id="pScore" style="color:#f87171">0</span></div>
+      <div>CPU (Yellow): <span id="cScore" style="color:#facc15">0</span></div>
+    </div>
   </div>
-  <div id="msg" style="text-align:center;font-weight:800;color:#93c5fd">Set aim, curl & power, then THROW!</div>
+  <div id="msg">Set aim, curl &amp; power, then THROW!</div>
   <canvas id="c" width="420" height="560"></canvas>
   <div class="ctrl">
     <label>Aim <input type="range" id="aim" min="-80" max="80" value="0"></label>
@@ -37,15 +52,84 @@
       <button class="btn-res" id="resetBtn">Restart</button>
     </div>
   </div>
+  <div id="record" style="text-align:center;font-size:.78rem;color:#64748b"></div>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js" defer></script>
 <script>
 (() => {
   const c = document.getElementById('c'), ctx = c.getContext('2d');
   const W = c.width, H = c.height, HX = W/2, HY = 128;
   const endEl = document.getElementById('end'), pEl = document.getElementById('pScore'), cEl = document.getElementById('cScore'), msgEl = document.getElementById('msg');
   const aimEl = document.getElementById('aim'), curlEl = document.getElementById('curl'), powEl = document.getElementById('power');
+  const recEl = document.getElementById('record');
+
+  /* ---------- procedural SFX (respects the overlay's speaker preference) ---------- */
+  const Sfx = (() => {
+    let actx = null;
+    const ac = () => {
+      if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
+      if (actx && actx.state === 'suspended') { try { actx.resume(); } catch (e) {} }
+      return actx;
+    };
+    const on = () => { try { return localStorage.getItem('aaa_sfx') !== '0'; } catch (e) { return true; } };
+    const tone = (f, d, type, vol, slide, delay) => {
+      if (!on()) return;
+      const a = ac(); if (!a) return;
+      try {
+        const t = a.currentTime + (delay || 0);
+        const o = a.createOscillator(), g = a.createGain();
+        o.type = type || 'sine';
+        o.frequency.setValueAtTime(Math.max(30, f), t);
+        if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, slide), t + d);
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.linearRampToValueAtTime(vol || 0.05, t + 0.012);
+        g.gain.exponentialRampToValueAtTime(0.0006, t + d);
+        o.connect(g); g.connect(a.destination);
+        o.start(t); o.stop(t + d + 0.05);
+      } catch (e) {}
+    };
+    const noise = (d, vol, freq, delay) => {
+      if (!on()) return;
+      const a = ac(); if (!a) return;
+      try {
+        const t = a.currentTime + (delay || 0);
+        const n = Math.max(32, (a.sampleRate * d) | 0);
+        const buf = a.createBuffer(1, n, a.sampleRate);
+        const ch = buf.getChannelData(0);
+        for (let i = 0; i < n; i++) ch[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 1.6);
+        const src = a.createBufferSource(); src.buffer = buf;
+        const f = a.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = freq || 1000;
+        const g = a.createGain(); g.gain.value = vol || 0.05;
+        src.connect(f); f.connect(g); g.connect(a.destination);
+        src.start(t);
+      } catch (e) {}
+    };
+    let lastClack = 0;
+    return {
+      unlock: ac,
+      throw: () => { noise(.35, .05, 600); tone(140, .5, 'sine', .04, 90); },
+      clack: speed => {
+        const now = performance.now();
+        if (now - lastClack < 60) return;
+        lastClack = now;
+        const v = Math.min(.12, .03 + speed / 3000);
+        noise(.045, v, 2400);
+        tone(2200 + speed * 1.2, .045, 'triangle', v * .8);
+      },
+      sweep: () => { noise(.08, .035, 3000); },
+      score: good => { (good ? [523, 784] : [330, 220]).forEach((f, i) => tone(f, .18, 'triangle', .05, null, i * .1)); },
+      end: win => { (win ? [523, 659, 784, 1046] : win === false ? [330, 262, 208, 156] : [440, 440]).forEach((f, i) => tone(f, .25, win === false ? 'sawtooth' : 'triangle', .05, null, i * .12)); }
+    };
+  })();
 
   let stones = [], end = 1, turn = 0, pScore = 0, cScore = 0, sliding = false, sweeping = false, over = false;
+  let record = { w: 0, l: 0, t: 0 };
+  try { record = JSON.parse(localStorage.getItem('curl_record') || 'null') || record; } catch (e) {}
+
+  function showRecord() {
+    recEl.textContent = 'Career: ' + record.w + 'W - ' + record.l + 'L - ' + record.t + 'T';
+  }
+  showRecord();
 
   function reset() {
     stones = []; end = 1; turn = 0; pScore = 0; cScore = 0; sliding = false; over = false;
@@ -59,9 +143,10 @@
     stones.push({
       x: W/2 + aim * 0.2, y: H - 36,
       vx: Math.cos(ang)*spd, vy: Math.sin(ang)*spd,
-      curl: curl * 1.1, team, r: 15
+      curl: curl * 1.1, team, r: 15, spin: 0
     });
     sliding = true;
+    Sfx.throw();
   }
 
   function scoreEnd() {
@@ -75,14 +160,18 @@
       for (const o of inHouse) {
         if (o.s.team === winner) pts++; else break;
       }
-      if (winner === 'red') { pScore += pts; pEl.textContent = pScore; msgEl.textContent = `End ${end}: Red scores +${pts}!`; }
-      else { cScore += pts; cEl.textContent = cScore; msgEl.textContent = `End ${end}: Yellow scores +${pts}!`; }
+      if (winner === 'red') { pScore += pts; pEl.textContent = pScore; msgEl.textContent = `End ${end}: Red scores +${pts}!`; Sfx.score(true); }
+      else { cScore += pts; cEl.textContent = cScore; msgEl.textContent = `End ${end}: Yellow scores +${pts}!`; Sfx.score(false); }
     } else {
       msgEl.textContent = `End ${end}: Blank end (0 pts).`;
     }
     if (end >= 8) {
       over = true;
-      msgEl.textContent = pScore > cScore ? `YOU WIN ${pScore}-${cScore}!` : pScore < cScore ? `CPU WINS ${cScore}-${pScore}!` : `TIE GAME ${pScore}-${cScore}!`;
+      if (pScore > cScore) { record.w++; msgEl.textContent = `YOU WIN ${pScore}-${cScore}!`; Sfx.end(true); if (window.AAA) { AAA.flash(0.26); AAA.shockwave(innerWidth/2, innerHeight/2, '#38bdf8', 180); } }
+      else if (pScore < cScore) { record.l++; msgEl.textContent = `CPU WINS ${cScore}-${pScore}!`; Sfx.end(false); if (window.AAA) AAA.flash(0.18); }
+      else { record.t++; msgEl.textContent = `TIE GAME ${pScore}-${cScore}!`; Sfx.end(null); }
+      try { localStorage.setItem('curl_record', JSON.stringify(record)); } catch (e) {}
+      showRecord();
     } else {
       end++; endEl.textContent = end + '/8';
       turn = 0;
@@ -106,6 +195,7 @@
     for (let i = 0; i < stones.length; i++) {
       const s = stones[i];
       s.x += s.vx * dt; s.y += s.vy * dt;
+      s.spin += s.vx * dt * 0.05 + s.curl * dt * 0.02;
       const drag = (sweeping && s === active) ? 0.992 : 0.981;
       s.vx *= Math.pow(drag, dt * 60);
       s.vy *= Math.pow(drag, dt * 60);
@@ -125,6 +215,7 @@
           if (rel > 0) {
             s.vx -= rel * nx * 0.92; s.vy -= rel * ny * 0.92;
             b.vx += rel * nx * 0.92; b.vy += rel * ny * 0.92;
+            Sfx.clack(Math.abs(rel));
           }
         }
       }
@@ -151,43 +242,146 @@
   function draw() {
     ctx.fillStyle = '#0f172a';
     ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = '#e0f2fe';
+    // ice sheet with sheen
+    const ice = ctx.createLinearGradient(35, 0, W - 35, H);
+    ice.addColorStop(0, '#e0f2fe'); ice.addColorStop(.5, '#f0f9ff'); ice.addColorStop(1, '#cfe8fb');
+    ctx.fillStyle = ice;
     ctx.fillRect(35, 10, W - 70, H - 20);
+    // sheen streaks
+    ctx.fillStyle = 'rgba(255,255,255,.35)';
+    ctx.fillRect(35, 90, W - 70, 8);
+    ctx.fillRect(35, 340, W - 70, 6);
+    ctx.fillStyle = 'rgba(148,197,255,.18)';
+    ctx.fillRect(35, 220, W - 70, 24);
+    // boards
+    ctx.fillStyle = '#1e3a5f';
+    ctx.fillRect(28, 10, 7, H - 20); ctx.fillRect(W - 35, 10, 7, H - 20);
 
     // House rings
     [[92,'#2563eb'],[62,'#ffffff'],[34,'#dc2626'],[12,'#ffffff']].forEach(([r, col]) => {
       ctx.fillStyle = col;
       ctx.beginPath(); ctx.arc(HX, HY, r, 0, Math.PI*2); ctx.fill();
     });
+    // button
+    ctx.fillStyle = '#dc2626';
+    ctx.beginPath(); ctx.arc(HX, HY, 3.5, 0, Math.PI*2); ctx.fill();
+
     // Hog line
     ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 3;
     ctx.beginPath(); ctx.moveTo(35, 290); ctx.lineTo(W - 35, 290); ctx.stroke();
+    // center line
+    ctx.strokeStyle = 'rgba(30,58,95,.35)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(HX, 12); ctx.lineTo(HX, H - 12); ctx.stroke();
 
     if (!sliding && !over && turn % 2 === 0) {
       const aim = Number(aimEl.value);
-      ctx.strokeStyle = 'rgba(239,68,68,.5)'; ctx.setLineDash([5,5]);
+      ctx.strokeStyle = 'rgba(239,68,68,.55)'; ctx.setLineDash([5,5]); ctx.lineWidth = 2.5;
       ctx.beginPath(); ctx.moveTo(W/2 + aim*0.2, H - 36); ctx.lineTo(W/2 + aim*1.2, HY); ctx.stroke();
       ctx.setLineDash([]);
     }
 
     for (const s of stones) {
-      ctx.fillStyle = '#475569';
+      // shadow
+      ctx.fillStyle = 'rgba(15,23,42,.28)';
+      ctx.beginPath(); ctx.ellipse(s.x + 2, s.y + 4, s.r, s.r * .55, 0, 0, Math.PI*2); ctx.fill();
+      // granite body
+      const g = ctx.createRadialGradient(s.x - 5, s.y - 6, 2, s.x, s.y, s.r + 2);
+      g.addColorStop(0, '#8fa1b8'); g.addColorStop(1, '#3c4c63');
+      ctx.fillStyle = g;
       ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2); ctx.fill();
+      // granite speckle
+      ctx.fillStyle = 'rgba(255,255,255,.16)';
+      ctx.fillRect(s.x - 4, s.y - 2, 2, 2); ctx.fillRect(s.x + 5, s.y + 3, 1.6, 1.6); ctx.fillRect(s.x - 1, s.y + 6, 1.8, 1.8);
+      // colored band + handle
       ctx.fillStyle = s.team === 'red' ? '#ef4444' : '#facc15';
       ctx.beginPath(); ctx.arc(s.x, s.y, s.r - 4, 0, Math.PI*2); ctx.fill();
+      ctx.save();
+      ctx.translate(s.x, s.y); ctx.rotate(s.spin || 0);
+      ctx.fillStyle = 'rgba(15,23,42,.75)';
+      ctx.fillRect(-7, -2.2, 14, 4.4);
+      ctx.beginPath(); ctx.arc(0, 0, 3, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
+
+    if (over) {
+      ctx.fillStyle = 'rgba(10,20,40,.55)';
+      ctx.fillRect(35, 10, W - 70, H - 20);
     }
   }
 
   document.getElementById('throwBtn').onclick = () => {
+    Sfx.unlock();
     if (!sliding && !over && turn % 2 === 0) {
       launchStone('red', Number(aimEl.value), Number(curlEl.value), Number(powEl.value));
     }
   };
-  document.getElementById('sweepBtn').onpointerdown = () => sweeping = true;
-  document.getElementById('sweepBtn').onpointerup = () => sweeping = false;
-  document.getElementById('resetBtn').onclick = reset;
+  const sweepBtn = document.getElementById('sweepBtn');
+  let sweepTicks = 0;
+  sweepBtn.onpointerdown = e => { e.preventDefault(); Sfx.unlock(); sweeping = true; };
+  const stopSweep = () => { sweeping = false; };
+  sweepBtn.onpointerup = stopSweep;
+  sweepBtn.onpointercancel = stopSweep;
+  sweepBtn.onpointerleave = stopSweep;
+  sweepBtn.oncontextmenu = e => e.preventDefault();
+  setInterval(() => { if (sweeping) Sfx.sweep(); }, 140);
+  document.getElementById('resetBtn').onclick = () => { Sfx.unlock(); reset(); };
   reset();
   requestAnimationFrame(loop);
+
+  /* ---------- Three.js rotating stone (optional, guarded) ---------- */
+  window.addEventListener('load', () => {
+    if (!window.THREE) return;
+    try {
+      const cv = document.getElementById('three-stone');
+      const renderer = new THREE.WebGLRenderer({ canvas: cv, alpha: true, antialias: true });
+      renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+      renderer.setSize(64, 64, false);
+      const scene = new THREE.Scene();
+      const cam = new THREE.PerspectiveCamera(36, 1, .1, 50);
+      cam.position.set(0, 2.2, 3.4); cam.lookAt(0, 0, 0);
+      scene.add(new THREE.AmbientLight(0x9db8ff, .9));
+      const key = new THREE.DirectionalLight(0xffffff, 2.4); key.position.set(2, 4, 3); scene.add(key);
+      const rim = new THREE.PointLight(0x38bdf8, 6, 15); rim.position.set(-3, 1.5, -2); scene.add(rim);
+
+      // curling stone profile (lathe): base flare -> body -> top
+      const pts = [];
+      pts.push(new THREE.Vector2(0.001, 0));
+      pts.push(new THREE.Vector2(0.55, 0));
+      pts.push(new THREE.Vector2(0.62, 0.06));
+      pts.push(new THREE.Vector2(0.62, 0.16));
+      pts.push(new THREE.Vector2(0.55, 0.22));
+      pts.push(new THREE.Vector2(0.42, 0.30));
+      pts.push(new THREE.Vector2(0.40, 0.38));
+      pts.push(new THREE.Vector2(0.30, 0.42));
+      pts.push(new THREE.Vector2(0.001, 0.42));
+      const body = new THREE.Mesh(
+        new THREE.LatheGeometry(pts, 40),
+        new THREE.MeshStandardMaterial({ color: 0x5b6b80, metalness: .65, roughness: .3 })
+      );
+      scene.add(body);
+      // red band
+      const band = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.615, 0.615, 0.07, 40, 1, true),
+        new THREE.MeshStandardMaterial({ color: 0xef4444, metalness: .4, roughness: .5, side: THREE.DoubleSide })
+      );
+      band.position.y = 0.11; scene.add(band);
+      // handle
+      const handle = new THREE.Mesh(
+        new THREE.TorusGeometry(0.2, 0.045, 12, 28, Math.PI),
+        new THREE.MeshStandardMaterial({ color: 0xef4444, metalness: .35, roughness: .45 })
+      );
+      handle.rotation.z = 0; handle.position.y = 0.42; scene.add(handle);
+
+      const t0 = performance.now();
+      (function loop3(now) {
+        requestAnimationFrame(loop3);
+        const t = (now - t0) / 1000;
+        body.rotation.y = band.rotation.y = handle.rotation.y = t * .9;
+        scene.position.y = Math.sin(t * 1.3) * .06 - 0.3;
+        renderer.render(scene, cam);
+      })(t0);
+    } catch (e) {}
+  });
 })();
 </script>
 

@@ -2,48 +2,72 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Pipe Connect</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{
   display:flex;flex-direction:column;align-items:center;justify-content:center;
-  min-height:100vh;padding:16px;gap:12px;
+  min-height:100vh;padding:16px;gap:12px;position:relative;overflow-x:hidden;
   font-family:'Segoe UI',system-ui,-apple-system,sans-serif;color:#dbe4ff;
-  background:radial-gradient(1000px 700px at 50% 15%,#17223f 0%,#0b1020 65%);
+  background:#0a0f22;
 }
-h1{font-size:clamp(20px,3.5vw,30px);letter-spacing:3px;font-weight:600;color:#8fd8ff;text-shadow:0 0 18px rgba(80,200,255,.45)}
+body::before{
+  content:"";position:fixed;inset:-20%;z-index:-2;
+  background:
+    radial-gradient(45% 55% at 20% 20%, rgba(69,224,255,.13), transparent 70%),
+    radial-gradient(45% 55% at 82% 22%, rgba(255,213,74,.09), transparent 70%),
+    radial-gradient(55% 60% at 55% 85%, rgba(120,80,255,.12), transparent 70%),
+    radial-gradient(1000px 700px at 50% 15%,#17223f 0%,#0b1020 65%);
+  animation:aurora 20s ease-in-out infinite alternate;
+}
+@keyframes aurora{from{transform:rotate(-2deg) scale(1)}to{transform:rotate(2deg) scale(1.07)}}
+body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:radial-gradient(ellipse at 50% 40%,transparent 55%,rgba(0,0,0,.5))}
+h1{font-size:clamp(20px,3.5vw,30px);letter-spacing:4px;font-weight:800;
+  background:linear-gradient(90deg,#4fd6ff,#8fd8ff 55%,#c4b5fd);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 0 16px rgba(79,214,255,.4));
+  animation:cardIn .45s cubic-bezier(.2,.9,.3,1.2)}
+@keyframes cardIn{from{opacity:0;transform:translateY(14px)}}
 .hint{font-size:13px;color:#7f8fbe;text-align:center}
 .hud{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:center}
-.stat{background:#141c33;border:1px solid #263457;border-radius:8px;padding:6px 14px;font-size:14px;min-width:92px;text-align:center}
+.stat{background:rgba(10,16,34,.7);border:1px solid #263457;border-radius:10px;padding:7px 14px;font-size:14px;min-width:92px;text-align:center;backdrop-filter:blur(8px)}
 .stat b{color:#8fd8ff;font-variant-numeric:tabular-nums}
-button{background:#141c33;color:#c8d6ff;border:1px solid #2c3c66;border-radius:8px;padding:6px 14px;font-size:14px;cursor:pointer;transition:border-color .15s,color .15s,background .15s}
+#lit b{color:#45e0ff;text-shadow:0 0 10px rgba(69,224,255,.6)}
+button{background:rgba(20,28,51,.85);color:#c8d6ff;border:1px solid #2c3c66;border-radius:10px;padding:8px 15px;font-size:14px;font-weight:600;cursor:pointer;transition:border-color .15s,color .15s,background .15s,transform .1s;font-family:inherit}
 button:hover{border-color:#4fd6ff;color:#fff}
-button.active{background:#1d5f80;border-color:#4fd6ff;color:#eaffff}
-#board{display:grid;gap:4px;width:min(92vmin,560px);aspect-ratio:1;padding:6px;background:#0e1528;border:1px solid #223058;border-radius:12px;user-select:none}
-.tile{background:#131b31;border-radius:6px;cursor:pointer;transition:background .25s;overflow:hidden}
-.tile:hover{background:#1a2440}
+button:active{transform:scale(.96)}
+button.active{background:linear-gradient(180deg,#1d6f95,#155a7d);border-color:#4fd6ff;color:#eaffff;box-shadow:0 0 14px rgba(79,214,255,.3)}
+#board{display:grid;gap:4px;width:min(92vmin,560px);aspect-ratio:1;padding:6px;background:rgba(8,12,26,.85);border:1px solid #223058;border-radius:14px;user-select:none;-webkit-user-select:none;touch-action:manipulation;box-shadow:0 20px 50px rgba(0,0,0,.55),inset 0 0 40px rgba(20,30,60,.4)}
+.tile{background:linear-gradient(160deg,#161f3a,#101730);border-radius:6px;cursor:pointer;overflow:hidden;transition:background .3s,box-shadow .3s}
+.tile:active{background:#1c2a50}
 .tile svg{display:block;width:100%;height:100%;transition:transform .16s ease}
-.tile line{stroke:#46557f;stroke-width:14;stroke-linecap:round}
-.tile .core{fill:#46557f}
+.tile line{stroke:#46557f;stroke-width:14;stroke-linecap:round;transition:stroke .3s .0s,filter .3s 0s}
+.tile .core{fill:#46557f;transition:fill .3s}
+.tile.on{box-shadow:inset 0 0 12px rgba(69,224,255,.15)}
 .tile.on line{stroke:#45e0ff;filter:drop-shadow(0 0 5px rgba(69,224,255,.9))}
-.tile.on .core{fill:#45e0ff}
+.tile.on .core{fill:#45e0ff;filter:drop-shadow(0 0 6px rgba(69,224,255,1))}
 .tile.src .srcdot{fill:#ffd54a}
 .tile.src .core{fill:#fff3c4}
-#win{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(5,8,18,.72);backdrop-filter:blur(3px);z-index:10}
-#win .card{background:#131d38;border:1px solid #2c4a77;border-radius:14px;padding:34px 48px;text-align:center;box-shadow:0 0 60px rgba(69,224,255,.25)}
-#win h2{color:#45e0ff;font-size:26px;margin-bottom:8px}
-#win p{color:#a9b8e6;margin-bottom:20px}
+.tile.src.on .srcdot{filter:drop-shadow(0 0 8px rgba(255,213,74,.9))}
+#win{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(5,8,18,.72);backdrop-filter:blur(5px);z-index:10;padding:16px}
+#win .card{background:linear-gradient(165deg,rgba(24,36,66,.97),rgba(14,21,44,.97));border:1px solid #2c4a77;border-radius:18px;padding:34px 42px;text-align:center;box-shadow:0 0 60px rgba(69,224,255,.28),0 24px 60px rgba(0,0,0,.5);animation:cardIn .4s cubic-bezier(.2,.9,.3,1.2);max-width:92vw}
+#win h2{color:#45e0ff;font-size:26px;margin-bottom:8px;letter-spacing:2px;filter:drop-shadow(0 0 14px rgba(69,224,255,.5))}
+#win p{color:#a9b8e6;margin-bottom:8px}
+#win .best{color:#ffd54a;font-size:13px;margin-bottom:18px}
+.newbest{display:inline-block;color:#0a0f22;background:linear-gradient(90deg,#ffd54a,#45e0ff);font-weight:900;font-size:.72rem;letter-spacing:1.5px;padding:3px 12px;border-radius:999px;margin-bottom:10px;animation:blink .9s infinite}
+@keyframes blink{50%{opacity:.6}}
 .hidden{display:none!important}
 </style>
 </head>
 <body>
 <h1>PIPE CONNECT</h1>
-<div class="hint">Click a tile to rotate it clockwise &middot; right-click rotates it back &middot; light every pipe</div>
+<div class="hint">Tap to rotate clockwise &middot; hold or right-click to rotate back &middot; light every pipe</div>
 <div class="hud">
   <div class="stat">Moves <b id="moves">0</b></div>
   <div class="stat">Time <b id="time">0:00</b></div>
-  <div class="stat">Lit <b id="lit">0/0</b></div>
+  <div class="stat" id="lit">Lit <b id="litN">0/0</b></div>
 </div>
 <div class="hud">
   <button id="d5">Easy 5&times;5</button>
@@ -54,23 +78,55 @@ button.active{background:#1d5f80;border-color:#4fd6ff;color:#eaffff}
 <div id="board"></div>
 <div id="win" class="hidden">
   <div class="card">
-    <h2>All pipes connected!</h2>
+    <h2>ALL PIPES CONNECTED!</h2>
+    <div id="newBest" class="hidden"><span class="newbest">NEW BEST</span></div>
     <p id="winStats"></p>
+    <p class="best" id="bestLine"></p>
     <button id="again">Play again</button>
   </div>
 </div>
 <script>
 'use strict';
+/* ---------- procedural SFX (respects the overlay's speaker preference) ---------- */
+var Sfx=(function(){
+  var ctx=null;
+  function ac(){if(!ctx){try{ctx=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(ctx&&ctx.state==='suspended'){try{ctx.resume()}catch(e){}}return ctx}
+  function on(){try{return localStorage.getItem('aaa_sfx')!=='0'}catch(e){return true}}
+  function tone(f,d,type,vol,slide,delay){
+    if(!on())return;var c=ac();if(!c)return;
+    try{
+      var t=c.currentTime+(delay||0);
+      var o=c.createOscillator(),g=c.createGain();
+      o.type=type||'sine';o.frequency.setValueAtTime(Math.max(30,f),t);
+      if(slide)o.frequency.exponentialRampToValueAtTime(Math.max(30,slide),t+d);
+      g.gain.setValueAtTime(0.0001,t);
+      g.gain.linearRampToValueAtTime(vol||0.05,t+0.012);
+      g.gain.exponentialRampToValueAtTime(0.0006,t+d);
+      o.connect(g);g.connect(c.destination);o.start(t);o.stop(t+d+0.05);
+    }catch(e){}
+  }
+  return{
+    unlock:ac,
+    tick:function(dir){tone(dir>0?520:380,.05,'triangle',.05,dir>0?640:280)},
+    flow:function(n){tone(400+Math.min(60,n)*8,.09,'sine',.04,600+Math.min(60,n)*10)},
+    win:function(){[523,659,784,1046].forEach(function(f,i){tone(f,.25,'triangle',.055,null,i*.11)})}
+  };
+})();
+
 var DIRS=[[-1,0],[0,1],[1,0],[0,-1]];      // N,E,S,W
 var EDGE=[[50,5],[95,50],[50,95],[5,50]];  // svg edge endpoints per dir
 var NS='http://www.w3.org/2000/svg';
 var board=document.getElementById('board');
 var movesEl=document.getElementById('moves');
 var timeEl=document.getElementById('time');
-var litEl=document.getElementById('lit');
+var litEl=document.getElementById('litN');
 var winEl=document.getElementById('win');
 var winStats=document.getElementById('winStats');
+var bestLine=document.getElementById('bestLine');
+var newBestEl=document.getElementById('newBest');
 var size=7,cells=[],moves=0,won=false,started=false,t0=0,timerId=null;
+var best={};
+try{best=JSON.parse(localStorage.getItem('pc_best')||'{}')||{}}catch(e){best={}}
 
 function idx(r,c){return r*size+c}
 // effective connection in direction d = base connection rotated by cell.rot
@@ -131,8 +187,29 @@ function build(){
     core.setAttribute('cx',50);core.setAttribute('cy',50);core.setAttribute('r',9);
     svg.appendChild(core);
     el.appendChild(svg);
-    el.addEventListener('click',function(){turn(cell,1)});
-    el.addEventListener('contextmenu',function(e){e.preventDefault();turn(cell,-1)});
+
+    // tap = rotate CW, long-press / right-click = rotate CCW (mobile friendly)
+    var pressTimer=null,pressFired=false,px=0,py=0,lpTime=0;
+    el.addEventListener('pointerdown',function(e){
+      if(e.pointerType==='mouse'&&e.button!==0)return;
+      pressFired=false;px=e.clientX;py=e.clientY;
+      pressTimer=setTimeout(function(){pressFired=true;lpTime=Date.now();turn(cell,-1);},430);
+    });
+    el.addEventListener('pointermove',function(e){
+      if(Math.hypot(e.clientX-px,e.clientY-py)>14)clearTimeout(pressTimer);
+    });
+    el.addEventListener('pointerup',function(e){
+      clearTimeout(pressTimer);
+      if(pressFired)return;
+      if(e.pointerType==='mouse'&&e.button!==0)return;
+      turn(cell,1);
+    });
+    el.addEventListener('pointercancel',function(){clearTimeout(pressTimer);pressFired=true});
+    el.addEventListener('contextmenu',function(e){
+      e.preventDefault();
+      if(Date.now()-lpTime<700)return;
+      turn(cell,-1);
+    });
     cell.el=el;cell.svg=svg;
     board.appendChild(el);
   })(cells[i]);
@@ -153,13 +230,15 @@ function scramble(){
 }
 
 // BFS from the source through matching connections; lights up powered tiles.
+var lastLit=0;
 function flow(){
-  var on={};
+  var on={},dist={};
   var src=cells.find(function(c){return c.src});
-  var q=[src];on[idx(src.r,src.c)]=true;
-  var count=1;
+  var q=[src];on[idx(src.r,src.c)]=true;dist[idx(src.r,src.c)]=0;
+  var count=1,maxD=0;
   while(q.length){
     var c=q.pop();
+    var cd=dist[idx(c.r,c.c)];
     for(var d=0;d<4;d++){
       if(!hasConn(c,d))continue;
       var nr=c.r+DIRS[d][0],nc=c.c+DIRS[d][1];
@@ -167,12 +246,18 @@ function flow(){
       var k=idx(nr,nc);
       if(on[k])continue;
       var nb=cells[k];
-      if(hasConn(nb,(d+2)%4)){on[k]=true;count++;q.push(nb);}
+      if(hasConn(nb,(d+2)%4)){on[k]=true;dist[k]=cd+1;if(cd+1>maxD)maxD=cd+1;count++;q.push(nb);}
     }
   }
-  for(var i=0;i<cells.length;i++)
-    cells[i].el.classList.toggle('on',!!on[idx(cells[i].r,cells[i].c)]);
+  for(var i=0;i<cells.length;i++){
+    var cell=cells[i];
+    var isOn=!!on[idx(cell.r,cell.c)];
+    cell.el.style.transitionDelay=isOn?Math.min(400,dist[idx(cell.r,cell.c)]*45)+'ms':'0ms';
+    cell.el.classList.toggle('on',isOn);
+  }
   litEl.textContent=count+'/'+cells.length;
+  if(count>lastLit+2)Sfx.flow(count);
+  lastLit=count;
   return count;
 }
 
@@ -182,16 +267,25 @@ function turn(cell,dir){
   cell.rot=(cell.rot+dir+4)%4;
   cell.angle+=dir*90;
   cell.svg.style.transform='rotate('+cell.angle+'deg)';
+  Sfx.tick(dir);
   moves++;movesEl.textContent=moves;
   if(flow()===cells.length){
     won=true;clearInterval(timerId);
-    winStats.textContent='Solved in '+moves+' moves \u00B7 '+fmt(elapsed());
+    var t=elapsed();
+    var key='m'+size;
+    var isBest=!best[key]||moves<best[key];
+    if(isBest){best[key]=moves;try{localStorage.setItem('pc_best',JSON.stringify(best))}catch(e){}}
+    newBestEl.classList.toggle('hidden',!isBest);
+    winStats.textContent='Solved in '+moves+' moves \u00B7 '+fmt(t);
+    bestLine.textContent='Fewest moves on '+size+'\u00D7'+size+': '+best[key];
     winEl.classList.remove('hidden');
+    Sfx.win();
+    if(window.AAA){AAA.flash(0.24);AAA.shockwave(innerWidth/2,innerHeight/2,'#45e0ff',180);}
   }
 }
 
 function newGame(sz){
-  size=sz;moves=0;won=false;started=false;
+  size=sz;moves=0;won=false;started=false;lastLit=0;
   clearInterval(timerId);
   movesEl.textContent='0';timeEl.textContent='0:00';
   winEl.classList.add('hidden');
@@ -199,6 +293,7 @@ function newGame(sz){
   build();
   // reshuffle in the (vanishingly rare) case the scramble comes out solved
   do{scramble()}while(flow()===cells.length);
+  lastLit=0;
   ['d5','d7','d9'].forEach(function(id){
     document.getElementById(id).classList.toggle('active',id==='d'+sz);
   });
@@ -209,6 +304,7 @@ document.getElementById('d7').addEventListener('click',function(){newGame(7)});
 document.getElementById('d9').addEventListener('click',function(){newGame(9)});
 document.getElementById('restart').addEventListener('click',function(){newGame(size)});
 document.getElementById('again').addEventListener('click',function(){newGame(size)});
+window.addEventListener('pointerdown',function once(){Sfx.unlock();window.removeEventListener('pointerdown',once)});
 
 newGame(7);
 </script>

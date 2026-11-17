@@ -231,6 +231,47 @@
 
   try {
     state.best = Math.max(0, parseInt(localStorage.getItem('rocketEscape.best') || '0', 10) || 0);
+
+  /* ---- procedural audio ---- */
+  var actx = null;
+  function ac() {
+    if (window.AAA && AAA.ensureAudio) { try { return AAA.ensureAudio(); } catch (e) {} }
+    if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
+    if (actx && actx.state === 'suspended') actx.resume();
+    return actx;
+  }
+  function tone(f, d, type, vol, at, slide) {
+    var c = ac(); if (!c) return;
+    try {
+      var t = c.currentTime + (at || 0);
+      var o = c.createOscillator(), g = c.createGain();
+      o.type = type || 'sine';
+      o.frequency.setValueAtTime(f, t);
+      if (slide) o.frequency.exponentialRampToValueAtTime(slide, t + d);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol || 0.05, t + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+      o.connect(g); g.connect(c.destination);
+      o.start(t); o.stop(t + d + 0.03);
+    } catch (e) {}
+  }
+  function noise(d, vol, fc) {
+    var c = ac(); if (!c) return;
+    try {
+      var t = c.currentTime, n = Math.floor(c.sampleRate * d);
+      var buf = c.createBuffer(1, n, c.sampleRate), ch = buf.getChannelData(0);
+      for (var i = 0; i < n; i++) ch[i] = (Math.random() * 2 - 1) * (1 - i / n);
+      var src = c.createBufferSource(); src.buffer = buf;
+      var f = c.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = fc || 900;
+      var g = c.createGain(); g.gain.value = vol || 0.12;
+      src.connect(f); f.connect(g); g.connect(c.destination);
+      src.start(t);
+    } catch (e) {}
+  }
+  var sfxLaunch = function () { noise(0.35, 0.10, 600); tone(160, 0.5, 'sawtooth', 0.05, 0, 420); };
+  var sfxBoom = function () { noise(0.6, 0.22, 500); tone(90, 0.5, 'triangle', 0.09, 0, 40); };
+  var sfxMile = function () { tone(880, 0.08, 'sine', 0.04); tone(1320, 0.1, 'sine', 0.035, 0.07); };
+  var sfxOver = function () { tone(300, 0.4, 'sine', 0.05, 0, 140); tone(210, 0.5, 'sine', 0.045, 0.25, 105); };
   } catch (e) { state.best = 0; }
 
   /* ------------------------------------------------------------------ */
@@ -335,6 +376,9 @@
     state.deadTimer = 0;
     state.flame = 0;
     state.overShown = false;
+    state.mile = 0;
+    state.thrustSfxT = 0;
+    sfxLaunch();
     state.asteroids.length = 0;
     state.particles.length = 0;
     state.nextBandY = state.cam - U * 0.85;
@@ -358,6 +402,8 @@
     state.rocket.vy = 0;
     state.flame = 0;
     explode(state.rocket.x, state.rocket.y);
+    sfxBoom();
+    if (window.AAA) { try { AAA.shake && AAA.shake(10); AAA.flash && AAA.flash('rgba(255,120,80,.3)'); } catch (e) {} }
     var score = Math.floor(state.maxAlt);
     if (score > state.best) {
       state.best = score;
@@ -369,6 +415,7 @@
 
   function showGameOver() {
     state.overShown = true;
+    sfxOver();
     finalAlt.textContent = String(Math.floor(state.maxAlt));
     finalBest.textContent = String(state.best);
     titlePanel.classList.add('hidden');
@@ -452,7 +499,11 @@
     var tilt = clamp(r.vx / (U * 0.8), -1, 1) * 0.38;
     r.angle += (tilt - r.angle) * Math.min(1, dt * 9);
 
-    if (thrusting) emitThrust(r);
+    if (thrusting) {
+      emitThrust(r);
+      state.thrustSfxT -= dt;
+      if (state.thrustSfxT <= 0) { state.thrustSfxT = 0.14; noise(0.09, 0.035, 700); }
+    }
 
     var camTarget = r.y - H * 0.62;
     state.cam += (camTarget - state.cam) * (1 - Math.exp(-8 * dt));
@@ -460,6 +511,8 @@
     var alt = Math.max(0, (state.startY - r.y) / (U * 0.02));
     state.alt = alt;
     if (alt > state.maxAlt) state.maxAlt = alt;
+    var m = Math.floor(state.maxAlt / 100);
+    if (m > (state.mile || 0)) { state.mile = m; sfxMile(); }
 
     updateAsteroids(dt, true);
 

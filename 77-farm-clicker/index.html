@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Farm Clicker 🌻</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='0.9em' font-size='90'%3E%F0%9F%8C%BB%3C/text%3E%3C/svg%3E">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Farm Clicker</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='%23f6b73c'%3E%3Ccircle cx='12' cy='4.2' r='3'/%3E%3Ccircle cx='17.5' cy='6.5' r='3'/%3E%3Ccircle cx='19.8' cy='12' r='3'/%3E%3Ccircle cx='17.5' cy='17.5' r='3'/%3E%3Ccircle cx='12' cy='19.8' r='3'/%3E%3Ccircle cx='6.5' cy='17.5' r='3'/%3E%3Ccircle cx='4.2' cy='12' r='3'/%3E%3Ccircle cx='6.5' cy='6.5' r='3'/%3E%3C/g%3E%3Ccircle cx='12' cy='12' r='4.4' fill='%238a5c28'/%3E%3C/svg%3E">
 <style>
   :root{
     --ink:#2f2418;
@@ -31,7 +31,26 @@
     min-height:100vh;
     overflow-x:hidden;
     -webkit-tap-highlight-color:transparent;
+    touch-action:manipulation;
   }
+  /* ---------- Hand-drawn SVG icon system ---------- */
+  .ic{width:1em;height:1em;vertical-align:-.14em;display:inline-block;flex:none}
+  .plot-art .ic{width:46px;height:46px}
+ .float-text .ic,.farm-hint .ic{width:14px;height:14px;vertical-align:-2px}
+ .lock-icon .ic,.lock-cost .ic{width:16px;height:16px;vertical-align:-3px}
+ .buy-btn .ic,.seed-side .ic{width:14px;height:14px;vertical-align:-2px}
+ .seed-meta .ic{width:12px;height:12px;vertical-align:-1px}
+  .plot.empty .plot-art .ic{width:34px;height:34px;opacity:.8}
+  .seed-emoji .ic,.upg-icon .ic{width:27px;height:27px}
+  .lock-icon .ic{width:26px;height:26px;filter:grayscale(1);opacity:.8}
+  .coin-pill .ic{width:20px;height:20px}
+  .icon-btn .ic{width:20px;height:20px;display:block;margin:0 auto}
+  .brand .logo .ic{width:42px;height:42px}
+  .spark .ic{width:16px;height:16px}
+  .mini-ic .ic,.mini-ic{display:inline-flex;vertical-align:-3px}
+  .mini-ic .ic{width:13px;height:13px}
+  .float-text .ic{width:1em;height:1em}
+  .farm-head h2 .ic,.tab .ic,.ghost .ic{width:1.05em;height:1.05em;vertical-align:-.16em}
   :focus-visible{outline:3px solid #ffd75e;outline-offset:2px}
 
   /* ---------- Scenery ---------- */
@@ -344,34 +363,34 @@
 <div class="app">
   <header class="topbar">
     <div class="brand">
-      <span class="logo">🌻</span>
+      <span class="logo"><svg class="ic" viewBox="0 0 24 24" style="width:42px;height:42px"><g fill="#f6b73c"><ellipse cx="12" cy="5.2" rx="2.1" ry="3.4"/><ellipse cx="12" cy="5.2" rx="2.1" ry="3.4" transform="rotate(45 12 12)"/><ellipse cx="12" cy="5.2" rx="2.1" ry="3.4" transform="rotate(90 12 12)"/><ellipse cx="12" cy="5.2" rx="2.1" ry="3.4" transform="rotate(135 12 12)"/><ellipse cx="12" cy="5.2" rx="2.1" ry="3.4" transform="rotate(180 12 12)"/><ellipse cx="12" cy="5.2" rx="2.1" ry="3.4" transform="rotate(225 12 12)"/><ellipse cx="12" cy="5.2" rx="2.1" ry="3.4" transform="rotate(270 12 12)"/><ellipse cx="12" cy="5.2" rx="2.1" ry="3.4" transform="rotate(315 12 12)"/></g><circle cx="12" cy="12" r="4.2" fill="#8a5c28"/><circle cx="12" cy="12" r="2.6" fill="#6e4720"/></svg></span>
       <div>
         <h1>Farm Clicker</h1>
         <p>Plant. Grow. Harvest. Repeat.</p>
       </div>
     </div>
     <div class="stats">
-      <div class="coin-pill" id="coinPill"><span>🪙</span><strong id="coins">12</strong></div>
+      <div class="coin-pill" id="coinPill"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="#f6b73c" stroke="#b97a1a" stroke-width="2"/><circle cx="12" cy="12" r="4.6" fill="none" stroke="#b97a1a" stroke-width="1.5" stroke-dasharray="2.4 2"/></svg><strong id="coins">12</strong></div>
       <div class="level-box">
         <div class="level-line"><span>Level <b id="level">1</b></span><span id="xpText">0 / 10 XP</span></div>
         <div class="xpbar"><i id="xpFill"></i></div>
       </div>
-      <button id="soundBtn" class="icon-btn" title="Toggle sound" aria-label="Toggle sound">🔊</button>
+      <button id="soundBtn" class="icon-btn" title="Toggle sound" aria-label="Toggle sound"><svg class="ic" viewBox="0 0 24 24"><path d="M4 9.3v5.4h3.2l3.8 3.8V5.5L7.2 9.3H4z" fill="#5d4a30"/><path d="M14.3 9.8a3.4 3.4 0 0 1 0 4.4M16.3 7.6a6.6 6.6 0 0 1 0 8.8" stroke="#5d4a30" stroke-width="1.7" fill="none" stroke-linecap="round"/></svg></button>
     </div>
   </header>
 
   <p class="help">
-    🌱 Pick a seed → click empty soil to plant → click the crop when it’s ripe. Keep clicking a growing crop to water it. Your farm saves automatically and crops keep growing while you’re away.
+    Pick a seed &rarr; click empty soil to plant &rarr; click the crop when it&rsquo;s ripe. Keep clicking a growing crop to water it. Your farm saves automatically and crops keep growing while you&rsquo;re away.
     <span class="keys">Shortcuts: 1–6 select seeds · P plant all · H harvest all</span>
   </p>
 
   <main>
     <section class="farm-card">
       <div class="farm-head">
-        <h2>🌾 Your Farm</h2>
+        <h2><svg class="ic" viewBox="0 0 24 24" style="width:.95em;height:.95em"><path d="M12 21.5V9" stroke="#a9761c" stroke-width="1.8" stroke-linecap="round"/><g fill="#eab94e"><ellipse cx="8.2" cy="6.2" rx="2.5" ry="1.5" transform="rotate(-35 8.2 6.2)"/><ellipse cx="15.8" cy="6.2" rx="2.5" ry="1.5" transform="rotate(35 15.8 6.2)"/><ellipse cx="8.5" cy="10.8" rx="2.5" ry="1.5" transform="rotate(-35 8.5 10.8)"/><ellipse cx="15.5" cy="10.8" rx="2.5" ry="1.5" transform="rotate(35 15.5 10.8)"/><ellipse cx="9" cy="15" rx="2.3" ry="1.4" transform="rotate(-30 9 15)"/><ellipse cx="15" cy="15" rx="2.3" ry="1.4" transform="rotate(30 15 15)"/><ellipse cx="12" cy="4" rx="2.1" ry="1.4"/></g></svg> Your Farm</h2>
         <div class="farm-actions">
-          <button id="plantAll" class="ghost" title="Plant the selected seed on every empty plot">🌱 Plant All</button>
-          <button id="harvestAll" class="ghost" title="Harvest every ripe crop">🧺 Harvest All</button>
+          <button id="plantAll" class="ghost" title="Plant the selected seed on every empty plot"><svg class="ic" viewBox="0 0 24 24"><path d="M12 21v-8.5" stroke="#4d9e3f" stroke-width="1.8" stroke-linecap="round"/><path d="M12 13.5C11 9.8 8.3 7.8 4.5 7.8c.2 4 2.8 5.9 7.5 5.7z" fill="#5fb84f"/><path d="M12 13.5c1-3.7 3.7-5.7 7.5-5.7-.2 4-2.8 5.9-7.5 5.7z" fill="#7ec850"/></svg> Plant All</button>
+          <button id="harvestAll" class="ghost" title="Harvest every ripe crop"><svg class="ic" viewBox="0 0 24 24"><path d="M8.5 11.5C8.5 8 10 5.7 12 5.7s3.5 2.3 3.5 5.8" fill="none" stroke="#8a5c28" stroke-width="1.8" stroke-linecap="round"/><path d="M4.8 11.5h14.4l-1.6 7.3c-.3 1.2-1.3 1.9-2.5 1.9H8.9c-1.2 0-2.2-.7-2.5-1.9L4.8 11.5z" fill="#b07a3e"/><path d="M6.4 14.3h11.2M7.1 16.9h9.8" stroke="#8a5c28" stroke-width="1.1"/></svg> Harvest All</button>
         </div>
       </div>
       <div id="farm" class="farm"></div>
@@ -383,8 +402,8 @@
 
     <aside class="shop-card">
       <div class="tabs">
-        <button class="tab active" data-tab="seeds">🌱 Seeds</button>
-        <button class="tab" data-tab="upgrades">⚙️ Upgrades</button>
+        <button class="tab active" data-tab="seeds"><svg class="ic" viewBox="0 0 24 24"><path d="M12 21v-8.5" stroke="#4d9e3f" stroke-width="1.8" stroke-linecap="round"/><path d="M12 13.5C11 9.8 8.3 7.8 4.5 7.8c.2 4 2.8 5.9 7.5 5.7z" fill="#5fb84f"/><path d="M12 13.5c1-3.7 3.7-5.7 7.5-5.7-.2 4-2.8 5.9-7.5 5.7z" fill="#7ec850"/></svg> Seeds</button>
+        <button class="tab" data-tab="upgrades"><svg class="ic" viewBox="0 0 24 24"><path d="M7 3.5v6M7 14v6.5M12 3.5v3M12 11v9.5M17 3.5v8M17 16v4.5" stroke="#7a6649" stroke-width="2" stroke-linecap="round"/><circle cx="7" cy="12" r="2.3" fill="#f6b73c" stroke="#c9821c" stroke-width="1"/><circle cx="12" cy="8.5" r="2.3" fill="#f6b73c" stroke="#c9821c" stroke-width="1"/><circle cx="17" cy="14" r="2.3" fill="#f6b73c" stroke="#c9821c" stroke-width="1"/></svg> Upgrades</button>
       </div>
       <div id="seedsPanel" class="panel"></div>
       <div id="upgradesPanel" class="panel hidden"></div>
@@ -419,12 +438,12 @@
   const WATER_MAX_FRACTION = 0.3;
 
   const CROPS = [
-    { id:'wheat',      name:'Wheat',      emoji:'🌾', seed:2,   sell:6,    grow:5000,   xp:2,  unlockLevel:1  },
-    { id:'carrot',     name:'Carrot',     emoji:'🥕', seed:8,   sell:24,   grow:12000,  xp:4,  unlockLevel:2  },
-    { id:'strawberry', name:'Strawberry', emoji:'🍓', seed:25,  sell:80,   grow:25000,  xp:7,  unlockLevel:3  },
-    { id:'corn',       name:'Corn',       emoji:'🌽', seed:70,  sell:240,  grow:45000,  xp:12, unlockLevel:5  },
-    { id:'pumpkin',    name:'Pumpkin',    emoji:'🎃', seed:180, sell:700,  grow:80000,  xp:20, unlockLevel:7  },
-    { id:'pineapple',  name:'Pineapple',  emoji:'🍍', seed:500, sell:2200, grow:150000, xp:40, unlockLevel:10 }
+    { id:'wheat',      name:'Wheat',      icon:'wheat', seed:2,   sell:6,    grow:5000,   xp:2,  unlockLevel:1  },
+    { id:'carrot',     name:'Carrot',     icon:'carrot', seed:8,   sell:24,   grow:12000,  xp:4,  unlockLevel:2  },
+    { id:'strawberry', name:'Strawberry', icon:'strawberry', seed:25,  sell:80,   grow:25000,  xp:7,  unlockLevel:3  },
+    { id:'corn',       name:'Corn',       icon:'corn', seed:70,  sell:240,  grow:45000,  xp:12, unlockLevel:5  },
+    { id:'pumpkin',    name:'Pumpkin',    icon:'pumpkin', seed:180, sell:700,  grow:80000,  xp:20, unlockLevel:7  },
+    { id:'pineapple',  name:'Pineapple',  icon:'pineapple', seed:500, sell:2200, grow:150000, xp:40, unlockLevel:10 }
   ];
   const CROP_MAP = {};
   CROPS.forEach(function(c){ CROP_MAP[c.id] = c; });
@@ -589,21 +608,45 @@
     while (els.toasts.children.length > 4) els.toasts.firstElementChild.remove();
   }
 
-  function floatText(x, y, text, cls){
+  /* ---- hand-drawn SVG icon factory ---- */
+  const ICONS = {
+    coin: '<circle cx="12" cy="12" r="8.5" fill="#fbbf24" stroke="#b45309" stroke-width="1.6"/><circle cx="12" cy="12" r="5" fill="none" stroke="#b45309" stroke-width="1.4" opacity=".7"/><path d="M10 9.2c.5-1 1.2-1.4 2.3-1.4 1.4 0 2.4.8 2.4 2h-1.7c0-.5-.4-.8-1-.8-.8 0-1.2.5-1.2 1.1h3.9v1.3h-3.9c0 .6.5 1.1 1.2 1.1.6 0 1-.3 1-.8h1.7c0 1.2-1 2-2.4 2-1.1 0-1.8-.4-2.3-1.4H9.3v-1.3h.8v-.6h-.8z" fill="#78350f"/>',
+    lock: '<rect x="6.5" y="10.5" width="11" height="9" rx="2" fill="#94a3b8" stroke="#334155" stroke-width="1.4"/><path d="M9 10.5V8a3 3 0 0 1 6 0v2.5" fill="none" stroke="#94a3b8" stroke-width="2"/><circle cx="12" cy="15" r="1.5" fill="#334155"/>',
+    plus: '<path d="M12 5v14M5 12h14" stroke="#7dd3a8" stroke-width="3" stroke-linecap="round"/>',
+    spark: '<path d="M12 2l2.2 6.4L21 10l-6.8 1.6L12 18l-2.2-6.4L3 10l6.8-1.6z" fill="#fde68a" stroke="#f59e0b" stroke-width="1"/>',
+    water: '<path d="M12 3c3.5 4.6 6.5 7.9 6.5 11.3a6.5 6.5 0 1 1-13 0C5.5 10.9 8.5 7.6 12 3z" fill="#38bdf8" stroke="#0369a1" stroke-width="1.4"/><ellipse cx="9.6" cy="13.6" rx="1.7" ry="2.6" fill="rgba(255,255,255,.55)"/>',
+    flask: '<path d="M10 3h4M11 3v6.2L5.2 18a2 2 0 0 0 1.8 3h10a2 2 0 0 0 1.8-3L13 9.2V3" fill="#a5f3d0" stroke="#059669" stroke-width="1.5" stroke-linejoin="round"/><path d="M8 15h8" stroke="#059669" stroke-width="1.5"/>',
+    robot: '<rect x="5" y="9" width="14" height="10" rx="3" fill="#cbd5e1" stroke="#475569" stroke-width="1.5"/><path d="M12 9V6M12 6h.01" stroke="#475569" stroke-width="2" stroke-linecap="round"/><circle cx="9.5" cy="13" r="1.6" fill="#22d3ee"/><circle cx="14.5" cy="13" r="1.6" fill="#22d3ee"/><path d="M9 17h6" stroke="#475569" stroke-width="1.5" stroke-linecap="round"/>',
+    sprout: '<path d="M12 21v-8" stroke="#16a34a" stroke-width="2" stroke-linecap="round"/><path d="M12 13C12 9 9 6.5 5 6.5c0 4 3 6.5 7 6.5z" fill="#4ade80" stroke="#16a34a" stroke-width="1.3"/><path d="M12 10.5c0-3.5 3-6 7-6 0 3.5-3 6-7 6z" fill="#86efac" stroke="#16a34a" stroke-width="1.3"/>',
+    party: '<path d="M4 20l4-10 10 4z" fill="#f472b6" stroke="#be185d" stroke-width="1.4" stroke-linejoin="round"/><path d="M10 6l1.5 2.5M14 4l.5 3M18 7l-2 2M20 12l-2.5 1" stroke="#fbbf24" stroke-width="1.6" stroke-linecap="round"/>',
+    sndOn: '<path d="M4 9.5h3l4-3.2v11.4l-4-3.2H4z" fill="#e2e8f0"/><path d="M15 8.5a5 5 0 0 1 0 7M17.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="#e2e8f0" stroke-width="1.7" stroke-linecap="round"/>',
+    sndOff: '<path d="M4 9.5h3l4-3.2v11.4l-4-3.2H4z" fill="#94a3b8"/><path d="M15 9.5l5 5M20 9.5l-5 5" stroke="#94a3b8" stroke-width="1.8" stroke-linecap="round"/>',
+    wheat: '<path d="M12 22V10" stroke="#d97706" stroke-width="1.8" stroke-linecap="round"/><g fill="#fbbf24" stroke="#b45309" stroke-width="1"><ellipse cx="9" cy="8" rx="2.4" ry="3.6" transform="rotate(-24 9 8)"/><ellipse cx="15" cy="8" rx="2.4" ry="3.6" transform="rotate(24 15 8)"/><ellipse cx="9" cy="13" rx="2.4" ry="3.6" transform="rotate(-24 9 13)"/><ellipse cx="15" cy="13" rx="2.4" ry="3.6" transform="rotate(24 15 13)"/><ellipse cx="12" cy="5" rx="2.2" ry="3.4"/></g>',
+    carrot: '<path d="M14 8c0-2 1-4 3-5M14 8c-1-2-3-3-5-3M14 8c1.5-1 4-1.5 6 0" fill="none" stroke="#16a34a" stroke-width="2" stroke-linecap="round"/><path d="M14 8c3 1 4 3 3 6l-7 7c-1.5 1.4-3.6.6-4-.6C4.6 15.8 11 8.6 14 8z" fill="#fb923c" stroke="#c2410c" stroke-width="1.4"/><path d="M9 15l2 1M8 18l2 1" stroke="#c2410c" stroke-width="1.2" stroke-linecap="round"/>',
+    strawberry: '<path d="M12 21C8 17 5 13.5 5 10.5A7 7 0 0 1 19 10.5C19 13.5 16 17 12 21z" fill="#ef4444" stroke="#b91c1c" stroke-width="1.4"/><path d="M8.5 7c1-1.5 2.5-2 3.5-2s2.5.5 3.5 2l-1.8 1.5h-3.4z" fill="#4ade80" stroke="#16a34a" stroke-width="1.2"/><g fill="#fef3c7"><circle cx="9.5" cy="12" r=".9"/><circle cx="14.5" cy="12" r=".9"/><circle cx="12" cy="15" r=".9"/><circle cx="10" cy="16.8" r=".9"/><circle cx="14" cy="16.8" r=".9"/></g>',
+    corn: '<path d="M12 3c-4 3.5-5 8-4 12 .7 3 2 5.5 4 7 2-1.5 3.3-4 4-7 1-4 0-8.5-4-12z" fill="#fde047" stroke="#ca8a04" stroke-width="1.5"/><path d="M9.5 8h5M9 12h6M9.5 16h5" stroke="#ca8a04" stroke-width="1.1" opacity=".7"/><path d="M8 14c-2 1-3.5 3-4 6 2.5-.5 4.5-2 6-4M16 14c2 1 3.5 3 4 6-2.5-.5-4.5-2-6-4" fill="#4ade80" stroke="#16a34a" stroke-width="1.3"/>',
+    pumpkin: '<ellipse cx="12" cy="14" rx="9" ry="7.5" fill="#fb923c" stroke="#c2410c" stroke-width="1.5"/><path d="M12 7c-2.5 0-4.5 3-4.5 7s2 7 4.5 7M12 7c2.5 0 4.5 3 4.5 7s-2 7-4.5 7" fill="none" stroke="#c2410c" stroke-width="1.2" opacity=".75"/><path d="M12 7c-.5-2 0-3.5 1.5-4.5" fill="none" stroke="#16a34a" stroke-width="2" stroke-linecap="round"/>',
+    pineapple: '<path d="M12 9c-3.5 0-5.5 3-5.5 7s2 6.5 5.5 6.5 5.5-2.5 5.5-6.5-2-7-5.5-7z" fill="#fbbf24" stroke="#b45309" stroke-width="1.4"/><path d="M7.5 13l9 6M7.5 19l9-6" stroke="#b45309" stroke-width="1" opacity=".6"/><path d="M12 9c-2-1.5-3-4-2.5-6 1.5.5 2 1.5 2.5 2.5.5-1 1-2 2.5-2.5.5 2-.5 4.5-2.5 6z" fill="#4ade80" stroke="#16a34a" stroke-width="1.3"/>'
+  };
+  function ic(name){
+    return '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">' + (ICONS[name] || '') + '</svg>';
+  }
+
+  function floatText(x, y, html, cls){
     const el = document.createElement('div');
     el.className = 'float-text' + (cls ? ' ' + cls : '');
-    el.textContent = text;
+    el.innerHTML = html;
     el.style.left = x + 'px';
     el.style.top = y + 'px';
     els.fx.appendChild(el);
     setTimeout(function(){ el.remove(); }, 1000);
   }
 
-  function sparkle(x, y, emojis, count){
+  function sparkle(x, y, icons, count){
     for (let i = 0; i < count; i++){
       const s = document.createElement('span');
       s.className = 'spark';
-      s.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+      s.innerHTML = ic(icons[Math.floor(Math.random() * icons.length)]);
       s.style.left = x + 'px';
       s.style.top = y + 'px';
       s.style.setProperty('--dx', (Math.random() * 130 - 65).toFixed(0) + 'px');
@@ -666,11 +709,11 @@
       ui.lock.style.display = '';
       if (isNext && cost != null){
         el.classList.add('next-plot');
-        ui.lock.innerHTML = '<span class="lock-icon">🔒</span><span class="lock-cost">' + fmtNum(cost) + ' 🪙</span>';
+        ui.lock.innerHTML = '<span class="lock-icon">' + ic('lock') + '</span><span class="lock-cost">' + fmtNum(cost) + ' ' + ic('coin') + '</span>';
       } else {
-        ui.lock.innerHTML = '<span class="lock-icon">🔒</span>';
+        ui.lock.innerHTML = '<span class="lock-icon">' + ic('lock') + '</span>';
       }
-      ui.art.textContent = '';
+      ui.art.innerHTML = '';
       ui.name.textContent = '';
       ui.timer.textContent = '';
       ui.fill.style.width = '0%';
@@ -682,10 +725,10 @@
     if (!p.crop){
       el.className = 'plot empty';
       const sel = CROP_MAP[state.selected];
-      ui.art.textContent = '＋';
+      ui.art.innerHTML = ic('plus');
       ui.art.style.setProperty('--s', '1');
       ui.name.textContent = 'Plant';
-      ui.timer.textContent = sel ? (sel.emoji + ' ' + sel.name) : '';
+      ui.timer.textContent = sel ? (sel.name) : '';
       ui.fill.style.width = '0%';
       return;
     }
@@ -705,14 +748,14 @@
 
     if (prog >= 1){
       el.className = 'plot ripe';
-      ui.art.textContent = crop.emoji;
+      ui.art.innerHTML = ic(crop.icon);
       ui.art.style.setProperty('--s', '1.08');
       ui.name.textContent = 'Harvest!';
       ui.timer.textContent = 'Ready';
       ui.fill.style.width = '100%';
     } else {
       el.className = 'plot growing';
-      ui.art.textContent = crop.emoji;
+      ui.art.innerHTML = ic(crop.icon);
       ui.art.style.setProperty('--s', (0.42 + 0.6 * prog).toFixed(2));
       ui.name.textContent = crop.name;
       ui.timer.textContent = fmtTime(total - elapsed);
@@ -730,13 +773,13 @@
     const li = levelInfo(state.xp);
     if (sel){
       els.farmHint.innerHTML =
-        'Selected: <b>' + sel.emoji + ' ' + sel.name + '</b> · seed ' + fmtNum(sel.seed) +
-        ' 🪙 · sells ' + fmtNum(sellFor(sel, li.level, false)) + ' 🪙';
+        'Selected: <b>' + ic(sel.icon) + ' ' + sel.name + '</b> · seed ' + fmtNum(sel.seed) +
+        ' ' + ic('coin') + ' · sells ' + fmtNum(sellFor(sel, li.level, false)) + ' ' + ic('coin');
     } else {
       els.farmHint.textContent = '';
     }
-    els.statLine.textContent =
-      'Harvests ' + fmtNum(state.stats.harvests) + ' · Earned ' + fmtNum(state.stats.earned) + ' 🪙';
+    els.statLine.innerHTML =
+      'Harvests ' + fmtNum(state.stats.harvests) + ' · Earned ' + fmtNum(state.stats.earned) + ' ' + ic('coin');
   }
 
   /* ============================== Header ============================== */
@@ -746,7 +789,7 @@
     els.level.textContent = li.level;
     els.xpText.textContent = fmtNum(li.into) + ' / ' + fmtNum(li.need) + ' XP';
     els.xpFill.style.width = Math.min(100, (li.into / li.need) * 100).toFixed(1) + '%';
-    els.soundBtn.textContent = state.sound ? '🔊' : '🔇';
+    els.soundBtn.innerHTML = state.sound ? ic('sndOn') : ic('sndOff');
     els.soundBtn.classList.toggle('muted', !state.sound);
   }
 
@@ -756,13 +799,13 @@
     if (o.maxed){
       action = '<span class="buy-btn maxed">MAX</span>';
     } else if (o.owned){
-      action = '<span class="buy-btn owned">✓ Owned</span>';
+      action = '<span class="buy-btn owned">Owned</span>';
     } else if (o.locked){
-      action = '<span class="buy-btn locked">🔒 ' + o.lockedText + '</span>';
+      action = '<span class="buy-btn locked">' + ic('lock') + ' ' + o.lockedText + '</span>';
     } else {
       const afford = state.coins >= o.cost;
       action = '<button class="buy-btn' + (afford ? '' : ' poor') + '" data-upg="' + o.id + '">' +
-        fmtNum(o.cost) + ' 🪙</button>';
+        fmtNum(o.cost) + ' ' + ic('coin') + '</button>';
     }
     const levelLine = o.max
       ? 'Lv ' + o.level + '/' + o.max
@@ -792,39 +835,39 @@
       return '<button class="seed' + (selected ? ' selected' : '') +
         (locked ? ' locked' : '') + (poor && !locked ? ' poor' : '') + '"' +
         ' data-seed="' + c.id + '"' + (locked ? ' disabled' : '') + '>' +
-        '<span class="seed-emoji">' + c.emoji + '</span>' +
+        '<span class="seed-emoji">' + ic(c.icon) + '</span>' +
         '<span class="seed-main">' +
           '<span class="seed-name">' + c.name + '</span>' +
           '<span class="seed-meta">' + fmtTime(growMs(c)) + ' · seed ' + fmtNum(c.seed) +
-            ' 🪙 · sells ' + fmtNum(sell) + ' 🪙</span>' +
+            ' ' + ic('coin') + ' · sells ' + fmtNum(sell) + ' ' + ic('coin') + '</span>' +
         '</span>' +
-        '<span class="seed-side">' + (locked ? '🔒 Lv ' + c.unlockLevel : (selected ? 'Selected' : 'Select')) + '</span>' +
+        '<span class="seed-side">' + (locked ? ic('lock') + ' Lv ' + c.unlockLevel : (selected ? 'Selected' : 'Select')) + '</span>' +
       '</button>';
     }).join('');
 
     const cards = [];
     cards.push(upgradeCard({
-      id: 'sprinkler', icon: '💧', name: 'Sprinkler',
+      id: 'sprinkler', icon: ic('water'), name: 'Sprinkler',
       desc: 'Crops grow 12% faster per level.',
       level: state.upgrades.sprinkler, max: 5,
       cost: SPRINKLER_COSTS[state.upgrades.sprinkler],
       maxed: state.upgrades.sprinkler >= 5
     }));
     cards.push(upgradeCard({
-      id: 'fertilizer', icon: '🧪', name: 'Fertilizer',
+      id: 'fertilizer', icon: ic('flask'), name: 'Fertilizer',
       desc: 'Crops sell for 20% more per level.',
       level: state.upgrades.fertilizer, max: 5,
       cost: FERTILIZER_COSTS[state.upgrades.fertilizer],
       maxed: state.upgrades.fertilizer >= 5
     }));
     cards.push(upgradeCard({
-      id: 'autoHarvest', icon: '🤖', name: 'Auto-Harvester',
+      id: 'autoHarvest', icon: ic('robot'), name: 'Auto-Harvester',
       desc: 'Automatically harvests ripe crops every second.',
       owned: state.upgrades.autoHarvest,
       cost: AUTO_HARVEST_COST
     }));
     cards.push(upgradeCard({
-      id: 'autoReplant', icon: '🌱', name: 'Replanting Drone',
+      id: 'autoReplant', icon: ic('sprout'), name: 'Replanting Drone',
       desc: 'Auto-harvester replants the same crop when it can afford the seed.',
       owned: state.upgrades.autoReplant,
       cost: AUTO_REPLANT_COST,
@@ -845,7 +888,7 @@
     state.lastSeen = Date.now();
     try {
       localStorage.setItem(SAVE_KEY, JSON.stringify({ v: 1, state: state }));
-      els.saveState.textContent = 'Saved ✓';
+      els.saveState.textContent = 'Saved';
       els.saveState.classList.add('flash');
       setTimeout(function(){ els.saveState.classList.remove('flash'); }, 600);
       dirty = false;
@@ -965,7 +1008,7 @@
     p.watered += delta;
     sfx.water();
     const c = plotCenter(i);
-    sparkle(c.x, c.y, ['💧'], 2);
+    sparkle(c.x, c.y, ['water'], 2);
     updatePlot(i);
     scheduleSave();
   }
@@ -994,13 +1037,13 @@
     p.watered = 0;
 
     const c = plotCenter(i);
-    floatText(c.x, c.y - 6, '+' + fmtNum(amount) + ' 🪙', golden ? 'gold' : '');
+    floatText(c.x, c.y - 6, '+' + fmtNum(amount) + ' ' + ic('coin'), golden ? 'gold' : '');
     if (golden){
       floatText(c.x, c.y - 40, 'GOLDEN!', 'gold small');
-      sparkle(c.x, c.y, ['✨', '🌟', '🪙'], 10);
+      sparkle(c.x, c.y, ['spark','spark','coin'], 10);
       sfx.golden();
     } else {
-      sparkle(c.x, c.y, ['✨', '🪙'], 4);
+      sparkle(c.x, c.y, ['spark','coin'], 4);
       if (!opts.quiet) sfx.harvest();
     }
     popCoins();
@@ -1032,11 +1075,11 @@
         return c.unlockLevel > lastLevel && c.unlockLevel <= li.level;
       });
       lastLevel = li.level;
-      toast('🎉 Level ' + li.level + '!' +
+      toast(' Level ' + li.level + '!' +
         (unlocked.length ? ' Unlocked: ' + unlocked.map(function(c){ return c.emoji + ' ' + c.name; }).join(', ') : ''),
         'level');
       sfx.level();
-      sparkle(window.innerWidth / 2, window.innerHeight * 0.22, ['🎉', '✨', '🌟'], 12);
+      sparkle(window.innerWidth / 2, window.innerHeight * 0.22, ['party','spark','spark'], 12);
     } else {
       lastLevel = li.level;
     }
@@ -1054,14 +1097,14 @@
       }
       const cost = costs[lvl];
       if (state.coins < cost){
-        toast('Need ' + fmtNum(cost - state.coins) + ' more 🪙.', 'warn');
+        toast('Need ' + fmtNum(cost - state.coins) + ' more coins.', 'warn');
         sfx.error();
         return;
       }
       state.coins -= cost;
       u[id]++;
       sfx.buy();
-      toast((id === 'sprinkler' ? '💧 Sprinkler' : '🧪 Fertilizer') + ' upgraded to level ' + u[id] + '!', 'good');
+      toast((id === 'sprinkler' ? ' Sprinkler' : ' Fertilizer') + ' upgraded to level ' + u[id] + '!', 'good');
       renderAll();
       scheduleSave();
       return;
@@ -1070,14 +1113,14 @@
     if (id === 'autoHarvest'){
       if (u.autoHarvest) return;
       if (state.coins < AUTO_HARVEST_COST){
-        toast('Need ' + fmtNum(AUTO_HARVEST_COST - state.coins) + ' more 🪙.', 'warn');
+        toast('Need ' + fmtNum(AUTO_HARVEST_COST - state.coins) + ' more coins.', 'warn');
         sfx.error();
         return;
       }
       state.coins -= AUTO_HARVEST_COST;
       u.autoHarvest = true;
       sfx.buy();
-      toast('🤖 Auto-Harvester online! Ripe crops will be collected automatically.', 'good');
+      toast(' Auto-Harvester online! Ripe crops will be collected automatically.', 'good');
       renderAll();
       scheduleSave();
       return;
@@ -1091,14 +1134,14 @@
         return;
       }
       if (state.coins < AUTO_REPLANT_COST){
-        toast('Need ' + fmtNum(AUTO_REPLANT_COST - state.coins) + ' more 🪙.', 'warn');
+        toast('Need ' + fmtNum(AUTO_REPLANT_COST - state.coins) + ' more coins.', 'warn');
         sfx.error();
         return;
       }
       state.coins -= AUTO_REPLANT_COST;
       u.autoReplant = true;
       sfx.buy();
-      toast('🌱 Replanting Drone installed!', 'good');
+      toast(' Replanting Drone installed!', 'good');
       renderAll();
       scheduleSave();
     }
@@ -1111,7 +1154,7 @@
       return;
     }
     if (state.coins < cost){
-      toast('Need ' + fmtNum(cost - state.coins) + ' more 🪙 for this plot.', 'warn');
+      toast('Need ' + fmtNum(cost - state.coins) + ' more coins for this plot.', 'warn');
       sfx.error();
       return;
     }
@@ -1120,7 +1163,7 @@
     state.coins -= cost;
     state.plots[idx].unlocked = true;
     sfx.buy();
-    toast('🚜 New plot unlocked!', 'good');
+    toast(' New plot unlocked!', 'good');
     renderAll();
     scheduleSave();
   }
@@ -1161,7 +1204,7 @@
     }
     if (n > 0){
       sfx.plant();
-      toast('🌱 Planted ' + n + ' × ' + crop.name + '.', 'good');
+      toast(' Planted ' + n + '  ' + crop.name + '.', 'good');
     } else {
       toast(state.coins < crop.seed ? 'Not enough coins for seeds.' : 'No empty plots available.', 'warn');
       sfx.error();
@@ -1180,9 +1223,9 @@
     }
     if (n > 0){
       sfx.harvest();
-      toast('🧺 Harvested ' + n + ' crop' + (n > 1 ? 's' : '') + '.', 'good');
+      toast(' Harvested ' + n + ' crop' + (n > 1 ? 's' : '') + '.', 'good');
     } else {
-      toast('Nothing is ripe yet — give it a moment.', 'warn');
+      toast('Nothing is ripe yet  give it a moment.', 'warn');
     }
   }
 
@@ -1193,7 +1236,7 @@
     try { localStorage.removeItem(SAVE_KEY); } catch (err){ /* ignore */ }
     renderAll();
     save();
-    toast('Farm reset. A fresh start! 🌱', 'good');
+    toast('Farm reset. A fresh start! coins', 'good');
   }
 
   /* ============================== Events ============================== */
@@ -1255,7 +1298,7 @@
         renderShop();
         scheduleSave();
       } else {
-        toast(crop.emoji + ' ' + crop.name + ' unlocks at level ' + crop.unlockLevel + '.', 'warn');
+        toast(crop.name + ' unlocks at level ' + crop.unlockLevel + '.', 'warn');
       }
       return;
     }
@@ -1301,13 +1344,13 @@
     if (loaded){
       const away = Date.now() - state.lastSeen;
       if (away > 60000){
-        toast('👋 Welcome back! Your crops kept growing while you were away.', 'good');
+        toast(' Welcome back! Your crops kept growing while you were away.', 'good');
       } else {
-        toast('🌱 Welcome back to the farm!', 'good');
+        toast(' Welcome back to the farm!', 'good');
       }
-      els.saveState.textContent = 'Loaded ✓';
+      els.saveState.textContent = 'Loaded';
     } else {
-      toast('🌱 Welcome! Click an empty plot to plant your first wheat.', 'good');
+      toast(' Welcome! Click an empty plot to plant your first wheat.', 'good');
     }
 
     renderAll();

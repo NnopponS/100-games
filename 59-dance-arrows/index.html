@@ -247,6 +247,8 @@ let state = 'menu';
 let diffKey = 'normal';
 let notes = [], music = [], musicIdx = 0, songStart = 0, schedTimer = null;
 let score = 0, combo = 0, maxCombo = 0, accWeight = 0, judgedCount = 0, energy = 70;
+let bestMap = {};
+try { bestMap = JSON.parse(localStorage.getItem('danceArrowsBest') || '{}') || {}; } catch (e) {}
 let counts = { perfect: 0, great: 0, good: 0, miss: 0, broken: 0 };
 let particles = [], rings = [], laneFx = [null, null, null, null];
 let laneTokens = [new Set(), new Set(), new Set(), new Set()];
@@ -690,6 +692,12 @@ function finish(failed) {
   gradeEl.dataset.grade = grade;
   resultTag.textContent = failed ? 'FAILED' : 'CLEARED';
   resultTag.classList.toggle('fail', !!failed);
+  const prevBest = bestMap[diffKey] || 0;
+  const newBest = !failed && score > prevBest;
+  if (newBest) {
+    bestMap[diffKey] = score;
+    try { localStorage.setItem('danceArrowsBest', JSON.stringify(bestMap)); } catch (e) {}
+  }
   statsEl.innerHTML =
     '<div><span>SCORE</span><b>' + String(score).padStart(6, '0') + '</b></div>' +
     '<div><span>MAX COMBO</span><b>' + maxCombo + '</b></div>' +
@@ -698,7 +706,10 @@ function finish(failed) {
     '<div><span>GOOD</span><b>' + counts.good + '</b></div>' +
     '<div><span>MISS</span><b>' + (counts.miss + counts.broken) + '</b></div>' +
     '<div><span>ACCURACY</span><b>' + acc.toFixed(1) + '%</b></div>' +
-    '<div><span>LEVEL</span><b>' + DIFFS[diffKey].name + '</b></div>';
+    '<div><span>LEVEL</span><b>' + DIFFS[diffKey].name + '</b></div>' +
+    '<div><span>BEST</span><b>' + String(Math.max(score, prevBest)).padStart(6, '0') + '</b></div>' +
+    '<div><span></span><b style="color:' + (newBest ? '#ffd166' : 'transparent') + '">' + (newBest ? 'NEW RECORD' : '.') + '</b></div>';
+  if (window.AAA) { if (newBest) { AAA.sfx.win(); AAA.flash(0.22); } else if (!failed) AAA.sfx.level(); }
   comboBigEl.classList.remove('on');
   updHud();
   ovDone.classList.remove('hidden');

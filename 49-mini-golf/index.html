@@ -2,14 +2,16 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Mini Golf — 9 Holes</title>
 <style>
   :root{--bg:#0e1512;--panel:#1a2520;--ink:#e8f0ea;--mut:#9db3a6;--acc:#ffd34d}
   *{box-sizing:border-box}
   body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
        background:radial-gradient(1200px 700px at 50% -10%,#1c2b24,var(--bg));
-       font:14px/1.4 "Segoe UI",system-ui,sans-serif;color:var(--ink);padding:16px}
+       font:14px/1.4 "Segoe UI",system-ui,sans-serif;color:var(--ink);padding:16px;
+       touch-action:none;overscroll-behavior:none;user-select:none;-webkit-user-select:none}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
   #wrap{width:min(960px,100%)}
   #hud{display:flex;align-items:center;justify-content:space-between;gap:12px;
       background:var(--panel);border:1px solid #2c3d34;border-radius:10px 10px 0 0;
@@ -47,16 +49,18 @@
       <div id="hint">Drag back from the ball to aim &amp; set power — release to putt. Bank shots off walls!</div>
     </div>
     <div class="btns">
-      <button id="btnHole" title="Reset this hole">↺ Hole</button>
+      <button id="btnHole" title="Reset this hole"><svg viewBox="0 0 24 24" width="12" height="12" style="vertical-align:-1px" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4.2V9h-4.8"/></svg> Hole</button>
       <button id="btnGame" title="Restart all 9 holes">Restart Game</button>
     </div>
   </div>
   <div id="stage">
     <canvas id="cv" width="960" height="640"></canvas>
+    <div id="aaa-score" class="sr">0</div>
     <div id="overlay" class="hidden"></div>
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js" defer></script>
 <script>
 "use strict";
 const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
@@ -80,6 +84,26 @@ const HOLES=[
  {par:4,tee:[130,320],cup:[870,320],w:[[330,120,610,290],[330,520,610,350]],s:[[540,430,170,70]],c:[[770,320,26]]},
 ];
 
+// ===== AAA audio kit (procedural; honors overlay prefs) =====
+let AC=null;
+function ac(){if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(AC&&AC.state==='suspended')AC.resume();return AC}
+function sfxOn(){try{return localStorage.getItem('aaa_sfx')!=='0'}catch(e){return true}}
+function bgmOn(){try{return localStorage.getItem('aaa_bgm')!=='0'}catch(e){return true}}
+function tone(f,d,ty,v,sl,t){if(!sfxOn())return;const c=ac();if(!c)return;try{const n=c.currentTime+(t||0),o=c.createOscillator(),g=c.createGain();o.type=ty||'sine';o.frequency.setValueAtTime(f,n);if(sl)o.frequency.exponentialRampToValueAtTime(Math.max(30,sl),n+d);g.gain.setValueAtTime(.0008,n);g.gain.linearRampToValueAtTime(v||.08,n+.012);g.gain.exponentialRampToValueAtTime(.0006,n+d);o.connect(g);g.connect(c.destination);o.start(n);o.stop(n+d+.05)}catch(e){}}
+function nz(d,v,f,q,ty,t){if(!sfxOn())return;const c=ac();if(!c)return;try{const n=c.currentTime+(t||0),L=Math.ceil(c.sampleRate*d),b=c.createBuffer(1,L,c.sampleRate),dd=b.getChannelData(0);for(let i=0;i<L;i++)dd[i]=(Math.random()*2-1)*(1-i/L);const s=c.createBufferSource();s.buffer=b;const fl=c.createBiquadFilter();fl.type=ty||'bandpass';fl.frequency.value=f||1400;fl.Q.value=q||.8;const g=c.createGain();g.gain.setValueAtTime(v||.1,n);g.gain.exponentialRampToValueAtTime(.0006,n+d);s.connect(fl);fl.connect(g);g.connect(c.destination);s.start(n)}catch(e){}}
+function mtone(f,d,ty,v,sl,t){const c=ac();if(!c)return;try{const n=c.currentTime+(t||0),o=c.createOscillator(),g=c.createGain();o.type=ty||'sine';o.frequency.setValueAtTime(f,n);if(sl)o.frequency.exponentialRampToValueAtTime(Math.max(30,sl),n+d);g.gain.setValueAtTime(.0008,n);g.gain.linearRampToValueAtTime(v||.05,n+.02);g.gain.exponentialRampToValueAtTime(.0006,n+d);o.connect(g);g.connect(c.destination);o.start(n);o.stop(n+d+.05)}catch(e){}}
+function stinger(w){(w?[523,659,784,1047]:[392,349,311,262]).forEach(function(f,i){(w?mtone:tone)(f,w?.2:.24,w?'triangle':'sawtooth',w?.09:.05,null,i*(w?.1:.12))})}
+// fairway ambient: pads + birds
+let bgmI=0,bgmNext=-1;const BSTEP=60/88/2;const ROOTS=[110,98,87.31,73.42];
+setInterval(()=>{if(!bgmOn()){bgmNext=-1;return}const c=ac();if(!c||c.state!=='running')return;if(bgmNext<0)bgmNext=c.currentTime+.06;const a=c.currentTime+.32;while(bgmNext<a){const s=bgmI%16,t=bgmNext,R=ROOTS[(bgmI>>4)%4];
+  if(s===0){mtone(R,3.2,'sine',.03,null,t);mtone(R*1.5,3.2,'sine',.018,null,t);mtone(R*2.003,3.2,'sine',.012,null,t)}
+  if(s===5&&Math.random()<.4)mtone(1900+Math.random()*800,.11,'sine',.013,2500+Math.random()*700,t);
+  if(s===11&&Math.random()<.3)mtone(2300+Math.random()*700,.08,'sine',.011,1700,t);
+  bgmNext+=BSTEP;bgmI++}},80);
+const scoreChip=document.getElementById('aaa-score');
+function chipUpdate(v){if(scoreChip)scoreChip.textContent=v}
+let bestRound=0;try{bestRound=+localStorage.getItem('mg_best')||0}catch(e){}
+
 let hi=0, strokes=0, scores=[], state="play";
 let ball={x:0,y:0,vx:0,vy:0}, sinkAnim=0;
 let drag={on:false,x:0,y:0};
@@ -94,6 +118,8 @@ function loadHole(i){
   const h=hole();
   ball={x:h.tee[0],y:h.tee[1],vx:0,vy:0};
   walls=BOUNDARY.concat(h.w);
+  chipUpdate(0);
+  if(T3)buildScene();
   updateInfo(); hideOverlay();
 }
 function updateInfo(){
@@ -113,7 +139,10 @@ function closestOnSeg(x1,y1,x2,y2,px,py){
 }
 function collide(px,py,vx,vy,nx,ny){
   const dot=vx*nx+vy*ny;
-  if(dot<0){ vx-=2*dot*nx; vy-=2*dot*ny; vx*=REST; vy*=REST; }
+  if(dot<0){
+    vx-=2*dot*nx; vy-=2*dot*ny; vx*=REST; vy*=REST;
+    if(dot<-0.8){nz(.07,Math.min(.14,-dot*.02),700,-1,'bandpass');tone(300+Math.min(300,-dot*30),.05,'triangle',Math.min(.1,-dot*.015));}
+  }
   return [px,py,vx,vy];
 }
 function physStep(f){
@@ -154,13 +183,19 @@ function update(dt){
     const steps=Math.max(1,Math.ceil(sp*f/6)); // substep to avoid tunneling
     for(let i=0;i<steps;i++) physStep(f/steps);
     const inSand=hole().s.some(r=>ball.x>r[0]&&ball.x<r[0]+r[2]&&ball.y>r[1]&&ball.y<r[1]+r[3]);
+    if(inSand&&sp>1&&Math.random()<dt*.02)nz(.12,.05,400,.8,'lowpass');
     const fr=Math.pow(inSand?SAND_FR:FRICTION,f);
     ball.vx*=fr; ball.vy*=fr;
     if(Math.hypot(ball.vx,ball.vy)<0.07){ball.vx=ball.vy=0;}
     // cup capture: must be slow enough, else lips out
     const cd=Math.hypot(hole().cup[0]-ball.x,hole().cup[1]-ball.y);
     if(cd<CUP_R-1&&Math.hypot(ball.vx,ball.vy)<3.4){
-      ball.vx=ball.vy=0; state="sunk"; sinkAnim=0; onSunk();
+      ball.vx=ball.vy=0; state="sunk"; sinkAnim=0;
+      nz(.3,.16,900,1.2);tone(300,.14,'triangle',.09,180);tone(600,.12,'sine',.07,null,.12);
+      onSunk();
+    }
+    else if(cd<CUP_R+3&&Math.hypot(ball.vx,ball.vy)>=3.4&&!ball._lipped){
+      ball._lipped=true;tone(400,.08,'triangle',.05,300);nz(.08,.06,1200,1.5);
     }
   }
 }
@@ -169,10 +204,12 @@ function update(dt){
 function onSunk(){
   scores[hi]=strokes;
   const diff=strokes-hole().par;
+  stinger(diff<=0);
+  if(diff<=-2){tone(880,.16,'sine',.08);tone(1174,.22,'sine',.07,null,.12);}
   if(hi<HOLES.length-1){
     showOverlay(`<div class="card"><h2>Hole ${hi+1} — ${PAR_NAMES(diff)}</h2>
       <p>${strokes} stroke${strokes===1?"":"s"} (par ${hole().par})</p>
-      <button class="primary" id="nextBtn">Next Hole ▸</button></div>`);
+      <button class="primary" id="nextBtn">Next Hole <svg width="12" height="12" viewBox="0 0 12 12" style="vertical-align:-1px"><path d="M3 1.5 7.5 6 3 10.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>`);
     document.getElementById("nextBtn").onclick=nextHole;
     overlayTimer=setTimeout(nextHole,1800);
   }else showScorecard();
@@ -180,8 +217,11 @@ function onSunk(){
 function nextHole(){ clearTimeout(overlayTimer); const keep=scores.slice(); loadHole(hi+1); scores=keep; updateInfo(); }
 function showScorecard(){
   const tot=scores.reduce((a,b)=>a+b,0), par=HOLES.reduce((a,h)=>a+h.par,0);
+  const nb=!bestRound||tot<bestRound;
+  if(nb){bestRound=tot;try{localStorage.setItem('mg_best',String(tot))}catch(e){}}
   let rows=HOLES.map((h,i)=>`<tr><td>${i+1}</td><td>${h.par}</td><td>${scores[i]}</td></tr>`).join("");
-  showOverlay(`<div class="card"><h2>Round complete!</h2>
+  showOverlay(`<div class="card"><h2>Round complete!${nb?" — NEW BEST":""}</h2>
+    <p>Best round: ${bestRound}</p>
     <table><tr><th>Hole</th><th>Par</th><th>You</th></tr>${rows}
     <tr class="tot"><td>Total</td><td>${par}</td><td>${tot} (${PAR_NAMES(tot-par)})</td></tr></table>
     <button class="primary" id="againBtn">Play Again</button></div>`);
@@ -207,10 +247,13 @@ cv.addEventListener("pointerup",e=>{
   const dx=ball.x-drag.x, dy=ball.y-drag.y, d=Math.hypot(dx,dy);
   if(d<8)return; // too small, cancel
   const p=Math.min(d,MAX_DRAG)*PWR_K;
+  ball._lipped=false;
   ball.vx=dx/d*p; ball.vy=dy/d*p;
   const sp=Math.hypot(ball.vx,ball.vy);
   if(sp>MAX_V){ball.vx*=MAX_V/sp;ball.vy*=MAX_V/sp;}
-  strokes++; updateInfo();
+  strokes++; updateInfo(); chipUpdate(strokes);
+  tone(900+d*2,.04,'square',.05,500);
+  nz(.3,Math.min(.14,p*.02),1400,1,'bandpass');
 });
 document.getElementById("btnHole").onclick=restartHole;
 document.getElementById("btnGame").onclick=restartGame;
@@ -292,10 +335,125 @@ function drawAim(){
   ctx.strokeStyle="rgba(255,255,255,.4)";ctx.lineWidth=1;
   ctx.strokeRect(W/2-110,H-26,220,12);
 }
+// ---------- Three.js 3D course (guarded, optional) ----------
+let T3=null, t3={};
+function init3D(){
+  if(T3||!window.THREE)return;
+  try{
+    const r=new THREE.WebGLRenderer({antialias:true,alpha:true});
+    r.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+    r.setSize(W,H);
+    r.domElement.style.cssText='position:absolute;inset:0;width:100%;height:100%;pointer-events:none;border-radius:0 0 10px 10px';
+    r.shadowMap.enabled=true;
+    document.getElementById('stage').appendChild(r.domElement);
+    const sc=new THREE.Scene();
+    sc.fog=new THREE.Fog(0x1a2520,900,2400);
+    const cam=new THREE.PerspectiveCamera(44,W/H,10,4000);
+    cam.position.set(0,640,380);cam.lookAt(0,0,-40);
+    sc.add(new THREE.AmbientLight(0xffffff,.5));
+    const dl=new THREE.DirectionalLight(0xfff2d8,.95);
+    dl.position.set(-260,560,180);dl.castShadow=true;
+    dl.shadow.mapSize.set(1024,1024);
+    dl.shadow.camera.left=-560;dl.shadow.camera.right=560;
+    dl.shadow.camera.top=560;dl.shadow.camera.bottom=-560;
+    sc.add(dl);
+    const dl2=new THREE.DirectionalLight(0x88bbff,.25);
+    dl2.position.set(300,200,-300);sc.add(dl2);
+    T3={r,sc,cam,grp:null,ball:null,shaft:null,cone:null};
+    cv.style.opacity='0';
+    buildScene();
+  }catch(e){T3=null;}
+}
+const X=v=>v-W/2, Z=v=>v-H/2;
+function buildScene(){
+  if(!T3)return;
+  if(T3.grp)T3.sc.remove(T3.grp);
+  const g=new THREE.Group();T3.grp=g;T3.sc.add(g);
+  const h=hole();
+  // felt
+  const felt=new THREE.Mesh(new THREE.PlaneGeometry(W,H),
+    new THREE.MeshLambertMaterial({color:0x2f8f57}));
+  felt.rotation.x=-Math.PI/2;felt.receiveShadow=true;g.add(felt);
+  // fringe border
+  const edge=new THREE.Mesh(new THREE.PlaneGeometry(W+70,H+70),
+    new THREE.MeshLambertMaterial({color:0x256b41}));
+  edge.rotation.x=-Math.PI/2;edge.position.y=-2;g.add(edge);
+  const woodM=new THREE.MeshLambertMaterial({color:0x8a6236});
+  const woodD=new THREE.MeshLambertMaterial({color:0x5a3d22});
+  // sand
+  for(const r of h.s){
+    const m=new THREE.Mesh(new THREE.BoxGeometry(r[2],5,r[3]),
+      new THREE.MeshLambertMaterial({color:0xd8c58a}));
+    m.position.set(X(r[0]+r[2]/2),2.5,Z(r[1]+r[3]/2));m.receiveShadow=true;g.add(m);
+  }
+  // walls (incl. boundary)
+  for(const s of walls){
+    const dx=s[2]-s[0],dy=s[3]-s[1],len=Math.hypot(dx,dy)||1;
+    const m=new THREE.Mesh(new THREE.BoxGeometry(len,30,WALL_T+8),woodM);
+    m.position.set(X((s[0]+s[2])/2),15,Z((s[1]+s[3])/2));
+    m.rotation.y=-Math.atan2(dy,dx);
+    m.castShadow=m.receiveShadow=true;g.add(m);
+  }
+  // circular obstacles
+  for(const c of h.c){
+    const m=new THREE.Mesh(new THREE.CylinderGeometry(c[2]+3,c[2]+3,30,24),woodM);
+    m.position.set(X(c[0]),15,Z(c[1]));m.castShadow=m.receiveShadow=true;g.add(m);
+  }
+  // cup hole + flag
+  const cupM=new THREE.Mesh(new THREE.CylinderGeometry(CUP_R,CUP_R,4,24),
+    new THREE.MeshBasicMaterial({color:0x0d1410}));
+  cupM.position.set(X(h.cup[0]),1,Z(h.cup[1]));g.add(cupM);
+  const pole=new THREE.Mesh(new THREE.CylinderGeometry(1,1,44,8),
+    new THREE.MeshLambertMaterial({color:0xf0f0f0}));
+  pole.position.set(X(h.cup[0]),22,Z(h.cup[1]));pole.castShadow=true;g.add(pole);
+  const flag=new THREE.Mesh(new THREE.PlaneGeometry(22,12),
+    new THREE.MeshLambertMaterial({color:0xe2443b,side:THREE.DoubleSide}));
+  flag.position.set(X(h.cup[0])+11,38,Z(h.cup[1]));g.add(flag);
+  T3.flag=flag;
+  // tee ring
+  const ring=new THREE.Mesh(new THREE.RingGeometry(10,12,24),
+    new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.4,side:THREE.DoubleSide}));
+  ring.rotation.x=-Math.PI/2;ring.position.set(X(h.tee[0]),.6,Z(h.tee[1]));g.add(ring);
+  // ball
+  T3.ball=new THREE.Mesh(new THREE.SphereGeometry(BALL_R,20,16),
+    new THREE.MeshPhongMaterial({color:0xffffff,shininess:110}));
+  T3.ball.castShadow=true;g.add(T3.ball);
+  // aim arrow
+  const am=new THREE.MeshLambertMaterial({color:0xffd34d});
+  T3.shaft=new THREE.Mesh(new THREE.BoxGeometry(1,4,4),am);
+  T3.cone=new THREE.Mesh(new THREE.ConeGeometry(7,20,10),am);
+  T3.cone.rotation.z=-Math.PI/2;
+  T3.aim=new THREE.Group();
+  T3.aim.add(T3.shaft);T3.aim.add(T3.cone);T3.aim.visible=false;g.add(T3.aim);
+}
+function render3D(){
+  const h=hole();
+  const r=state==="sunk"?Math.max(0.001,1-sinkAnim/300):1;
+  T3.ball.position.set(X(ball.x),BALL_R*r,Z(ball.y));
+  T3.ball.scale.setScalar(r);
+  // flag flutters
+  if(T3.flag)T3.flag.rotation.y=Math.sin(performance.now()*.004)*.4;
+  // aim arrow
+  const dx=ball.x-drag.x,dy=ball.y-drag.y,d=Math.hypot(dx,dy);
+  if(drag.on&&d>8){
+    const p=Math.min(d,MAX_DRAG),vx=dx/d,vy=dy/d,len=40+p*1.1;
+    T3.aim.visible=true;
+    T3.aim.position.set(X(ball.x),6,Z(ball.y));
+    T3.aim.rotation.y=-Math.atan2(vy,vx);
+    T3.shaft.scale.x=len;
+    T3.shaft.position.x=len/2+16;
+    T3.cone.position.x=len+26;
+    T3.shaft.material.color.setHex(p/MAX_DRAG>.8?0xff6b57:0xffd34d);
+  }else T3.aim.visible=false;
+  T3.r.render(T3.sc,T3.cam);
+}
+
 function frame(t){
   const dt=lastT?Math.min(t-lastT,50):16.667; lastT=t;
   update(dt);
-  drawCourse(); drawBall(); drawAim();
+  if(window.THREE&&!T3)init3D();
+  if(T3){render3D();}
+  else{drawCourse(); drawBall(); drawAim();}
   requestAnimationFrame(frame);
 }
 ctx.roundRect=ctx.roundRect||function(x,y,w,h,r){this.moveTo(x+r,y);this.arcTo(x+w,y,x+w,y+h,r);this.arcTo(x+w,y+h,x,y+h,r);this.arcTo(x,y+h,x,y,r);this.arcTo(x,y,x+w,y,r);};

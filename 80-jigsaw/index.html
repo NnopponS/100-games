@@ -270,6 +270,7 @@
     <div class="stat"><span>Time</span><b id="hudTime">0:00</b></div>
     <div class="stat"><span>Placed</span><b id="hudPlaced">0/12</b></div>
     <div class="stat"><span>Moves</span><b id="hudMoves">0</b></div>
+    <div class="stat"><span>Best</span><b id="hudBest">—</b></div>
   </div>
   <div class="controls">
     <div class="seg" id="diff">
@@ -539,6 +540,7 @@
   var HUD_TIME = document.getElementById('hudTime');
   var HUD_PLACED = document.getElementById('hudPlaced');
   var HUD_MOVES = document.getElementById('hudMoves');
+  var HUD_BEST = document.getElementById('hudBest');
   var WIN_STATS = document.getElementById('winStats');
   var SOUND_BTN = document.getElementById('soundBtn');
 
@@ -900,16 +902,30 @@
   }
 
   /* ================= win ================= */
+  function bestKey() { return 'jigsaw.best.' + S.cols + 'x' + S.rows; }
+  function loadBest() {
+    try { var v = parseInt(localStorage.getItem(bestKey()), 10); return isNaN(v) ? null : v; }
+    catch (e) { return null; }
+  }
+  function updateBestHud() {
+    var b = loadBest();
+    HUD_BEST.textContent = b == null ? '—' : fmtTime(b);
+  }
+
   function win() {
     S.won = true;
     stopTimer();
     BOARD.classList.add('win');
     winChime();
+    var prev = loadBest(), isBest = prev == null || S.seconds < prev;
+    if (isBest) { try { localStorage.setItem(bestKey(), String(S.seconds)); } catch (e) {} }
+    updateBestHud();
     setTimeout(function () {
       WIN_STATS.innerHTML =
         '<b>' + S.pieces.length + '</b> pieces<span class="dot">·</span>' +
         '<b>' + fmtTime(S.seconds) + '</b><span class="dot">·</span>' +
-        '<b>' + S.moves + '</b> moves';
+        '<b>' + S.moves + '</b> moves' +
+        (isBest ? '<span class="dot">·</span><b style="color:#fbbf24">New best!</b>' : '');
       OVERLAY.classList.add('show');
       confetti();
     }, 620);
@@ -1008,7 +1024,8 @@
     S.active = null;
     S.pieces = [];
 
-    OVERLAY.classList.remove('show');
+        OVERLAY.classList.remove('show');
+    updateBestHud();
     BOARD.classList.remove('win');
     HINT_SLOT.classList.remove('show');
     TIP.classList.remove('hide');

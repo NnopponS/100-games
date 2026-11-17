@@ -305,19 +305,21 @@ window.makeGameCover = function(g) {
       s = `<g fill="#1e293b" stroke="#38bdf8" stroke-width="2">
         <rect x="44" y="26" width="38" height="38" rx="7"/><rect x="90" y="26" width="38" height="38" rx="7"/><rect x="136" y="26" width="38" height="38" rx="7"/><rect x="182" y="26" width="38" height="38" rx="7"/>
         <rect x="64" y="72" width="132" height="30" rx="7" fill="#0f172a"/></g>
-        <g fill="#fff" font-weight="900" font-size="18" text-anchor="middle"><text x="63" y="51">F</text><text x="109" y="51">A</text><text x="155" y="51">S</text><text x="201" y="51">T</text><text x="130" y="92" font-size="13" fill="#38bdf8">112 WPM ⚡</text></g>`; break;
+        <g fill="#fff" font-weight="900" font-size="18" text-anchor="middle"><text x="63" y="51">F</text><text x="109" y="51">A</text><text x="155" y="51">S</text><text x="201" y="51">T</text><text x="122" y="92" font-size="13" fill="#38bdf8">112 WPM</text></g><polygon points="158,79 168,79 162,89 170,89 156,102 160,90 152,90" fill="#fde047"/>`; break;
     case 28: // Rock Paper Scissors
       s = `<circle cx="68" cy="64" r="24" fill="rgba(255,255,255,0.16)" stroke="#fff" stroke-width="2"/>
         <circle cx="130" cy="64" r="24" fill="rgba(255,255,255,0.16)" stroke="#fff" stroke-width="2"/>
         <circle cx="192" cy="64" r="24" fill="rgba(255,255,255,0.16)" stroke="#fff" stroke-width="2"/>
-        <text x="68" y="73" text-anchor="middle" font-size="26">✊</text><text x="130" y="73" text-anchor="middle" font-size="26">✋</text><text x="192" y="73" text-anchor="middle" font-size="26">✌️</text>`; break;
+        <circle cx="68" cy="64" r="11" fill="#94a3b8"/><circle cx="60" cy="56" r="5" fill="#94a3b8"/><circle cx="76" cy="56" r="5" fill="#94a3b8"/>
+        <rect x="120" y="50" width="20" height="26" rx="4" fill="#e2e8f0"/><rect x="118" y="46" width="4" height="10" rx="2" fill="#e2e8f0"/><rect x="126" y="44" width="4" height="10" rx="2" fill="#e2e8f0"/><rect x="134" y="46" width="4" height="10" rx="2" fill="#e2e8f0"/>
+        <path d="M186 52 L199 74 M199 52 L186 74" stroke="#e2e8f0" stroke-width="5" stroke-linecap="round"/><circle cx="186" cy="52" r="4" fill="none" stroke="#e2e8f0" stroke-width="3"/><circle cx="199" cy="52" r="4" fill="none" stroke="#e2e8f0" stroke-width="3"/>`; break;
     case 29: // Guess the Number
       s = `<rect x="52" y="24" width="60" height="78" rx="12" fill="#1e293b" stroke="#60a5fa" stroke-width="3"/>
         <text x="82" y="76" text-anchor="middle" font-weight="900" font-size="38" fill="#fde047">?</text>
         <polygon points="152,44 172,22 192,44" fill="#4ade80"/><polygon points="152,80 172,102 192,80" fill="#f43f5e"/>`; break;
     case 30: // Blackjack
       s = `<rect x="64" y="24" width="56" height="80" rx="8" fill="#fff" transform="rotate(-10 92 64)"/>
-        <text x="88" y="52" font-weight="900" font-size="18" fill="#0f172a" transform="rotate(-10 92 64)">A♠</text>
+        <text x="84" y="50" font-weight="900" font-size="18" fill="#0f172a" transform="rotate(-10 92 64)">A</text><path d="M99 40 c-4 5 -8 7.5 -8 11 a5 5 0 0 0 9 3 l-1.5 6 h5 l-1.5 -6 a5 5 0 0 0 9 -3 c0 -3.5 -4 -6 -8 -11 z" fill="#0f172a" transform="rotate(-10 100 48)"/>
         <rect x="132" y="22" width="56" height="80" rx="8" fill="#fff" stroke="#facc15" stroke-width="2.5" transform="rotate(8 160 62)"/>
         <text x="158" y="64" text-anchor="middle" font-weight="900" font-size="24" fill="#dc2626" transform="rotate(8 160 62)">21</text>`; break;
     case 31: // 15 Sliding Puzzle
@@ -358,7 +360,7 @@ window.makeGameCover = function(g) {
         <rect x="74" y="20" width="56" height="46" fill="#fef3c7" opacity="0.25"/><rect x="130" y="66" width="56" height="46" fill="#fef3c7" opacity="0.25"/>
         <circle cx="102" cy="43" r="16" fill="#dc2626" stroke="#fff" stroke-width="2"/>
         <circle cx="158" cy="89" r="16" fill="#f8fafc" stroke="#facc15" stroke-width="3"/>
-        <text x="158" y="95" text-anchor="middle" font-size="16" fill="#ca8a04">♛</text>`; break;
+        <path d="M147 96 L145 82 l6 4.5 4 -7.5 4 7.5 6 -4.5 -2 14 z" fill="#ca8a04"/>`; break;
     case 38: // Bubble Shooter
       s = `<circle cx="78" cy="34" r="15" fill="#f43f5e" stroke="#fff" stroke-width="2"/><circle cx="110" cy="34" r="15" fill="#38bdf8" stroke="#fff" stroke-width="2"/><circle cx="142" cy="34" r="15" fill="#38bdf8" stroke="#fff" stroke-width="2"/><circle cx="174" cy="34" r="15" fill="#4ade80" stroke="#fff" stroke-width="2"/>
         <circle cx="126" cy="60" r="15" fill="#facc15" stroke="#fff" stroke-width="2"/>
@@ -445,11 +447,11 @@ window.makeGameCover = function(g) {
         <rect x="44" y="84" width="172" height="10" rx="5" fill="rgba(255,255,255,0.25)"/>
         <circle cx="70" cy="40" r="11" fill="#f43f5e"/><circle cx="110" cy="89" r="13" fill="#38bdf8" stroke="#fff" stroke-width="3"/><circle cx="150" cy="56" r="11" fill="#4ade80"/><circle cx="190" cy="30" r="11" fill="#facc15"/>`; break;
     case 59: // Dance Arrows
-      s = `<g stroke="#fff" stroke-width="2" font-weight="900" font-size="20" text-anchor="middle">
-        <circle cx="62" cy="64" r="20" fill="#f43f5e"/><text x="62" y="71" fill="#fff">◀</text>
-        <circle cx="108" cy="64" r="20" fill="#38bdf8"/><text x="108" y="71" fill="#fff">▼</text>
-        <circle cx="154" cy="64" r="20" fill="#4ade80"/><text x="154" y="71" fill="#fff">▲</text>
-        <circle cx="200" cy="64" r="20" fill="#facc15"/><text x="200" y="71" fill="#fff">▶</text></g>`; break;
+      s = `<g stroke="#fff" stroke-width="2">
+        <circle cx="62" cy="64" r="20" fill="#f43f5e"/><polygon points="67,53 67,75 51,64" fill="#fff"/>
+        <circle cx="108" cy="64" r="20" fill="#38bdf8"/><polygon points="97,59 119,59 108,75" fill="#fff"/>
+        <circle cx="154" cy="64" r="20" fill="#4ade80"/><polygon points="143,69 165,69 154,53" fill="#fff"/>
+        <circle cx="200" cy="64" r="20" fill="#facc15"/><polygon points="195,53 195,75 211,64" fill="#fff"/></g>`; break;
     case 60: // Math Sprint
       s = `<rect x="52" y="24" width="156" height="84" rx="12" fill="rgba(15,23,42,0.7)" stroke="#60a5fa" stroke-width="2.5"/>
         <text x="130" y="64" text-anchor="middle" font-weight="900" font-size="26" fill="#fff">7 × 8 = ?</text>
@@ -467,7 +469,7 @@ window.makeGameCover = function(g) {
       s = `<rect x="74" y="20" width="112" height="90" rx="8" fill="#1e293b" stroke="#c084fc" stroke-width="2"/>
         <rect x="74" y="20" width="56" height="45" fill="rgba(255,255,255,0.18)"/><rect x="130" y="65" width="56" height="45" fill="rgba(255,255,255,0.18)"/>
         <path d="M98 88 L130 42 L160 72" fill="none" stroke="#facc15" stroke-width="3" stroke-dasharray="5 4"/>
-        <text x="130" y="64" text-anchor="middle" font-size="38" fill="#fff">♞</text>`; break;
+        <path d="M112 84 L112 74 Q110 62 118 54 L124 48 L122 40 L130 46 L138 44 Q148 46 148 56 Q148 64 142 68 L142 84 Z M122 84 h20 v6 h-20 z" fill="#fff"/><circle cx="132" cy="56" r="2.4" fill="#1e293b"/>`; break;
     case 64: // Pipe Connect
       s = `<path d="M30 48 H108 V88 H230" fill="none" stroke="#22d3ee" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
         <path d="M164 16 V60 H230" fill="none" stroke="#facc15" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>`; break;
@@ -554,7 +556,7 @@ window.makeGameCover = function(g) {
       s = `<rect x="64" y="28" width="46" height="66" rx="7" fill="#fff" stroke="#0f172a" stroke-width="1.5"/>
         <rect x="108" y="28" width="46" height="66" rx="7" fill="#fff" stroke="#0f172a" stroke-width="1.5"/>
         <rect x="152" y="28" width="46" height="66" rx="7" fill="#fef08a" stroke="#facc15" stroke-width="2"/>
-        <text x="175" y="66" text-anchor="middle" font-weight="900" font-size="20" fill="#dc2626">Q♥</text>`; break;
+        <text x="169" y="66" text-anchor="middle" font-weight="900" font-size="20" fill="#dc2626">Q</text><path d="M184 56 c-4 -4 -9 -1 -9 3 c0 4 5 7 9 10 c4 -3 9 -6 9 -10 c0 -4 -5 -7 -9 -3 z" fill="#dc2626"/>`; break;
     case 86: // Slot Machine
       s = `<rect x="52" y="26" width="46" height="66" rx="8" fill="#fff"/><rect x="107" y="26" width="46" height="66" rx="8" fill="#fef08a"/><rect x="162" y="26" width="46" height="66" rx="8" fill="#fff"/>
         <g font-weight="900" font-size="28" text-anchor="middle" fill="#dc2626"><text x="75" y="68">7</text><text x="130" y="68">7</text><text x="185" y="68">7</text></g>`; break;

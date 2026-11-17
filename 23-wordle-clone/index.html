@@ -2,54 +2,65 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Wordle Clone</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
     font-family: 'Segoe UI', system-ui, sans-serif;
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    background:
+      radial-gradient(ellipse 70% 45% at 50% -8%, rgba(62,158,87,0.20) 0%, transparent 60%),
+      radial-gradient(ellipse 45% 35% at 88% 105%, rgba(181,159,59,0.14) 0%, transparent 55%),
+      linear-gradient(160deg, #0c1220 0%, #101a2e 50%, #0a0e1a 100%);
     color: #eee;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 20px;
+    padding: 16px 12px;
     user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    overflow-x: hidden;
   }
   h1 {
-    font-size: 2.2rem;
-    letter-spacing: 4px;
-    margin-bottom: 4px;
-    color: #e94560;
-    text-shadow: 0 2px 8px rgba(233, 69, 96, .4);
+    font-size: clamp(1.7rem, 6vw, 2.4rem);
+    letter-spacing: 9px;
+    margin-bottom: 2px;
+    font-weight: 900;
+    background: linear-gradient(180deg, #fff 15%, #9be08a 50%, #3e9e57 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 0 22px rgba(62,158,87,0.5));
   }
-  .subtitle { color: #8a8fa8; margin-bottom: 18px; font-size: .9rem; }
+  .subtitle { color: #7d8aa8; margin-bottom: 12px; font-size: .75rem; letter-spacing: .3em; text-transform: uppercase; }
 
   #toast {
     position: fixed;
-    top: 70px;
+    top: 64px;
     left: 50%;
-    transform: translateX(-50%);
-    background: #eee;
-    color: #1a1a2e;
-    font-weight: 700;
-    font-size: .95rem;
-    padding: 10px 18px;
-    border-radius: 8px;
+    transform: translateX(-50%) translateY(-6px);
+    background: #e8ecf5;
+    color: #141a2e;
+    font-weight: 800;
+    font-size: .92rem;
+    letter-spacing: .04em;
+    padding: 11px 20px;
+    border-radius: 10px;
     opacity: 0;
-    transition: opacity .2s;
+    transition: opacity .2s, transform .2s;
     pointer-events: none;
     z-index: 20;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
   }
-  #toast.show { opacity: 1; }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
   .board {
     display: grid;
     grid-template-rows: repeat(6, 1fr);
     gap: 6px;
-    width: min(340px, 92vw);
-    margin-bottom: 24px;
+    width: min(330px, 90vw);
+    margin-bottom: 18px;
   }
   .row {
     display: grid;
@@ -58,18 +69,26 @@
   }
   .tile {
     aspect-ratio: 1;
-    border: 2px solid #3a3a52;
-    border-radius: 4px;
+    border: 2px solid #2e3350;
+    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.9rem;
-    font-weight: 700;
+    font-size: 1.85rem;
+    font-weight: 800;
     text-transform: uppercase;
     color: #fff;
+    background: rgba(255,255,255,0.03);
+    box-shadow: inset 0 2px 6px rgba(0,0,0,0.35);
+    transition: border-color .15s, box-shadow .15s;
   }
-  .tile.filled { border-color: #56567a; animation: pop .1s ease; }
-  @keyframes pop { 0% { transform: scale(.8); } 100% { transform: scale(1); } }
+  .tile.filled {
+    border-color: #5a629c;
+    background: rgba(90,98,156,0.14);
+    animation: pop .12s ease;
+    box-shadow: inset 0 2px 6px rgba(0,0,0,0.35), 0 0 14px rgba(120,140,255,0.25);
+  }
+  @keyframes pop { 0% { transform: scale(.78); } 100% { transform: scale(1); } }
 
   .tile.flip { animation: flip .5s ease forwards; }
   @keyframes flip {
@@ -77,9 +96,17 @@
     50% { transform: rotateX(90deg); }
     100% { transform: rotateX(0); }
   }
-  .tile.correct { background: #3e9e57; border-color: #3e9e57; }
-  .tile.present { background: #b59f3b; border-color: #b59f3b; }
-  .tile.absent  { background: #3a3a4a; border-color: #3a3a4a; }
+  .tile.correct {
+    background: linear-gradient(160deg, #4ecb71, #2e8a4c);
+    border-color: #5ee388;
+    box-shadow: 0 0 20px rgba(74,222,128,0.45), inset 0 1px 0 rgba(255,255,255,0.3);
+  }
+  .tile.present {
+    background: linear-gradient(160deg, #d9b73f, #a8871f);
+    border-color: #eacc5e;
+    box-shadow: 0 0 20px rgba(234,204,94,0.4), inset 0 1px 0 rgba(255,255,255,0.3);
+  }
+  .tile.absent  { background: #22243a; border-color: #2c2f4a; color: #6d7392; }
 
   .row.shake { animation: shake .5s ease; }
   @keyframes shake {
@@ -100,70 +127,96 @@
   .keyboard {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    width: min(500px, 96vw);
+    gap: 7px;
+    width: min(500px, 97vw);
     align-items: center;
   }
-  .krow { display: flex; gap: 6px; width: 100%; justify-content: center; }
+  .krow { display: flex; gap: 5px; width: 100%; justify-content: center; }
   .key {
     flex: 0 1 44px;
-    height: 56px;
-    font-size: .95rem;
-    font-weight: 700;
+    height: 54px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .92rem;
+    font-weight: 800;
     text-transform: uppercase;
-    border: none;
-    border-radius: 6px;
-    background: #56567a;
-    color: #eee;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 7px;
+    background: linear-gradient(180deg, #4a5074, #3a3f60);
+    color: #e6eaff;
     cursor: pointer;
-    transition: transform .08s, background .15s;
+    box-shadow: 0 3px 0 rgba(0,0,0,0.4);
+    transition: transform .07s, background .15s, box-shadow .07s;
+    font-family: inherit;
+    touch-action: manipulation;
   }
-  .key.wide { flex-basis: 68px; font-size: .75rem; }
-  .key:hover { background: #6a6a95; transform: translateY(-2px); }
-  .key.correct { background: #3e9e57; }
-  .key.present { background: #b59f3b; }
-  .key.absent  { background: #2c2c40; }
+  .key:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,0.4); }
+  .key.wide { flex-basis: 70px; font-size: .7rem; letter-spacing: .06em; }
+  @media (hover: hover) { .key:hover { background: #5a6190; transform: translateY(-1px); } }
+  .key.correct { background: linear-gradient(180deg, #4ecb71, #2e8a4c); border-color: #5ee388; box-shadow: 0 0 12px rgba(74,222,128,0.4); }
+  .key.present { background: linear-gradient(180deg, #d9b73f, #a8871f); border-color: #eacc5e; box-shadow: 0 0 12px rgba(234,204,94,0.35); }
+  .key.absent  { background: #1d1f31; color: #4d5272; border-color: #262a44; box-shadow: none; }
 
   .restart {
-    margin-top: 20px;
-    padding: 12px 32px;
-    font-size: 1rem;
-    font-weight: 700;
-    letter-spacing: 2px;
+    margin-top: 16px;
+    padding: 11px 28px;
+    font-size: .82rem;
+    font-weight: 800;
+    letter-spacing: .14em;
+    text-transform: uppercase;
     border: none;
-    border-radius: 8px;
-    background: #e94560;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #4ecb71, #2e8a4c);
     color: #fff;
     cursor: pointer;
-    transition: transform .1s, box-shadow .2s;
+    box-shadow: 0 6px 20px rgba(62,158,87,0.4), inset 0 1px 0 rgba(255,255,255,0.3);
+    transition: transform .1s, filter .15s;
+    font-family: inherit;
+    touch-action: manipulation;
   }
-  .restart:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(233,69,96,.4); }
-  .stats { margin-top: 10px; font-size: .85rem; color: #8a8fa8; }
+  .restart:active { transform: translateY(1px); }
+  @media (hover: hover) { .restart:hover { filter: brightness(1.12); transform: translateY(-2px); } }
+  .stats { margin-top: 12px; display: flex; gap: 8px; font-size: .74rem; font-weight: 700; flex-wrap: wrap; justify-content: center; }
+  .stats span { padding: 4px 11px; border-radius: 999px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.11); color: #93a0c4; }
+  .stats b { color: #7fe3a0; margin-left: 3px; }
 
   .overlay {
     position: fixed;
     inset: 0;
-    background: rgba(10,10,25,.8);
-    display: none;
+    background: rgba(8,10,22,.78);
+    backdrop-filter: blur(6px);
+    display: flex;
     align-items: center;
     justify-content: center;
     z-index: 10;
+    opacity: 0; pointer-events: none; transition: opacity .3s;
   }
-  .overlay.show { display: flex; }
+  .overlay.show { opacity: 1; pointer-events: auto; }
   .panel {
-    background: #22223c;
-    border: 1px solid rgba(255,255,255,.1);
-    border-radius: 16px;
-    padding: 36px 48px;
+    background: linear-gradient(165deg, #171d36, #0d1122);
+    border: 1px solid rgba(255,255,255,0.13);
+    border-radius: 22px;
+    padding: 30px 40px;
     text-align: center;
-    animation: popIn .25s ease;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.7);
+    transform: translateY(14px) scale(.94);
+    transition: transform .3s cubic-bezier(.2,1.4,.4,1);
+    max-width: 92vw;
+    min-width: min(340px, 90vw);
   }
-  @keyframes popIn { from { transform: scale(.85); opacity: 0; } }
-  .panel h2 { font-size: 2rem; margin-bottom: 8px; }
-  .panel.win h2 { color: #4ecb71; }
-  .panel.lose h2 { color: #e94560; }
-  .panel p { color: #aab; margin-bottom: 20px; }
+  .overlay.show .panel { transform: translateY(0) scale(1); }
+  .panel h2 { font-size: 2rem; margin-bottom: 6px; letter-spacing: .08em; }
+  .panel.win h2 { color: #5ee388; text-shadow: 0 0 26px rgba(74,222,128,0.6); }
+  .panel.lose h2 { color: #ff6b81; text-shadow: 0 0 26px rgba(255,107,129,0.55); }
+  .panel p { color: #aab; margin-bottom: 14px; font-size: .95rem; }
   .panel b { color: #f0c75e; text-transform: uppercase; letter-spacing: 2px; }
+  #dist { margin: 4px 0 18px; display: flex; flex-direction: column; gap: 4px; }
+  .drow { display: flex; align-items: center; gap: 8px; font-size: .75rem; color: #8b93b8; }
+  .drow .dl { width: 10px; text-align: right; font-weight: 800; }
+  .drow .dt { height: 16px; border-radius: 4px; min-width: 18px; background: #2c3050; display: flex; align-items: center; justify-content: flex-end; padding-right: 5px; font-weight: 800; color: #cfd6f2; transition: width .5s cubic-bezier(.2,1,.3,1); }
+  .drow .dt.hot { background: linear-gradient(90deg, #4ecb71, #2e8a4c); color: #fff; }
+  .cf { position: fixed; width: 9px; height: 9px; border-radius: 2px; z-index: 30; pointer-events: none; }
 </style>
 </head>
 <body>
@@ -174,12 +227,13 @@
 <div class="board" id="board"></div>
 <div class="keyboard" id="keyboard"></div>
 <button class="restart" id="restart">New Game</button>
-<div class="stats" id="stats">Wins: 0 &nbsp;·&nbsp; Losses: 0</div>
+<div class="stats" id="stats"></div>
 
 <div class="overlay" id="overlay">
   <div class="panel" id="panel">
     <h2 id="resultTitle"></h2>
     <p id="resultText"></p>
+    <div id="dist"></div>
     <button class="restart" id="overlayRestart">Play Again</button>
   </div>
 </div>
@@ -399,8 +453,79 @@ const resultTitle = document.getElementById('resultTitle');
 const resultText = document.getElementById('resultText');
 const statsEl = document.getElementById('stats');
 
-let answer, guesses, current, over, busy, wins = 0, losses = 0;
+let answer, guesses, current, over, busy;
 let tiles = [], keyEls = {}, toastTimer;
+let stats = { p: 0, w: 0, streak: 0, best: 0, dist: [0, 0, 0, 0, 0, 0] };
+try { Object.assign(stats, JSON.parse(localStorage.getItem('wd_stats') || '{}')); } catch (e) {}
+
+// ---------- Procedural SFX ----------
+const SFX = (() => {
+  let ctx = null;
+  function ac() {
+    if (ctx === null) { const A = window.AudioContext || window.webkitAudioContext; ctx = A ? new A() : false; }
+    if (ctx && ctx.state === 'suspended') ctx.resume().catch(() => {});
+    return ctx || null;
+  }
+  const ok = () => localStorage.getItem('aaa_sfx') !== '0';
+  function tone(f, d, type, v, slide, when) {
+    if (!ok()) return; const c = ac(); if (!c) return;
+    try {
+      const t = c.currentTime + (when || 0);
+      const o = c.createOscillator(), g = c.createGain();
+      o.type = type || 'sine'; o.frequency.setValueAtTime(f, t);
+      if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, slide), t + d);
+      g.gain.setValueAtTime(0.001, t);
+      g.gain.linearRampToValueAtTime(v || 0.08, t + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.0006, t + d);
+      o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + d + 0.03);
+    } catch (e) {}
+  }
+  function noise(dur, v, fq, when) {
+    if (!ok()) return; const c = ac(); if (!c) return;
+    try {
+      const t = c.currentTime + (when || 0), n = Math.floor(c.sampleRate * dur);
+      const b = c.createBuffer(1, n, c.sampleRate), d = b.getChannelData(0);
+      for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
+      const s = c.createBufferSource(); s.buffer = b;
+      const f = c.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = fq || 1200;
+      const g = c.createGain(); g.gain.value = v || 0.1;
+      s.connect(f); f.connect(g); g.connect(c.destination); s.start(t);
+    } catch (e) {}
+  }
+  return {
+    unlock: ac,
+    type: () => tone(820 + Math.random() * 120, 0.04, 'triangle', 0.04),
+    del: () => tone(420, 0.05, 'triangle', 0.04, 300),
+    err: () => { tone(160, 0.14, 'square', 0.05, 110); noise(0.08, 0.05, 600); },
+    flip: i => { noise(0.09, 0.045, 2400); tone(300 + i * 60, 0.07, 'sine', 0.035, 420 + i * 60); },
+    land: r => tone(r === 'correct' ? 880 : r === 'present' ? 620 : 260, 0.1, 'triangle', 0.05),
+    win: () => { [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, 0.22, 'triangle', 0.09, null, i * 0.09)); },
+    lose: () => { [392, 330, 277, 220].forEach((f, i) => tone(f, 0.26, 'sawtooth', 0.05, f * 0.92, i * 0.14)); }
+  };
+})();
+window.addEventListener('pointerdown', SFX.unlock, { passive: true });
+window.addEventListener('keydown', SFX.unlock);
+
+function confetti() {
+  const colors = ['#4ecb71', '#eacc5e', '#5ee388', '#38bdf8', '#f472b6', '#a78bfa'];
+  for (let i = 0; i < 56; i++) {
+    const p = document.createElement('div');
+    p.className = 'cf';
+    const x = innerWidth / 2 + (Math.random() - 0.5) * 300;
+    p.style.left = x + 'px'; p.style.top = (innerHeight * 0.3) + 'px';
+    p.style.background = colors[(Math.random() * colors.length) | 0];
+    document.body.appendChild(p);
+    const a = Math.random() * Math.PI * 2, sp = 120 + Math.random() * 300;
+    const vx = Math.cos(a) * sp, vy = Math.sin(a) * sp - 170, rot = Math.random() * 720 - 360, t0 = performance.now();
+    (function step(now) {
+      const t = (now - t0) / 1000;
+      if (t > 1.6) { p.remove(); return; }
+      p.style.transform = `translate(${vx * t}px,${vy * t + 330 * t * t}px) rotate(${rot * t}deg)`;
+      p.style.opacity = Math.max(0, 1 - t / 1.6);
+      requestAnimationFrame(step);
+    })(t0);
+  }
+}
 
 // ---- Setup ----
 function buildBoard() {
@@ -429,15 +554,17 @@ function buildKeyboard() {
     row.className = 'krow';
     if (i === 2) row.appendChild(makeKey('Enter', 'ENTER', true));
     for (const ch of letters) row.appendChild(makeKey(ch, ch, false));
-    if (i === 2) row.appendChild(makeKey('⌫', 'BACKSPACE', true));
+    if (i === 2) row.appendChild(makeKey(BS_ICON, 'BACKSPACE', true));
     keyboardEl.appendChild(row);
   });
 }
 
+const BS_ICON = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4h11a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H9l-6-8z"/><path d="M12 9.5l5 5M17 9.5l-5 5"/></svg>';
+
 function makeKey(label, code, wide) {
   const b = document.createElement('button');
   b.className = 'key' + (wide ? ' wide' : '');
-  b.textContent = label;
+  if (label.indexOf('<') === 0) b.innerHTML = label; else b.textContent = label;
   b.addEventListener('click', () => handleInput(code));
   keyEls[code] = b;
   return b;
@@ -462,12 +589,14 @@ function handleInput(key) {
   if (key === 'BACKSPACE') {
     if (current.length) {
       current = current.slice(0, -1);
+      SFX.del();
       paintRow();
     }
     return;
   }
   if (/^[A-Z]$/.test(key) && current.length < COLS) {
     current += key;
+    SFX.type();
     paintRow();
   }
 }
@@ -501,11 +630,13 @@ function evaluate(guess) {
 function submitGuess() {
   if (current.length < COLS) {
     shakeRow(guesses.length);
+    SFX.err();
     toast('Not enough letters');
     return;
   }
   if (!VALID.has(current)) {
     shakeRow(guesses.length);
+    SFX.err();
     toast('Not in word list');
     return;
   }
@@ -518,7 +649,8 @@ function submitGuess() {
   rowTiles.forEach((t, i) => {
     t.style.animationDelay = (i * 280) + 'ms';
     t.classList.add('flip');
-    setTimeout(() => t.classList.add(res[i]), i * 280 + 250);
+    setTimeout(() => SFX.flip(i), i * 280);
+    setTimeout(() => { t.classList.add(res[i]); SFX.land(res[i]); }, i * 280 + 250);
   });
 
   setTimeout(() => {
@@ -526,9 +658,15 @@ function submitGuess() {
     guesses.push(guess);
     current = '';
     busy = false;
+    stats.p++;
     if (guess === answer) {
       over = true;
-      wins++;
+      stats.w++;
+      stats.streak++;
+      stats.best = Math.max(stats.best, stats.streak);
+      stats.dist[rowIdx]++;
+      SFX.win();
+      confetti();
       rowTiles.forEach((t, i) => {
         t.style.animationDelay = (i * 100) + 'ms';
         t.classList.add('win');
@@ -537,10 +675,12 @@ function submitGuess() {
       setTimeout(() => overlay.classList.add('show'), 1200);
     } else if (guesses.length >= ROWS) {
       over = true;
-      losses++;
-      endPanel('lose', 'Game Over', `The word was <b>${answer}</b>`);
+      stats.streak = 0;
+      SFX.lose();
+      endPanel('lose', 'GAME OVER', `The word was <b>${answer}</b>`);
       setTimeout(() => overlay.classList.add('show'), 600);
     }
+    localStorage.setItem('wd_stats', JSON.stringify(stats));
     updateStats();
   }, COLS * 280 + 400);
 }
@@ -572,13 +712,20 @@ function toast(msg) {
 }
 
 function updateStats() {
-  statsEl.innerHTML = `Wins: ${wins} &nbsp;·&nbsp; Losses: ${losses}`;
+  const pct = stats.p ? Math.round(stats.w / stats.p * 100) : 0;
+  statsEl.innerHTML =
+    `<span>Played<b>${stats.p}</b></span><span>Win %<b>${pct}</b></span>` +
+    `<span>Streak<b>${stats.streak}</b></span><span>Best<b>${stats.best}</b></span>`;
 }
 
 function endPanel(cls, title, html) {
   panel.className = 'panel ' + cls;
   resultTitle.textContent = title;
   resultText.innerHTML = html;
+  const max = Math.max(1, ...stats.dist);
+  document.getElementById('dist').innerHTML = stats.dist.map((n, i) =>
+    `<div class="drow"><span class="dl">${i + 1}</span><div class="dt${cls === 'win' && guesses.length - 1 === i ? ' hot' : ''}" style="width:${Math.max(9, n / max * 100)}%">${n}</div></div>`
+  ).join('');
 }
 
 // Physical keyboard support

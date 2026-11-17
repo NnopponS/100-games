@@ -2,17 +2,17 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>Knight's Tour</title>
 <style>
   :root {
-    --bg: #16181d;
-    --panel: #20242d;
-    --border: #353b47;
+    --bg: #0d0f1c;
+    --panel: rgba(20, 25, 45, .82);
+    --border: rgba(255,255,255,.12);
     --text: #e9eaed;
-    --muted: #9aa3af;
-    --light-sq: #ebecd0;
-    --dark-sq: #739552;
+    --muted: #8a99b8;
+    --light-sq: #dfe3cf;
+    --dark-sq: #5d7a4c;
     --accent: #f5c04e;
     --good: #7fdd7f;
     --bad: #ff9d7a;
@@ -25,14 +25,38 @@
     align-items: center;
     justify-content: center;
     padding: 16px;
-    background: radial-gradient(ellipse at top, #252b36 0%, var(--bg) 70%);
+    background: var(--bg);
     color: var(--text);
     font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    overflow-x: hidden;
+    position: relative;
   }
-  .app { width: min(94vw, 560px); text-align: center; }
-  h1 { margin: 0 0 4px; font-size: 30px; letter-spacing: .5px; font-weight: 700; }
-  h1 .glyph { color: var(--accent); }
-  .subtitle { margin: 0 0 14px; color: var(--muted); font-size: 14px; }
+  body::before {
+    content: "";
+    position: fixed; inset: -20%; z-index: -2;
+    background:
+      radial-gradient(42% 52% at 22% 22%, rgba(116, 149, 82, .16), transparent 70%),
+      radial-gradient(45% 55% at 80% 20%, rgba(245, 192, 78, .10), transparent 70%),
+      radial-gradient(55% 60% at 55% 85%, rgba(167, 139, 250, .12), transparent 70%),
+      linear-gradient(150deg, #131726 0%, #171a2b 55%, #0e1224 100%);
+    animation: aurora 20s ease-in-out infinite alternate;
+  }
+  @keyframes aurora { from { transform: rotate(-2deg) scale(1); } to { transform: rotate(2deg) scale(1.06); } }
+  body::after {
+    content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+    background: radial-gradient(ellipse at 50% 38%, transparent 55%, rgba(0,0,0,.55));
+  }
+  .app { width: min(94vw, 560px); text-align: center; animation: cardIn .5s cubic-bezier(.2,.9,.3,1.2); }
+  @keyframes cardIn { from { opacity: 0; transform: translateY(16px); } }
+  .title-row { display: flex; align-items: center; justify-content: center; gap: 14px; }
+  #three-box { width: 84px; height: 84px; flex: none; }
+  h1 { margin: 0; font-size: 30px; letter-spacing: 3px; font-weight: 800;
+    background: linear-gradient(90deg, #f5c04e, #ffdf8e 55%, #a78bfa);
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 14px rgba(245,192,78,.3));
+  }
+  h1 svg { width: 26px; height: 26px; vertical-align: -4px; color: var(--accent); filter: drop-shadow(0 0 8px rgba(245,192,78,.5)); }
+  .subtitle { margin: 4px 0 14px; color: var(--muted); font-size: 14px; }
   .controls {
     display: flex; flex-wrap: wrap; gap: 8px;
     align-items: center; justify-content: center;
@@ -40,27 +64,30 @@
   }
   button, select {
     background: var(--panel); color: var(--text);
-    border: 1px solid var(--border); border-radius: 8px;
-    padding: 8px 14px; font-size: 14px; cursor: pointer;
-    font-family: inherit;
+    border: 1px solid var(--border); border-radius: 10px;
+    padding: 9px 15px; font-size: 14px; cursor: pointer;
+    font-family: inherit; font-weight: 600;
+    transition: border-color .15s, transform .1s, box-shadow .15s;
+    backdrop-filter: blur(8px);
   }
-  button:hover:not(:disabled), select:hover { border-color: var(--accent); }
-  button:active:not(:disabled) { transform: translateY(1px); }
+  button:hover:not(:disabled), select:hover { border-color: var(--accent); box-shadow: 0 0 12px rgba(245,192,78,.18); }
+  button:active:not(:disabled) { transform: translateY(1px) scale(.97); }
   button:disabled { opacity: .35; cursor: default; }
   .hint-toggle {
     display: flex; align-items: center; gap: 6px;
     font-size: 14px; color: var(--muted); cursor: pointer;
-    padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px;
-    background: var(--panel);
+    padding: 9px 12px; border: 1px solid var(--border); border-radius: 10px;
+    background: var(--panel); transition: border-color .15s;
   }
   .hint-toggle:hover { border-color: var(--accent); }
-  .status { min-height: 24px; font-size: 15px; margin-bottom: 10px; }
-  .status.win { color: var(--good); font-weight: 600; }
+  .status { min-height: 24px; font-size: 15px; margin-bottom: 10px; font-weight: 600; }
+  .status.win { color: var(--good); text-shadow: 0 0 12px rgba(127,221,127,.5); }
   .status.stuck { color: var(--bad); }
   .board-wrap {
-    border-radius: 10px; overflow: hidden;
-    box-shadow: 0 14px 44px rgba(0,0,0,.55);
-    border: 1px solid #000;
+    border-radius: 14px; overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,.65), 0 0 0 1px rgba(255,255,255,.08);
+    transform: perspective(1000px) rotateX(5deg);
+    transform-origin: center top;
   }
   .board {
     display: grid;
@@ -68,66 +95,65 @@
     aspect-ratio: 1 / 1;
     --fs: 40px;
     user-select: none;
+    -webkit-user-select: none;
     touch-action: manipulation;
   }
   .sq {
     position: relative;
     display: flex; align-items: center; justify-content: center;
     cursor: pointer;
+    transition: background .25s;
   }
   .sq.light { background: var(--light-sq); }
   .sq.dark  { background: var(--dark-sq); }
   .sq.visited { cursor: default; }
-  .sq.visited::after {
-    content: ""; position: absolute; inset: 0;
-    background: rgba(0,0,0,.18);
-  }
-  .sq.hint:hover::after {
-    content: ""; position: absolute; inset: 0;
-    background: rgba(255,255,255,.25);
-  }
+  .sq.badclick { animation: badflash .3s; }
+  @keyframes badflash { 50% { background: #c0392b; } }
   .num {
     position: relative; z-index: 1;
     font-size: calc(var(--fs) * .38);
-    font-weight: 600;
-    color: rgba(0,0,0,.55);
+    font-weight: 800;
+    color: rgba(255,255,255,.9);
+    text-shadow: 0 1px 3px rgba(0,0,0,.6);
+    font-variant-numeric: tabular-nums;
   }
-  .sq.current { background: #baca44; }
+  .sq.current { z-index: 2; }
   .sq.current::after {
     content: ""; position: absolute; inset: 0;
-    box-shadow: inset 0 0 0 4px var(--accent), inset 0 0 18px rgba(0,0,0,.25);
+    box-shadow: inset 0 0 0 4px var(--accent), inset 0 0 22px rgba(0,0,0,.35);
+    animation: curGlow 1.2s ease-in-out infinite alternate;
   }
-  .piece {
-    position: relative; z-index: 2;
-    font-size: calc(var(--fs) * .62);
-    line-height: 1;
-    color: #222;
-    text-shadow: 0 1px 0 rgba(255,255,255,.35);
-  }
+  @keyframes curGlow { from { box-shadow: inset 0 0 0 4px var(--accent), inset 0 0 14px rgba(0,0,0,.3); } to { box-shadow: inset 0 0 0 5px #ffe9b0, inset 0 0 26px rgba(0,0,0,.4); } }
+  .piece { position: relative; z-index: 2; width: calc(var(--fs) * .68); height: calc(var(--fs) * .68); color: #1c2233; filter: drop-shadow(0 2px 3px rgba(0,0,0,.45)); }
+  .piece svg { width: 100%; height: 100%; display: block; }
   .dot {
     width: calc(var(--fs) * .58); height: calc(var(--fs) * .58);
     border-radius: 50%;
-    background: rgba(10, 30, 10, .28);
+    background: rgba(10, 30, 10, .30);
     border: 2px solid rgba(10, 30, 10, .45);
     display: flex; align-items: center; justify-content: center;
+    transition: transform .12s;
   }
+  .sq.hint:active .dot { transform: scale(1.15); }
   .deg {
     font-size: calc(var(--fs) * .30);
-    font-weight: 700;
-    color: rgba(0,0,0,.6);
+    font-weight: 800;
+    color: rgba(0,0,0,.65);
   }
-  .sq.dead .dot { border-color: rgba(160, 30, 30, .7); background: rgba(160,30,30,.15); }
-  .sq.dead .deg { color: rgba(140, 20, 20, .85); }
+  .sq.dead .dot { border-color: rgba(160, 30, 30, .7); background: rgba(160,30,30,.18); }
+  .sq.dead .deg { color: rgba(140, 20, 20, .9); }
   .board.done .sq { cursor: default; }
-  .board.done .sq.current::after { box-shadow: inset 0 0 0 4px var(--good); }
+  .board.done .sq.current::after { box-shadow: inset 0 0 0 4px var(--good), inset 0 0 30px rgba(127,221,127,.4); }
   .progress {
-    margin-top: 10px;
+    margin-top: 12px;
     display: flex; align-items: center; gap: 10px;
-    font-size: 13px; color: var(--muted);
+    font-size: 13px; color: var(--muted); font-weight: 600;
   }
-  .bar { flex: 1; height: 8px; background: var(--panel); border-radius: 4px; overflow: hidden; border: 1px solid var(--border); }
-  .bar > div { height: 100%; width: 0; background: linear-gradient(90deg, #739552, #baca44); transition: width .2s ease; }
-  .keys { margin-top: 8px; font-size: 12px; color: #6b7280; }
+  .bar { flex: 1; height: 9px; background: rgba(10,14,30,.7); border-radius: 5px; overflow: hidden; border: 1px solid var(--border); }
+  .bar > div { height: 100%; width: 0; background: linear-gradient(90deg, #5d7a4c, #baca44, #f5c04e); transition: width .25s ease; box-shadow: 0 0 10px rgba(245,192,78,.4); }
+  .best { margin-top: 6px; font-size: 12px; color: #6b7894; }
+  .best b { color: var(--accent); }
+  .keys { margin-top: 8px; font-size: 12px; color: #5c677f; }
   kbd {
     background: var(--panel); border: 1px solid var(--border);
     border-radius: 4px; padding: 1px 5px; font-size: 11px;
@@ -136,7 +162,10 @@
 </head>
 <body>
   <div class="app">
-    <h1><span class="glyph">&#9822;</span> Knight's Tour</h1>
+    <div class="title-row">
+      <canvas id="three-box" width="168" height="168" aria-hidden="true"></canvas>
+      <h1><svg viewBox="0 0 45 45" aria-hidden="true"><path fill="currentColor" d="M22 10c10.5 1 16.5 8 16 29H15c0-9 10-6.5 8-21"/><path fill="currentColor" d="M24 18c.38 2.91-5.55 7.37-8 9-3 2-2.82 4.34-5 4-1.04-.94 1.41-3.04 0-3-1 0 .19 1.23-1 2-1 0-4 1-4-4 0-2 6-12 6-12s1.89-1.9 2-3.5c-.73-.99-.5-2-.5-3 1-1 3 2.5 3 2.5h2s.78-1.99 2.5-3c1 0 1 3 1 3"/></svg> KNIGHT'S TOUR</h1>
+    </div>
     <p class="subtitle">Move the knight to visit every square exactly once.</p>
     <div class="controls">
       <select id="size" title="Board size">
@@ -156,12 +185,52 @@
       <span id="count">0 / 64</span>
       <div class="bar"><div id="barfill"></div></div>
     </div>
-    <div class="keys">Click a highlighted square to move &nbsp;&middot;&nbsp; <kbd>Z</kbd> undo &nbsp;&middot;&nbsp; <kbd>R</kbd> restart</div>
+    <div class="best">Best run on this size: <b id="best">0</b> squares &middot; Tours completed: <b id="wins">0</b></div>
+    <div class="keys">Tap a highlighted square to move &nbsp;&middot;&nbsp; <kbd>Z</kbd> undo &nbsp;&middot;&nbsp; <kbd>R</kbd> restart</div>
   </div>
 
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js" defer></script>
 <script>
 (function () {
   "use strict";
+
+  /* ---------- procedural SFX (respects the overlay's speaker preference) ---------- */
+  var Sfx = (function () {
+    var ctx = null;
+    function ac() {
+      if (!ctx) { try { ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
+      if (ctx && ctx.state === 'suspended') { try { ctx.resume(); } catch (e) {} }
+      return ctx;
+    }
+    function on() { try { return localStorage.getItem('aaa_sfx') !== '0'; } catch (e) { return true; } }
+    function tone(f, d, type, vol, slide, delay) {
+      if (!on()) return;
+      var c = ac(); if (!c) return;
+      try {
+        var t = c.currentTime + (delay || 0);
+        var o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sine';
+        o.frequency.setValueAtTime(Math.max(30, f), t);
+        if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, slide), t + d);
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.linearRampToValueAtTime(vol || 0.05, t + 0.012);
+        g.gain.exponentialRampToValueAtTime(0.0006, t + d);
+        o.connect(g); g.connect(c.destination);
+        o.start(t); o.stop(t + d + 0.05);
+      } catch (e) {}
+    }
+    return {
+      unlock: ac,
+      move: function () { tone(300, .05, 'triangle', .06, 180); tone(420, .06, 'triangle', .05, 260, .06); },
+      undo: function () { tone(340, .08, 'triangle', .04, 220); },
+      bad: function () { tone(140, .14, 'square', .04, 90); },
+      first: function () { tone(523, .1, 'triangle', .05, 660); },
+      fanfare: function () { [523, 659, 784, 1046, 1318].forEach(function (f, i) { tone(f, .3, 'triangle', .055, null, i * .12); }); },
+      stuck: function () { tone(220, .2, 'sawtooth', .04, 140); }
+    };
+  })();
+
+  var KNIGHT_SVG = '<svg viewBox="0 0 45 45"><path fill="currentColor" d="M22 10c10.5 1 16.5 8 16 29H15c0-9 10-6.5 8-21"/><path fill="currentColor" d="M24 18c.38 2.91-5.55 7.37-8 9-3 2-2.82 4.34-5 4-1.04-.94 1.41-3.04 0-3-1 0 .19 1.23-1 2-1 0-4 1-4-4 0-2 6-12 6-12s1.89-1.9 2-3.5c-.73-.99-.5-2-.5-3 1-1 3 2.5 3 2.5h2s.78-1.99 2.5-3c1 0 1 3 1 3"/></svg>';
 
   var DIRS = [[1,2],[2,1],[2,-1],[1,-2],[-1,-2],[-2,-1],[-2,1],[-1,2]];
 
@@ -173,10 +242,17 @@
   var restartBtn = document.getElementById("restart");
   var sizeSel  = document.getElementById("size");
   var hintsChk = document.getElementById("hints");
+  var bestEl   = document.getElementById("best");
+  var winsEl   = document.getElementById("wins");
 
   var size = 8;
-  var path = [];   // [{r, c}] in move order
-  var grid = [];   // grid[r][c] = move number (0 = unvisited)
+  var path = [];
+  var grid = [];
+  var stats = {};
+  try { stats = JSON.parse(localStorage.getItem('kt_stats') || '{}') || {}; } catch (e) { stats = {}; }
+  function saveStats() { try { localStorage.setItem('kt_stats', JSON.stringify(stats)); } catch (e) {} }
+  function bestKey() { return 'best' + size; }
+  function winKey() { return 'wins' + size; }
 
   function inBounds(r, c) { return r >= 0 && r < size && c >= 0 && c < size; }
 
@@ -190,21 +266,34 @@
   }
 
   function place(r, c) {
-    if (grid[r][c] !== 0) return;
+    if (grid[r][c] !== 0) return false;
     var cur = path[path.length - 1];
     if (cur) {
       var ok = validMoves(cur.r, cur.c).some(function (m) { return m[0] === r && m[1] === c; });
-      if (!ok) return;
+      if (!ok) return false;
     }
     grid[r][c] = path.length + 1;
     path.push({ r: r, c: c });
+    var bk = bestKey();
+    if (path.length > (stats[bk] || 0)) { stats[bk] = path.length; saveStats(); }
     render();
+    if (path.length === 1) Sfx.first(); else Sfx.move();
+    if (path.length === size * size) {
+      var wk = winKey();
+      stats[wk] = (stats[wk] || 0) + 1;
+      saveStats();
+      Sfx.fanfare();
+      if (window.AAA) { AAA.flash(0.25); AAA.shockwave(window.innerWidth / 2, window.innerHeight / 2, '#7fdd7f', 160); }
+      updateBestLine();
+    }
+    return true;
   }
 
   function undo() {
     var last = path.pop();
     if (!last) return;
     grid[last.r][last.c] = 0;
+    Sfx.undo();
     render();
   }
 
@@ -217,11 +306,24 @@
       grid.push(row);
     }
     render();
+    updateBestLine();
+  }
+
+  function updateBestLine() {
+    bestEl.textContent = stats[bestKey()] || 0;
+    winsEl.textContent = stats[winKey()] || 0;
   }
 
   function setStatus(msg, cls) {
     statusEl.textContent = msg;
     statusEl.className = "status" + (cls ? " " + cls : "");
+  }
+
+  function trailColor(n, total) {
+    var t = n / total;
+    var hue = 150 - 210 * t;
+    if (hue < 0) hue += 360;
+    return 'hsl(' + hue.toFixed(0) + ' 62% ' + (38 + t * 14).toFixed(0) + '%)';
   }
 
   function render() {
@@ -248,9 +350,12 @@
 
         if (isCur) {
           sq.classList.add("visited", "current");
-          sq.innerHTML = '<span class="piece">&#9822;</span>';
+          sq.style.background = trailColor(n, total);
+          sq.innerHTML = '<span class="piece">' + KNIGHT_SVG + '</span>';
+          sq.querySelector('.piece').style.color = '#f5f0e0';
         } else if (n > 0) {
           sq.classList.add("visited");
+          sq.style.background = trailColor(n, total);
           sq.innerHTML = '<span class="num">' + n + "</span>";
         } else if (hintsOn && hintMap[r + "," + c] !== undefined && !done) {
           var deg = hintMap[r + "," + c];
@@ -269,11 +374,12 @@
     undoBtn.disabled = path.length === 0;
 
     if (done) {
-      setStatus("Tour complete! All " + total + " squares visited.", "win");
+      setStatus("TOUR COMPLETE! All " + total + " squares visited.", "win");
     } else if (!cur) {
-      setStatus("Click any square to place your knight.");
+      setStatus("Tap any square to place your knight.");
     } else if (moves.length === 0) {
       setStatus("No valid moves left — undo or restart.", "stuck");
+      Sfx.stuck();
     } else {
       setStatus("Move " + path.length + " of " + total + " — " + moves.length + " move" + (moves.length === 1 ? "" : "s") + " available.");
     }
@@ -292,7 +398,12 @@
     if (!sq || sq === boardEl || sq.dataset.r === undefined) return;
     var r = +sq.dataset.r, c = +sq.dataset.c;
     if (path.length === size * size) return;
-    place(r, c);
+    if (!place(r, c) && path.length > 0) {
+      Sfx.bad();
+      sq.classList.remove('badclick');
+      void sq.offsetWidth;
+      sq.classList.add('badclick');
+    }
   });
 
   undoBtn.addEventListener("click", undo);
@@ -307,8 +418,67 @@
     if (e.key === "z" || e.key === "Z" || ((e.ctrlKey || e.metaKey) && e.key === "z")) { e.preventDefault(); undo(); }
     else if (e.key === "r" || e.key === "R") { reset(); }
   });
+  window.addEventListener('pointerdown', function once() {
+    Sfx.unlock();
+    window.removeEventListener('pointerdown', once);
+  });
 
   reset();
+
+  /* ---------- Three.js trophy piece (optional, guarded) ---------- */
+  window.addEventListener('load', function () {
+    if (!window.THREE) return;
+    try {
+      var cv = document.getElementById('three-box');
+      var renderer = new THREE.WebGLRenderer({ canvas: cv, alpha: true, antialias: true });
+      renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+      renderer.setSize(84, 84, false);
+      var scene = new THREE.Scene();
+      var cam = new THREE.PerspectiveCamera(38, 1, .1, 100);
+      cam.position.set(0, 1.1, 4.2);
+      cam.lookAt(0, .1, 0);
+      scene.add(new THREE.AmbientLight(0x8899ff, .7));
+      var key = new THREE.DirectionalLight(0xffe9b0, 2.2); key.position.set(2, 3, 3); scene.add(key);
+      var rim = new THREE.PointLight(0xa78bfa, 8, 20); rim.position.set(-3, 1.5, -2); scene.add(rim);
+
+      // knight silhouette texture for the top face
+      var tc = document.createElement('canvas'); tc.width = tc.height = 128;
+      var tg = tc.getContext('2d');
+      tg.fillStyle = '#2a3352'; tg.fillRect(0, 0, 128, 128);
+      var g = tg.createLinearGradient(0, 0, 128, 128);
+      g.addColorStop(0, '#39447a'); g.addColorStop(1, '#1d2440');
+      tg.fillStyle = g; tg.fillRect(0, 0, 128, 128);
+      tg.fillStyle = '#f5c04e';
+      tg.transform(128 / 45, 0, 0, 128 / 45, 0, 0);
+      tg.beginPath();
+      tg.moveTo(22, 10); tg.bezierCurveTo(32.5, 11, 38.5, 18, 38, 39); tg.lineTo(15, 39); tg.bezierCurveTo(15, 30, 25, 32.5, 23, 18); tg.closePath();
+      tg.moveTo(24, 18); tg.bezierCurveTo(24.38, 20.91, 18.45, 25.37, 16, 27); tg.bezierCurveTo(13, 29, 13.18, 31.34, 11, 31); tg.bezierCurveTo(9.958, 30.06, 12.41, 27.96, 11, 28); tg.bezierCurveTo(10, 28, 11.19, 29.23, 10, 30); tg.bezierCurveTo(9, 30, 5.997, 31, 6, 26); tg.bezierCurveTo(6, 24, 12, 14, 12, 14); tg.bezierCurveTo(12, 14, 13.89, 12.1, 14, 10.5); tg.bezierCurveTo(13.27, 9.506, 13.5, 8.5, 13.5, 7.5); tg.bezierCurveTo(14.5, 6.5, 16.5, 10, 16.5, 10); tg.lineTo(18.5, 10); tg.bezierCurveTo(18.5, 10, 19.28, 8.008, 21, 7); tg.bezierCurveTo(22, 7, 22, 10, 22, 10); tg.closePath();
+      tg.fill();
+      var tex = new THREE.CanvasTexture(tc);
+
+      var side = new THREE.MeshStandardMaterial({ color: 0x2a3352, metalness: .55, roughness: .35 });
+      var top = new THREE.MeshStandardMaterial({ map: tex, metalness: .4, roughness: .4 });
+      var tile = new THREE.Mesh(new THREE.BoxGeometry(1.9, .38, 1.9), [side, side, top, side, side, side]);
+      scene.add(tile);
+      var ring = new THREE.Mesh(
+        new THREE.TorusGeometry(1.45, .03, 12, 60),
+        new THREE.MeshBasicMaterial({ color: 0xf5c04e, transparent: true, opacity: .7 })
+      );
+      ring.rotation.x = Math.PI / 2;
+      ring.position.y = -.42;
+      scene.add(ring);
+      var t0 = performance.now();
+      (function loop(now) {
+        requestAnimationFrame(loop);
+        var t = (now - t0) / 1000;
+        tile.rotation.y = t * .8;
+        tile.position.y = Math.sin(t * 1.4) * .12;
+        tile.rotation.x = Math.sin(t * .7) * .08;
+        ring.rotation.z = t * .5;
+        renderer.render(scene, cam);
+      })(t0);
+    } catch (e) {}
+  });
 })();
 </script>
 

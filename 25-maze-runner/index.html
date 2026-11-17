@@ -2,97 +2,135 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Maze Runner</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
     font-family: 'Segoe UI', system-ui, sans-serif;
-    background: #1a1a2e;
+    background:
+      radial-gradient(ellipse 70% 45% at 50% -8%, rgba(78,204,163,0.18) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 40% at 90% 108%, rgba(40,120,200,0.14) 0%, transparent 55%),
+      linear-gradient(165deg, #0a1626 0%, #0d1f38 55%, #081120 100%);
     color: #eee;
     display: flex;
     flex-direction: column;
     align-items: center;
     min-height: 100vh;
-    padding: 20px;
+    padding: 16px 12px;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    overflow-x: hidden;
   }
   h1 {
-    font-size: 1.8rem;
-    letter-spacing: 2px;
-    margin-bottom: 12px;
-    color: #4ecca3;
+    font-size: clamp(1.4rem, 5vw, 1.9rem);
+    letter-spacing: 6px;
+    margin-bottom: 10px;
+    font-weight: 900;
     text-transform: uppercase;
+    background: linear-gradient(180deg, #fff 15%, #8affdc 55%, #4ecca3 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 0 18px rgba(78,204,163,0.5));
   }
   #hud {
     display: flex;
-    gap: 24px;
+    gap: 10px;
     align-items: center;
     margin-bottom: 14px;
     flex-wrap: wrap;
     justify-content: center;
   }
   .stat {
-    background: #16213e;
-    padding: 8px 16px;
-    border-radius: 8px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.12);
+    padding: 7px 14px;
+    border-radius: 999px;
     font-variant-numeric: tabular-nums;
-    font-size: 1.05rem;
+    font-size: .92rem;
+    font-weight: 600;
+    color: #93a4c8;
   }
-  .stat span { color: #4ecca3; font-weight: 600; }
+  .stat span, .stat select { color: #5ee8be; font-weight: 800; }
+  .stat select {
+    background: transparent; border: none; font: inherit;
+    color: #5ee8be; outline: none; cursor: pointer;
+  }
+  .stat select option { color: #dfe6ff; background: #141a30; }
   button {
-    background: #4ecca3;
-    color: #1a1a2e;
+    background: linear-gradient(135deg, #5ee8be, #2eb389);
+    color: #062a1e;
     border: none;
-    padding: 9px 18px;
-    border-radius: 8px;
-    font-size: 1rem;
-    font-weight: 700;
+    padding: 9px 20px;
+    border-radius: 999px;
+    font-size: .8rem;
+    font-weight: 800;
+    letter-spacing: .1em;
+    text-transform: uppercase;
     cursor: pointer;
-    transition: transform .08s, background .15s;
+    box-shadow: 0 6px 18px rgba(78,204,163,0.35), inset 0 1px 0 rgba(255,255,255,0.4);
+    transition: transform .08s, filter .15s;
+    font-family: inherit;
+    touch-action: manipulation;
   }
-  button:hover { background: #63e0b8; }
-  button:active { transform: scale(.96); }
-  #maze-wrap { position: relative; }
-  canvas {
-    background: #0f3460;
-    border-radius: 10px;
-    box-shadow: 0 8px 30px rgba(0,0,0,.5);
-    display: block;
+  button:active { transform: translateY(1px); }
+  @media (hover: hover) { button:hover { filter: brightness(1.1); transform: translateY(-1px); } }
+  #maze-wrap {
+    position: relative;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.6), 0 0 50px rgba(78,204,163,0.12);
+    border: 1px solid rgba(94,232,190,0.25);
   }
+  canvas { display: block; touch-action: none; }
   #win {
     position: absolute;
     inset: 0;
-    display: none;
+    display: flex;
     align-items: center;
     justify-content: center;
     flex-direction: column;
     gap: 12px;
-    background: rgba(15, 22, 40, .85);
-    border-radius: 10px;
+    background: rgba(8, 17, 32, .82);
+    backdrop-filter: blur(6px);
     text-align: center;
+    opacity: 0; pointer-events: none; transition: opacity .3s;
   }
-  #win.show { display: flex; }
-  #win h2 { color: #4ecca3; font-size: 2rem; }
-  #win p { font-size: 1.1rem; }
+  #win.show { opacity: 1; pointer-events: auto; }
+  #win h2 {
+    color: #5ee8be; font-size: 2.1rem; letter-spacing: .1em;
+    text-shadow: 0 0 30px rgba(94,232,190,0.7);
+    animation: winPop .5s cubic-bezier(.2,1.5,.4,1);
+  }
+  @keyframes winPop { 0% { transform: scale(.5); opacity: 0; } 100% { transform: scale(1); } }
+  #win p { font-size: 1.05rem; color: #b8c8e8; }
+  #win b { color: #ffd166; }
   #hint {
     margin-top: 14px;
-    color: #8899aa;
-    font-size: .9rem;
+    color: #6b7d9e;
+    font-size: .75rem;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    text-align: center;
   }
   #touch-pad {
     display: none;
     margin-top: 16px;
-    grid-template-columns: repeat(3, 56px);
-    grid-template-rows: repeat(3, 56px);
-    gap: 6px;
+    grid-template-columns: repeat(3, 62px);
+    grid-template-rows: repeat(3, 62px);
+    gap: 8px;
   }
   #touch-pad button {
     padding: 0;
-    font-size: 1.3rem;
-    background: #16213e;
-    color: #4ecca3;
-    border: 1px solid #4ecca3;
+    font-size: 1.4rem;
+    background: rgba(94,232,190,0.08);
+    color: #5ee8be;
+    border: 1px solid rgba(94,232,190,0.4);
+    border-radius: 14px;
+    box-shadow: none;
   }
+  #touch-pad button:active { background: rgba(94,232,190,0.25); transform: scale(.94); }
   #touch-pad .empty { visibility: hidden; }
   @media (pointer: coarse) { #touch-pad { display: grid; } }
 </style>
@@ -100,10 +138,10 @@
 <body>
 <h1>Maze Runner</h1>
 <div id="hud">
-  <div class="stat">Time: <span id="timer">0.0s</span></div>
-  <div class="stat">Moves: <span id="moves">0</span></div>
-  <div class="stat">Best: <span id="best">&mdash;</span></div>
-  <label class="stat">Size:
+  <div class="stat">Time <span id="timer">0.0s</span></div>
+  <div class="stat">Moves <span id="moves">0</span></div>
+  <div class="stat">Best <span id="best">&mdash;</span></div>
+  <label class="stat">Size
     <select id="size">
       <option value="10">10&times;10</option>
       <option value="15" selected>15&times;15</option>
@@ -117,15 +155,15 @@
 <div id="maze-wrap">
   <canvas id="maze"></canvas>
   <div id="win">
-    <h2>You Escaped!</h2>
+    <h2>YOU ESCAPED!</h2>
     <p id="winStats"></p>
     <button id="again">Play Again</button>
   </div>
 </div>
-<p id="hint">Use arrow keys or WASD to move. Reach the green exit.</p>
+<p id="hint">Arrows / WASD / swipe to move &mdash; reach the green exit</p>
 <div id="touch-pad">
-  <div class="empty"></div><button data-dir="up">&uarr;</button><div class="empty"></div>
-  <button data-dir="left">&larr;</button><button data-dir="down">&darr;</button><button data-dir="right">&rarr;</button>
+  <div class="empty"></div><button data-dir="up" aria-label="Up">&uarr;</button><div class="empty"></div>
+  <button data-dir="left" aria-label="Left">&larr;</button><button data-dir="down" aria-label="Down">&darr;</button><button data-dir="right" aria-label="Right">&rarr;</button>
 </div>
 
 <script>
@@ -139,13 +177,64 @@ const bestEl = document.getElementById('best');
 const winEl = document.getElementById('win');
 const winStats = document.getElementById('winStats');
 const sizeSel = document.getElementById('size');
+const DPR = Math.min(window.devicePixelRatio || 1, 2);
 
-const MAX_CANVAS = Math.min(window.innerWidth - 40, 560);
+const MAX_CANVAS = Math.min(window.innerWidth - 36, 560, window.innerHeight - 260);
 
-let N, cell, grid, player, exit, moves, startTime, timerId, won, best = {};
+let N, cell, grid, player, exit, moves, startTime, timerId, won;
+let best = {};
+try { best = JSON.parse(localStorage.getItem('mz_best') || '{}'); } catch (e) {}
+let wallCanvas = null;
+let px = 0, py = 0;           // smooth draw position
+let trail = [];               // {x,y,t}
+let bump = null;              // {dx,dy,t0}
 
-// Maze generation: recursive backtracker (iterative).
-// grid[y][x] walls encoded: 1=top 2=right 4=bottom 8=left
+// ---------- Procedural SFX ----------
+const SFX = (() => {
+  let ctx = null;
+  function ac() {
+    if (ctx === null) { const A = window.AudioContext || window.webkitAudioContext; ctx = A ? new A() : false; }
+    if (ctx && ctx.state === 'suspended') ctx.resume().catch(() => {});
+    return ctx || null;
+  }
+  const ok = () => localStorage.getItem('aaa_sfx') !== '0';
+  function tone(f, d, type, v, slide, when) {
+    if (!ok()) return; const c = ac(); if (!c) return;
+    try {
+      const t = c.currentTime + (when || 0);
+      const o = c.createOscillator(), g = c.createGain();
+      o.type = type || 'sine'; o.frequency.setValueAtTime(f, t);
+      if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, slide), t + d);
+      g.gain.setValueAtTime(0.001, t);
+      g.gain.linearRampToValueAtTime(v || 0.08, t + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.0006, t + d);
+      o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + d + 0.03);
+    } catch (e) {}
+  }
+  function noise(dur, v, fq, when) {
+    if (!ok()) return; const c = ac(); if (!c) return;
+    try {
+      const t = c.currentTime + (when || 0), n = Math.floor(c.sampleRate * dur);
+      const b = c.createBuffer(1, n, c.sampleRate), d = b.getChannelData(0);
+      for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
+      const s = c.createBufferSource(); s.buffer = b;
+      const f = c.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = fq || 1200;
+      const g = c.createGain(); g.gain.value = v || 0.1;
+      s.connect(f); f.connect(g); g.connect(c.destination); s.start(t);
+    } catch (e) {}
+  }
+  return {
+    unlock: ac,
+    step: () => tone(300 + Math.random() * 60, 0.045, 'triangle', 0.035, 380),
+    bump: () => { tone(120, 0.09, 'sine', 0.09, 70); noise(0.05, 0.05, 500); },
+    gen: () => { tone(200, 0.3, 'sine', 0.05, 800); noise(0.25, 0.03, 3000, 0.05); },
+    win: () => { [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, 0.22, 'triangle', 0.09, null, i * 0.08)); },
+    record: () => { tone(1568, 0.15, 'sine', 0.07, null, 0.4); tone(2093, 0.25, 'sine', 0.06, null, 0.5); }
+  };
+})();
+window.addEventListener('pointerdown', SFX.unlock, { passive: true });
+window.addEventListener('keydown', SFX.unlock);
+
 function generateMaze(n) {
   const g = Array.from({length: n}, () => new Array(n).fill(15));
   const visited = Array.from({length: n}, () => new Array(n).fill(false));
@@ -174,7 +263,6 @@ function generateMaze(n) {
   return g;
 }
 
-// BFS to pick the farthest cell from (0,0) as the exit — guarantees a good run.
 function farthestCell(n, g) {
   const dist = Array.from({length: n}, () => new Array(n).fill(-1));
   const q = [[0, 0]];
@@ -195,10 +283,15 @@ function farthestCell(n, g) {
 function setup() {
   N = parseInt(sizeSel.value, 10);
   cell = Math.floor(MAX_CANVAS / N);
-  canvas.width = canvas.height = cell * N;
+  const s = cell * N;
+  canvas.width = canvas.height = s * DPR;
+  canvas.style.width = canvas.style.height = s + 'px';
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   grid = generateMaze(N);
   exit = farthestCell(N, grid);
   player = {x: 0, y: 0};
+  px = cell / 2; py = cell / 2;
+  trail = [];
   moves = 0;
   won = false;
   startTime = null;
@@ -208,47 +301,123 @@ function setup() {
   movesEl.textContent = '0';
   bestEl.textContent = best[N] ? best[N].toFixed(1) + 's' : '\u2014';
   winEl.classList.remove('show');
-  draw();
+  renderWalls();
+  SFX.gen();
 }
 
-function draw() {
+// Walls + floor baked once into an offscreen canvas
+function renderWalls() {
   const s = cell * N;
-  ctx.fillStyle = '#0f3460';
-  ctx.fillRect(0, 0, s, s);
+  wallCanvas = document.createElement('canvas');
+  wallCanvas.width = wallCanvas.height = s * DPR;
+  const w = wallCanvas.getContext('2d');
+  w.setTransform(DPR, 0, 0, DPR, 0, 0);
 
-  // Exit cell
-  ctx.fillStyle = '#4ecca3';
-  ctx.fillRect(exit[0] * cell + 2, exit[1] * cell + 2, cell - 4, cell - 4);
+  // floor
+  const fg = w.createRadialGradient(s / 2, s / 2, s * 0.1, s / 2, s / 2, s * 0.72);
+  fg.addColorStop(0, '#12294d');
+  fg.addColorStop(1, '#0a1830');
+  w.fillStyle = fg;
+  w.fillRect(0, 0, s, s);
 
-  // Walls
-  ctx.strokeStyle = '#e8e8e8';
-  ctx.lineWidth = Math.max(1.5, cell * 0.09);
-  ctx.lineCap = 'round';
-  ctx.beginPath();
-  for (let y = 0; y < N; y++) {
-    for (let x = 0; x < N; x++) {
-      const w = grid[y][x];
-      const px = x * cell, py = y * cell;
-      if (w & 1) { ctx.moveTo(px, py);            ctx.lineTo(px + cell, py); }
-      if (w & 2) { ctx.moveTo(px + cell, py);     ctx.lineTo(px + cell, py + cell); }
-      if (w & 4) { ctx.moveTo(px, py + cell);     ctx.lineTo(px + cell, py + cell); }
-      if (w & 8) { ctx.moveTo(px, py);            ctx.lineTo(px, py + cell); }
-    }
+  // faint path grid
+  w.strokeStyle = 'rgba(120,180,255,0.05)';
+  w.lineWidth = 1;
+  w.beginPath();
+  for (let i = 1; i < N; i++) {
+    w.moveTo(i * cell, 0); w.lineTo(i * cell, s);
+    w.moveTo(0, i * cell); w.lineTo(s, i * cell);
   }
+  w.stroke();
+
+  // neon walls (two passes: soft glow + core)
+  for (const pass of [[Math.max(2, cell * 0.16), 'rgba(78,204,163,0.28)'], [Math.max(1.4, cell * 0.07), '#a7ffdf']]) {
+    w.strokeStyle = pass[1];
+    w.lineWidth = pass[0];
+    w.lineCap = 'round';
+    w.lineJoin = 'round';
+    w.beginPath();
+    for (let y = 0; y < N; y++) {
+      for (let x = 0; x < N; x++) {
+        const wl = grid[y][x];
+        const X = x * cell, Y = y * cell;
+        if (wl & 1) { w.moveTo(X, Y);           w.lineTo(X + cell, Y); }
+        if (wl & 2) { w.moveTo(X + cell, Y);     w.lineTo(X + cell, Y + cell); }
+        if (wl & 4) { w.moveTo(X, Y + cell);     w.lineTo(X + cell, Y + cell); }
+        if (wl & 8) { w.moveTo(X, Y);            w.lineTo(X, Y + cell); }
+      }
+    }
+    w.stroke();
+  }
+}
+
+function draw(now) {
+  const s = cell * N;
+  ctx.clearRect(0, 0, s, s);
+  ctx.drawImage(wallCanvas, 0, 0, s, s);
+
+  // exit portal — pulsing
+  const ex = exit[0] * cell + cell / 2, ey = exit[1] * cell + cell / 2;
+  const pulse = 0.72 + Math.sin(now / 260) * 0.18;
+  const grd = ctx.createRadialGradient(ex, ey, 1, ex, ey, cell * 0.62 * pulse);
+  grd.addColorStop(0, 'rgba(94,232,190,0.95)');
+  grd.addColorStop(0.5, 'rgba(78,204,163,0.55)');
+  grd.addColorStop(1, 'rgba(78,204,163,0)');
+  ctx.fillStyle = grd;
+  ctx.beginPath();
+  ctx.arc(ex, ey, cell * 0.62 * pulse, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(167,255,223,0.9)';
+  ctx.lineWidth = Math.max(1, cell * 0.05);
+  ctx.beginPath();
+  ctx.arc(ex, ey, cell * 0.3 + Math.sin(now / 300) * cell * 0.04, 0, Math.PI * 2);
   ctx.stroke();
 
-  // Player
-  const cx = player.x * cell + cell / 2;
-  const cy = player.y * cell + cell / 2;
-  ctx.fillStyle = '#ff6b6b';
-  ctx.beginPath();
-  ctx.arc(cx, cy, cell * 0.32, 0, Math.PI * 2);
-  ctx.fill();
+  // fading trail
+  trail = trail.filter(t => now - t.t < 1100);
+  for (const t of trail) {
+    const a = 1 - (now - t.t) / 1100;
+    ctx.fillStyle = `rgba(255,120,120,${0.25 * a})`;
+    ctx.beginPath();
+    ctx.arc(t.x, t.y, cell * 0.2 * a, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // smooth player position
+  const tx = player.x * cell + cell / 2, ty = player.y * cell + cell / 2;
+  px += (tx - px) * 0.32; py += (ty - py) * 0.32;
+  let ox = 0, oy = 0;
+  if (bump) {
+    const bt = (now - bump.t0) / 130;
+    if (bt >= 1) bump = null;
+    else { const k = Math.sin(bt * Math.PI) * cell * 0.14; ox = bump.dx * k; oy = bump.dy * k; }
+  }
+  const cx = px + ox, cy = py + oy;
+
+  // player glow orb
+  const pg = ctx.createRadialGradient(cx, cy, 1, cx, cy, cell * 0.55);
+  pg.addColorStop(0, 'rgba(255,140,140,0.9)');
+  pg.addColorStop(0.45, 'rgba(255,90,90,0.35)');
+  pg.addColorStop(1, 'rgba(255,90,90,0)');
+  ctx.fillStyle = pg;
+  ctx.beginPath(); ctx.arc(cx, cy, cell * 0.55, 0, Math.PI * 2); ctx.fill();
+  const bg2 = ctx.createRadialGradient(cx - cell * 0.08, cy - cell * 0.1, 1, cx, cy, cell * 0.3);
+  bg2.addColorStop(0, '#ffb3b3'); bg2.addColorStop(0.5, '#ff5f5f'); bg2.addColorStop(1, '#d12e2e');
+  ctx.fillStyle = bg2;
+  ctx.beginPath(); ctx.arc(cx, cy, cell * 0.3, 0, Math.PI * 2); ctx.fill();
+  // eyes
   ctx.fillStyle = '#fff';
   ctx.beginPath();
-  ctx.arc(cx - cell * 0.1, cy - cell * 0.08, cell * 0.06, 0, Math.PI * 2);
-  ctx.arc(cx + cell * 0.1, cy - cell * 0.08, cell * 0.06, 0, Math.PI * 2);
+  ctx.arc(cx - cell * 0.09, cy - cell * 0.06, cell * 0.055, 0, Math.PI * 2);
+  ctx.arc(cx + cell * 0.09, cy - cell * 0.06, cell * 0.055, 0, Math.PI * 2);
   ctx.fill();
+  ctx.fillStyle = '#581010';
+  ctx.beginPath();
+  ctx.arc(cx - cell * 0.08, cy - cell * 0.05, cell * 0.026, 0, Math.PI * 2);
+  ctx.arc(cx + cell * 0.1, cy - cell * 0.05, cell * 0.026, 0, Math.PI * 2);
+  ctx.fill();
+
+  requestAnimationFrame(draw);
 }
 
 function startTimer() {
@@ -261,13 +430,18 @@ function startTimer() {
 
 function move(dx, dy, wallBit) {
   if (won) return;
-  if (grid[player.y][player.x] & wallBit) return;
+  if (grid[player.y][player.x] & wallBit) {
+    bump = { dx, dy, t0: performance.now() };
+    SFX.bump();
+    return;
+  }
   startTimer();
   player.x += dx;
   player.y += dy;
   moves++;
   movesEl.textContent = moves;
-  draw();
+  trail.push({ x: px, y: py, t: performance.now() });
+  SFX.step();
   if (player.x === exit[0] && player.y === exit[1]) finish();
 }
 
@@ -279,16 +453,19 @@ function finish() {
   let record = '';
   if (!best[N] || t < best[N]) {
     best[N] = t;
+    localStorage.setItem('mz_best', JSON.stringify(best));
     bestEl.textContent = t.toFixed(1) + 's';
-    record = ' New best!';
+    record = ' <b>New best!</b>';
+    SFX.record();
   }
-  winStats.textContent = `Time: ${t.toFixed(1)}s \u2022 Moves: ${moves}.${record}`;
-  setTimeout(() => winEl.classList.add('show'), 150);
+  SFX.win();
+  winStats.innerHTML = `Time: <b>${t.toFixed(1)}s</b> &middot; Moves: <b>${moves}</b>.${record}`;
+  setTimeout(() => winEl.classList.add('show'), 350);
 }
 
 const keyMap = {
-  ArrowUp:    [0, -1, 1], ArrowDown:  [0, 1, 4],
-  ArrowLeft:  [-1, 0, 8], ArrowRight: [1, 0, 2],
+  ArrowUp: [0, -1, 1], ArrowDown: [0, 1, 4],
+  ArrowLeft: [-1, 0, 8], ArrowRight: [1, 0, 2],
   w: [0, -1, 1], s: [0, 1, 4], a: [-1, 0, 8], d: [1, 0, 2],
   W: [0, -1, 1], S: [0, 1, 4], A: [-1, 0, 8], D: [1, 0, 2]
 };
@@ -299,6 +476,24 @@ document.addEventListener('keydown', e => {
   e.preventDefault();
   move(m[0], m[1], m[2]);
 });
+
+// swipe on canvas
+let swipe = null;
+canvas.addEventListener('pointerdown', e => {
+  swipe = { x: e.clientX, y: e.clientY };
+  canvas.setPointerCapture(e.pointerId);
+});
+canvas.addEventListener('pointermove', e => {
+  if (!swipe) return;
+  const dx = e.clientX - swipe.x, dy = e.clientY - swipe.y;
+  const TH = 24;
+  if (Math.abs(dx) < TH && Math.abs(dy) < TH) return;
+  if (Math.abs(dx) > Math.abs(dy)) move(Math.sign(dx), 0, dx > 0 ? 2 : 8);
+  else move(0, Math.sign(dy), dy > 0 ? 4 : 1);
+  swipe = { x: e.clientX, y: e.clientY };
+});
+canvas.addEventListener('pointerup', () => { swipe = null; });
+canvas.addEventListener('pointercancel', () => { swipe = null; });
 
 document.querySelectorAll('#touch-pad button').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -312,6 +507,7 @@ document.getElementById('again').addEventListener('click', setup);
 sizeSel.addEventListener('change', setup);
 
 setup();
+requestAnimationFrame(draw);
 </script>
 
 <script src="../assets/aaa-arcade.js" defer></script>

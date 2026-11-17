@@ -6,12 +6,14 @@
 <title>Basketball Shootout</title>
 <style>
   html,body{margin:0;height:100%;overflow:hidden;background:#0d1220;
-    font-family:'Segoe UI',system-ui,sans-serif;user-select:none;-webkit-user-select:none;}
+    font-family:'Segoe UI',system-ui,sans-serif;user-select:none;-webkit-user-select:none;touch-action:none;overscroll-behavior:none;}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
   canvas{display:block;touch-action:none;cursor:crosshair;}
 </style>
 </head>
 <body>
 <canvas id="cv"></canvas>
+<div id="aaa-score" class="sr">0</div>
 <script>
 'use strict';
 const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
@@ -30,9 +32,12 @@ let respawnT=0,restT=0,flyT=0,scored=false,touched=false,shotX=0;
 let floaters=[];
 try{best=parseInt(localStorage.getItem('bb_best')||'0',10)||0;}catch(e){}
 
-// ---- audio (tiny WebAudio blips) ----
+// ---- audio (tiny WebAudio blips; honors overlay prefs) ----
 let AC=null;
+function sfxOn(){try{return localStorage.getItem('aaa_sfx')!=='0'}catch(e){return true}}
+function bgmOn(){try{return localStorage.getItem('aaa_bgm')!=='0'}catch(e){return true}}
 function tone(f,d,type,g){
+  if(!sfxOn())return;
   try{
     AC=AC||new (window.AudioContext||window.webkitAudioContext)();
     const o=AC.createOscillator(),gn=AC.createGain();
@@ -44,6 +49,32 @@ function tone(f,d,type,g){
   }catch(e){}
 }
 function ensureAudio(){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();if(AC.state==='suspended')AC.resume();}catch(e){}}
+function nz(d,v,f,q,ty,t){if(!sfxOn())return;ensureAudio();const c=AC;if(!c)return;try{const n=c.currentTime+(t||0),L=Math.ceil(c.sampleRate*d),b=c.createBuffer(1,L,c.sampleRate),dd=b.getChannelData(0);for(let i=0;i<L;i++)dd[i]=(Math.random()*2-1)*(1-i/L);const s=c.createBufferSource();s.buffer=b;const fl=c.createBiquadFilter();fl.type=ty||'bandpass';fl.frequency.value=f||1400;fl.Q.value=q||.8;const g=c.createGain();g.gain.setValueAtTime(v||.1,n);g.gain.exponentialRampToValueAtTime(.0006,n+d);s.connect(fl);fl.connect(g);g.connect(c.destination);s.start(n)}catch(e){}}
+function stinger(w){(w?[523,659,784,1047]:[392,349,311,262]).forEach((f,i)=>setTimeout(()=>tone(f,w?.2:.26,w?'triangle':'sawtooth',w?.1:.05),i*(w?100:120)))}
+// arena crowd murmur bed + heartbeat kick
+let crowdOn=false,bgmI=0;
+setInterval(()=>{
+  const want=bgmOn()&&state==='play';
+  if(want&&!crowdOn){
+    crowdOn=true;
+    try{ensureAudio();const c=AC;if(!c)return;
+      const b=c.createBuffer(1,c.sampleRate*2,c.sampleRate),dd=b.getChannelData(0);
+      for(let i=0;i<dd.length;i++)dd[i]=(Math.random()*2-1)*.5;
+      const s=c.createBufferSource();s.buffer=b;s.loop=true;
+      const fl=c.createBiquadFilter();fl.type='bandpass';fl.frequency.value=420;fl.Q.value=.4;
+      const g=c.createGain();g.gain.value=.013;
+      s.connect(fl);fl.connect(g);g.connect(c.destination);s.start();
+      window.__bbCrowd={s,g};
+    }catch(e){}
+  }else if(!want&&crowdOn){crowdOn=false;try{window.__bbCrowd.s.stop()}catch(e){}window.__bbCrowd=null}
+  if(bgmOn()&&state==='play'){
+    bgmI++;
+    if(bgmI%8===0)tone(95,.14,'sine',.07);
+  }
+},500);
+const scoreChip=document.getElementById('aaa-score');
+let prevSec=TIME_LIMIT,flashT=0,netSway=0,confetti=[];
+const trail=[];
 
 function layout(){
   floorY=H-64;
@@ -72,7 +103,7 @@ resize();
 function spawnBall(){
   const x=spawnMin+Math.random()*(spawnMax-spawnMin);
   ball={x:x,y:floorY-BR,vx:0,vy:0,ang:Math.random()*6};
-  flying=false;scored=false;touched=false;restT=0;flyT=0;
+  flying=false;scored=false;touched=false;restT=0;flyT=0;trail.length=0;
 }
 function restart(){
   score=0;shots=0;makes=0;timeLeft=TIME_LIMIT;state='play';
@@ -123,9 +154,14 @@ function collide(prevY){
     scored=true;makes++;
     const pts=shotX<threePtX?3:2;
     score+=pts;
+    if(scoreChip)scoreChip.textContent=score;
     floaters.push({x:(rimL.x+rimR.x)/2,y:rimY-12,t:0,text:'+'+pts+(touched?'':'  SWISH!')});
+    if(!touched)nz(.25,.14,3200,.7,'highpass');           // swish
+    else nz(.12,.1,500,1,'lowpass');                      // rim-and-in
     tone(700,0.09,'sine',0.12);
     setTimeout(()=>tone(1050,0.15,'sine',0.12),80);
+    if(pts===3){tone(1318,.2,'sine',.08);for(let i=0;i<40;i++)confetti.push({x:(rimL.x+rimR.x)/2,y:rimY,vx:(Math.random()-.5)*9,vy:-Math.random()*8-2,t:0,c:['#ffd34d','#ff6b81','#4dd0e1','#7ee787'][i%4]});}
+    flashT=14;netSway=1;
   }
   if(scored&&b.y>rimY&&b.y<rimY+34){b.vx*=0.82;b.vy*=0.86;}  // net drag
   // floor
@@ -162,19 +198,27 @@ function collide(prevY){
       const d=Math.sqrt(d2)||0.001,nx=dx/d,ny=dy/d;
       b.x=t.x+nx*rr;b.y=t.y+ny*rr;
       const vn=b.vx*nx+b.vy*ny;
-      if(vn<0){b.vx-=1.55*vn*nx;b.vy-=1.55*vn*ny;tone(300,0.04,'triangle',0.05);}
+      if(vn<0){b.vx-=1.55*vn*nx;b.vy-=1.55*vn*ny;tone(300,0.04,'triangle',0.05);if(vn<-3)tone(2350,.09,'square',.03);}
     }
   }
 }
 function tick(){
   if(state==='play'){
     timeLeft-=1/60;
+    const s=Math.ceil(timeLeft);
+    if(s!==prevSec&&s<=5&&s>0)tone(920,.05,'square',.05);
+    prevSec=s;
     if(timeLeft<=0){
       timeLeft=0;state='over';
-      if(score>best){best=score;try{localStorage.setItem('bb_best',''+best);}catch(e){}}
-      tone(340,0.3,'sawtooth',0.08);
+      const nb=score>best;
+      if(nb){best=score;try{localStorage.setItem('bb_best',''+best);}catch(e){}}
+      tone(340,0.5,'sawtooth',0.1);setTimeout(()=>tone(230,.7,'sawtooth',.1),200);
+      stinger(nb);
     }
   }
+  if(flashT>0)flashT--;
+  if(netSway>0)netSway*=0.9;
+  for(let i=confetti.length-1;i>=0;i--){const p=confetti[i];p.x+=p.vx;p.y+=p.vy;p.vy+=.5;p.t++;if(p.y>H+10||p.t>140)confetti.splice(i,1);}
   if(flying){
     flyT++;
     const dt=1/SUB;
@@ -183,6 +227,8 @@ function tick(){
       ball.vy+=G*dt;ball.x+=ball.vx*dt;ball.y+=ball.vy*dt;
       collide(prevY);
     }
+    trail.push({x:ball.x,y:ball.y});
+    if(trail.length>22)trail.shift();
     ball.ang+=ball.vx*0.015;
     const sp=Math.hypot(ball.vx,ball.vy);
     if(ball.y+BR>=floorY-0.5&&sp<1.4)restT++;else restT=0;
@@ -248,9 +294,10 @@ function drawHoop(back){
     rr(board.x,board.y,board.w,board.h,3);ctx.fill();ctx.stroke();
     ctx.strokeStyle='#e0522e';ctx.lineWidth=2;
     ctx.strokeRect(board.x-1,rimY-46,board.w-6,34);
-    // net
+    // net (sways after a make)
+    const sw=Math.sin(performance.now()*.03)*netSway*9;
     ctx.strokeStyle='rgba(240,240,255,0.85)';ctx.lineWidth=1.6;
-    const nl=rimL.x+3,nr=rimR.x-3,bl=(rimL.x+rimR.x)/2-9,brc=(rimL.x+rimR.x)/2+9,by=rimY+40;
+    const nl=rimL.x+3,nr=rimR.x-3,bl=(rimL.x+rimR.x)/2-9+sw*.6,brc=(rimL.x+rimR.x)/2+9+sw*.6,by=rimY+40+sw*.3;
     ctx.beginPath();
     ctx.moveTo(nl,rimY+2);ctx.lineTo(bl,by);
     ctx.moveTo(nr,rimY+2);ctx.lineTo(brc,by);
@@ -270,6 +317,14 @@ function drawHoop(back){
 }
 function drawBall(){
   const b=ball;
+  // floor shadow
+  const shH=Math.max(0,1-(floorY-b.y)/500);
+  ctx.fillStyle='rgba(0,0,0,'+(0.28*shH).toFixed(3)+')';
+  ctx.beginPath();ctx.ellipse(b.x,floorY+14,BR*(0.5+0.5*shH),4,0,0,7);ctx.fill();
+  // motion trail
+  ctx.fillStyle='rgba(247,162,74,.5)';
+  for(let i=0;i<trail.length;i+=3){ctx.globalAlpha=i/trail.length*.35;ctx.beginPath();ctx.arc(trail[i].x,trail[i].y,4,0,7);ctx.fill();}
+  ctx.globalAlpha=1;
   ctx.save();ctx.translate(b.x,b.y);
   const g=ctx.createRadialGradient(-4,-5,2,0,0,BR+2);
   g.addColorStop(0,'#f7a24a');g.addColorStop(1,'#d96d1e');
@@ -368,6 +423,13 @@ function draw(){
   drawDrag();
   if(ball)drawBall();
   drawHoop(false);
+  // make-flash on the rim
+  if(flashT>0){
+    ctx.fillStyle='rgba(255,220,120,'+(flashT/14*.3).toFixed(3)+')';
+    ctx.beginPath();ctx.arc((rimL.x+rimR.x)/2,rimY,60*(1.6-flashT/14),0,7);ctx.fill();
+  }
+  // confetti
+  for(const p of confetti){ctx.fillStyle=p.c;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.t*.1);ctx.fillRect(-3,-2,6,4);ctx.restore();}
   drawFloaters();
   drawHUD();
   if(state==='over')drawOver();

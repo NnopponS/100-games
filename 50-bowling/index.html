@@ -2,11 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1,user-scalable=no">
 <title>Strike Alley Bowling</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
-  body{min-height:100vh;background:linear-gradient(180deg,#12182b,#0b0f1c);color:#fff;font-family:system-ui,-apple-system,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px;gap:10px}
+  body{min-height:100vh;background:linear-gradient(180deg,#12182b,#0b0f1c);color:#fff;font-family:system-ui,-apple-system,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px;gap:10px;touch-action:manipulation;overscroll-behavior:none;user-select:none;-webkit-user-select:none}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  canvas{touch-action:none}
   .wrap{width:min(640px,100%);display:flex;flex-direction:column;gap:8px}
   .scorecard{display:grid;grid-template-columns:repeat(10,1fr);gap:3px;background:#1b233d;padding:6px;border-radius:10px;border:1px solid rgba(255,255,255,.12);font-size:.72rem}
   .fbox{background:#0f1526;border-radius:6px;padding:3px;text-align:center;border:1px solid rgba(255,255,255,.08)}
@@ -26,6 +28,7 @@
 </head>
 <body>
 <div class="wrap">
+  <div id="aaa-score" class="sr">0</div>
   <div class="scorecard" id="scorecard"></div>
   <div id="status">Aim, set curve, and press BOWL (or Space)!</div>
   <canvas id="c" width="480" height="480"></canvas>
@@ -50,6 +53,28 @@
 
   let pins = [], ball = null, rolling = false, settleTimer = 0;
   let rolls = [], frame = 0, rollInFrame = 0, gameOver = false;
+
+  // ===== AAA audio kit (procedural; honors overlay prefs) =====
+  let AC=null;
+  function ac(){if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(AC&&AC.state==='suspended')AC.resume();return AC}
+  function sfxOn(){try{return localStorage.getItem('aaa_sfx')!=='0'}catch(e){return true}}
+  function bgmOn(){try{return localStorage.getItem('aaa_bgm')!=='0'}catch(e){return true}}
+  function tone(f,d,ty,v,sl,t){if(!sfxOn())return;const c=ac();if(!c)return;try{const n=c.currentTime+(t||0),o=c.createOscillator(),g=c.createGain();o.type=ty||'sine';o.frequency.setValueAtTime(f,n);if(sl)o.frequency.exponentialRampToValueAtTime(Math.max(30,sl),n+d);g.gain.setValueAtTime(.0008,n);g.gain.linearRampToValueAtTime(v||.08,n+.012);g.gain.exponentialRampToValueAtTime(.0006,n+d);o.connect(g);g.connect(c.destination);o.start(n);o.stop(n+d+.05)}catch(e){}}
+  function nz(d,v,f,q,ty,t){if(!sfxOn())return;const c=ac();if(!c)return;try{const n=c.currentTime+(t||0),L=Math.ceil(c.sampleRate*d),b=c.createBuffer(1,L,c.sampleRate),dd=b.getChannelData(0);for(let i=0;i<L;i++)dd[i]=(Math.random()*2-1)*(1-i/L);const s=c.createBufferSource();s.buffer=b;const fl=c.createBiquadFilter();fl.type=ty||'bandpass';fl.frequency.value=f||1400;fl.Q.value=q||.8;const g=c.createGain();g.gain.setValueAtTime(v||.1,n);g.gain.exponentialRampToValueAtTime(.0006,n+d);s.connect(fl);fl.connect(g);g.connect(c.destination);s.start(n)}catch(e){}}
+  function mtone(f,d,ty,v,sl,t){const c=ac();if(!c)return;try{const n=c.currentTime+(t||0),o=c.createOscillator(),g=c.createGain();o.type=ty||'sine';o.frequency.setValueAtTime(f,n);if(sl)o.frequency.exponentialRampToValueAtTime(Math.max(30,sl),n+d);g.gain.setValueAtTime(.0008,n);g.gain.linearRampToValueAtTime(v||.05,n+.02);g.gain.exponentialRampToValueAtTime(.0006,n+d);o.connect(g);g.connect(c.destination);o.start(n);o.stop(n+d+.05)}catch(e){}}
+  function stinger(w){(w?[523,659,784,1047]:[392,349,311,262]).forEach(function(f,i){(w?mtone:tone)(f,w?.2:.24,w?'triangle':'sawtooth',w?.09:.05,null,i*(w?.1:.12))})}
+  function clack(v){nz(.09,Math.min(.18,v||.12),1200+Math.random()*1400,2.2);tone(200+Math.random()*300,.05,'square',.05)}
+  // lounge groove
+  let bgmI=0,bgmNext=-1;const BSTEP=60/96/2;const BASS=[55,55,65.41,73.42],ARP=[220,277.18,329.63,392];
+  setInterval(()=>{if(!bgmOn()){bgmNext=-1;return}const c=ac();if(!c||c.state!=='running')return;if(bgmNext<0)bgmNext=c.currentTime+.06;const a=c.currentTime+.32;while(bgmNext<a){const s=bgmI%16,t=bgmNext;
+    if(s===0||s===10)mtone(110,.18,'sine',.14,50,t);
+    if(s%8===4)nz(.03,.02,9000,1,'highpass',t);
+    if(s%2===0)mtone(BASS[(bgmI>>1)%4]*.5,.3,'triangle',.045,null,t);
+    if(s%4===2)mtone(ARP[(bgmI>>2)%4],.18,'sine',.02,null,t);
+    bgmNext+=BSTEP;bgmI++}},80);
+  const scoreChip=document.getElementById('aaa-score');
+  let best=0;try{best=+localStorage.getItem('bw_best')||0}catch(e){}
+  let rumbleT=0,inGutter=false,confetti=[];
 
   function setupPins() {
     pins = [];
@@ -138,6 +163,8 @@
     rolling = true;
     settleTimer = 0;
     rollBtn.disabled = true;
+    inGutter = false; rumbleT = 0;
+    nz(.4,.1,500,.8,'lowpass'); tone(180,.15,'sine',.07,120);
   }
 
   let last = performance.now();
@@ -156,9 +183,15 @@
       ball.y += ball.vy * dt;
       // Gutter check
       if (ball.x < W/2 - 120 || ball.x > W/2 + 120) {
+        if (!inGutter) { inGutter = true; nz(.2,.16,240,.9,'lowpass'); tone(130,.25,'sawtooth',.06,80); }
         ball.vx = 0;
         ball.spin = 0;
         ball.x = ball.x < W/2 ? W/2 - 128 : W/2 + 128;
+      }
+      // rolling rumble
+      if (!inGutter) {
+        rumbleT += dt;
+        if (rumbleT > .09) { rumbleT = 0; nz(.08,.045,260,.7,'lowpass'); }
       }
       // Ball-pin collisions
       for (const p of pins) {
@@ -168,7 +201,7 @@
           const nx = dx / dist, ny = dy / dist;
           p.vx += nx * 380 + ball.vx * 0.45;
           p.vy += ny * 380 + ball.vy * 0.45;
-          p.down = true;
+          if (!p.down) { p.down = true; clack(.16); }
           ball.vx *= 0.94; ball.vy *= 0.94;
         }
       }
@@ -191,6 +224,7 @@
           if (rel > 0) {
             a.vx -= rel * nx * 0.85; a.vy -= rel * ny * 0.85;
             b.vx += rel * nx * 0.85; b.vy += rel * ny * 0.85;
+            if (!a.down || !b.down) clack(Math.min(.16, rel * .0004));
             a.down = true; b.down = true;
           }
         }
@@ -214,15 +248,19 @@
 
     if (frame < 9) {
       if (rollInFrame === 0 && newlyDown === 10) {
-        statusEl.textContent = 'STRIKE! 🔥';
+        statusEl.textContent = 'STRIKE!';
+        stinger(true);
+        for (let i = 0; i < 50; i++) confetti.push({x:W/2,y:130,vx:(Math.random()-.5)*420,vy:-Math.random()*380-40,t:0,c:['#fbbf24','#ef4444','#3b82f6','#7ee787'][i%4]});
         frame++; rollInFrame = 0; setupPins();
       } else if (rollInFrame === 0) {
         statusEl.textContent = `Knocked ${newlyDown}! Second ball.`;
+        if (newlyDown === 0) tone(180,.3,'sawtooth',.05,110);
         rollInFrame = 1;
         pins = pins.filter(p => !p.down);
       } else {
         const totalF = rolls[rolls.length - 2] + newlyDown;
-        statusEl.textContent = totalF === 10 ? 'SPARE! ✨' : `Frame ${frame+1} complete (${totalF})`;
+        statusEl.textContent = totalF === 10 ? 'SPARE!' : `Frame ${frame+1} complete (${totalF})`;
+        if (totalF === 10) { tone(660,.12,'triangle',.08); tone(880,.18,'triangle',.08,null,.1); }
         frame++; rollInFrame = 0; setupPins();
       }
     } else {
@@ -230,7 +268,9 @@
       const f10start = rolls.length - 1 - rollInFrame;
       const r1 = rolls[f10start], r2 = rolls[f10start + 1], r3 = rolls[f10start + 2];
       if (rollInFrame === 0) {
-        if (r1 === 10) { statusEl.textContent = '10th Frame STRIKE!'; setupPins(); }
+        if (r1 === 10) { statusEl.textContent = '10th Frame STRIKE!'; stinger(true);
+          for (let i = 0; i < 50; i++) confetti.push({x:W/2,y:130,vx:(Math.random()-.5)*420,vy:-Math.random()*380-40,t:0,c:['#fbbf24','#ef4444','#3b82f6','#7ee787'][i%4]});
+          setupPins(); }
         else { statusEl.textContent = `10th Frame: ${r1} down`; pins = pins.filter(p => !p.down); }
         rollInFrame = 1;
       } else if (rollInFrame === 1) {
@@ -253,7 +293,11 @@
     gameOver = true;
     const fs = computeScores();
     const finalScore = fs[9].score || 0;
-    statusEl.textContent = `GAME OVER! Final Score: ${finalScore}`;
+    const nb = finalScore > best;
+    if (nb) { best = finalScore; try { localStorage.setItem('bw_best', String(best)); } catch(e){} }
+    if (scoreChip) scoreChip.textContent = finalScore;
+    statusEl.textContent = `GAME OVER! Final Score: ${finalScore}${nb ? ' — NEW BEST!' : (best ? ' (best ' + best + ')' : '')}`;
+    stinger(finalScore >= 100 || nb);
     rollBtn.disabled = true;
   }
 
@@ -269,11 +313,34 @@
     ctx.fillStyle = lane;
     ctx.fillRect(W/2 - 115, 20, 230, H - 20);
 
-    // Lane boards
+    // Lane boards + shine + arrows
     ctx.strokeStyle = 'rgba(120,70,20,.16)';
     for (let x = W/2 - 92; x < W/2 + 115; x += 23) {
       ctx.beginPath(); ctx.moveTo(x, 20); ctx.lineTo(x, H); ctx.stroke();
     }
+    const shine = ctx.createLinearGradient(W/2 - 115, 0, W/2 + 115, 0);
+    shine.addColorStop(0, 'rgba(255,255,255,0)');
+    shine.addColorStop(0.5, 'rgba(255,255,255,.13)');
+    shine.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = shine;
+    ctx.fillRect(W/2 - 115, 20, 230, H - 20);
+    // lane arrows (diamond markers)
+    ctx.fillStyle = 'rgba(90,50,20,.5)';
+    for (const ax of [-69, -34.5, 0, 34.5, 69]) {
+      ctx.beginPath();
+      ctx.moveTo(W/2 + ax, 320); ctx.lineTo(W/2 + ax - 5, 332); ctx.lineTo(W/2 + ax + 5, 332);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(W/2 + ax, 260); ctx.lineTo(W/2 + ax - 4, 270); ctx.lineTo(W/2 + ax + 4, 270);
+      ctx.fill();
+    }
+    // pin deck shadow
+    ctx.fillStyle = 'rgba(0,0,0,.3)';
+    ctx.fillRect(W/2 - 115, 20, 230, 130);
+    // gutters shading
+    ctx.fillStyle = 'rgba(0,0,0,.25)';
+    ctx.fillRect(W/2 - 140, 20, 25, H - 20);
+    ctx.fillRect(W/2 + 115, 20, 25, H - 20);
 
     // Aim guide
     if (!rolling && !gameOver) {
@@ -288,13 +355,21 @@
       ctx.setLineDash([]);
     }
 
-    // Pins
+    // Pins (wobble while moving)
     for (const p of pins) {
       if (p.x < 0 || p.x > W || p.y < 0 || p.y > H) continue;
+      const spd = Math.hypot(p.vx, p.vy);
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      if (p.down && spd > 10) ctx.rotate((Math.random() - .5) * .5);
       ctx.fillStyle = p.down ? '#94a3b8' : '#ffffff';
-      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill();
+      ctx.shadowColor = 'rgba(0,0,0,.4)'; ctx.shadowBlur = 4;
+      ctx.beginPath(); ctx.arc(0, 0, p.r, 0, Math.PI*2); ctx.fill();
+      ctx.shadowBlur = 0;
       ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.arc(p.x, p.y, p.r - 3, 0, Math.PI*2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(0, 0, p.r - 3, 0, Math.PI*2); ctx.stroke();
+      if (!p.down) { ctx.fillStyle = '#ef4444'; ctx.beginPath(); ctx.arc(0, -2, 1.6, 0, 7); ctx.fill(); }
+      ctx.restore();
     }
 
     // Ball
@@ -304,6 +379,17 @@
     ctx.beginPath(); ctx.arc(bx, by, 14, 0, Math.PI*2); ctx.fill();
     ctx.fillStyle = '#1d4ed8';
     ctx.beginPath(); ctx.arc(bx - 4, by - 4, 3, 0, Math.PI*2); ctx.arc(bx + 3, by - 5, 3, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(bx - 3, by - 3, 9, Math.PI * 1.1, Math.PI * 1.5); ctx.stroke();
+
+    // confetti
+    for (let i = confetti.length - 1; i >= 0; i--) {
+      const p = confetti[i];
+      p.x += p.vx / 60; p.y += p.vy / 60; p.vy += 480 / 60; p.t++;
+      if (p.y > H + 10) { confetti.splice(i, 1); continue; }
+      ctx.fillStyle = p.c;
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.t * .15); ctx.fillRect(-4, -3, 8, 6); ctx.restore();
+    }
   }
 
   rollBtn.onclick = throwBall;

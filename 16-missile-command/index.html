@@ -34,6 +34,8 @@ const BAT_AMMO = 10;
 
 let scene = 'title';           // title | playing | inter | gameover
 let score = 0, wave = 0, interT = 0, interBonus = 0;
+let hi = 0, newBest = false;
+try { hi = parseInt(localStorage.getItem('mcommand-hi') || '0', 10) || 0; } catch (e) {}
 let cities = [], batteries = [], missiles = [], counters = [], explosions = [], particles = [];
 let spawnQueue = 0, spawnTimer = 0, spawnInterval = 1;
 let shake = 0;
@@ -62,9 +64,24 @@ function noiseBurst(dur, vol){
   s.connect(g); g.connect(AC.destination); s.start();
 }
 
+/* tension-pulse BGM — ducks while the shared overlay's music is enabled */
+const bgm = {
+  t: null, step: 0,
+  roots: [55, 55, 65.4, 49],
+  start(){ this.stop(); this.step = 0; this.t = setInterval(() => this.tick(), 300); },
+  tick(){
+    if (!AC || AC.state !== 'running') return;
+    try { if (localStorage.getItem('aaa_bgm') === '1') return; } catch (e) {}
+    const st = this.step++;
+    if (st % 2 === 0) beep(this.roots[(st >> 3) % 4], 0.26, 'triangle', 0.05);
+    if (st % 16 === 12) beep(220 + wave * 20, 0.12, 'square', 0.018);
+  },
+  stop(){ if (this.t) clearInterval(this.t); this.t = null; }
+};
+
 /* ---------- game setup ---------- */
 function reset(){
-  score = 0; wave = 0; interBonus = 0;
+  score = 0; wave = 0; interBonus = 0; newBest = false;
   cities = CITY_X.map(x => ({x, y: GROUND_Y - 8, alive: true}));
   batteries = BAT_X.map(x => ({x, y: GROUND_Y, alive: true, ammo: BAT_AMMO}));
   missiles = []; counters = []; explosions = []; particles = [];
@@ -72,6 +89,7 @@ function reset(){
 }
 function startWave(){
   wave++;
+  bgm.start();
   batteries.forEach(b => { b.alive = true; b.ammo = BAT_AMMO; });
   spawnQueue = 9 + wave * 4;
   spawnInterval = Math.max(0.32, 1.5 - wave * 0.11);
@@ -169,6 +187,11 @@ function update(dt){
     } else if (missiles.length === 0 && counters.length === 0 && explosions.length === 0){
       if (cities.every(c => !c.alive)){
         scene = 'gameover';
+        bgm.stop();
+        if (score > hi) {
+          hi = score; newBest = true;
+          try { localStorage.setItem('mcommand-hi', String(hi)); } catch (e) {}
+        }
       } else {
         interBonus = cities.filter(c => c.alive).length * 100 + batteries.reduce((s, b) => s + (b.alive ? b.ammo : 0), 0) * 5;
         score += interBonus;
@@ -182,7 +205,7 @@ function update(dt){
   }
 
   // HUD
-  elScore.textContent = 'SCORE ' + score;
+  elScore.textContent = 'SCORE ' + score + '  ·  BEST ' + Math.max(hi, score);
   elWave.textContent = 'WAVE ' + Math.max(wave, 1);
   const usable = batteries.some(b => b.alive && b.ammo > 0);
   elMsg.textContent = (scene === 'playing' && !usable && missiles.length) ? 'NO COUNTER-MISSILES' : '';
@@ -288,11 +311,12 @@ function draw(){
 
   // scene overlays
   if (scene === 'title') overlay([
-    {t: 'MISSILE COMMAND', y: 230, s: 40, c: '#7fe8ff'},
-    {t: 'Enemy missiles are inbound.', y: 300},
-    {t: 'Click anywhere to launch a counter-missile.', y: 332},
-    {t: 'Blast radius destroys missiles mid-flight — aim ahead of them.', y: 364},
-    {t: 'Defend your 6 cities. Batteries re-arm each wave.', y: 396},
+    {t: 'MISSILE COMMAND', y: 216, s: 40, c: '#7fe8ff'},
+    {t: 'Enemy missiles are inbound.', y: 288},
+    {t: 'Click or tap anywhere to launch a counter-missile.', y: 320},
+    {t: 'Blast radius destroys missiles mid-flight — aim ahead of them.', y: 352},
+    {t: 'Defend your 6 cities. Batteries re-arm each wave.', y: 384},
+    hi > 0 ? {t: 'BEST: ' + hi, y: 424, s: 16, c: '#ffd76a'} : {t: '', y: 424, s: 16},
     {t: '— CLICK TO START —', y: 470, c: '#ffd76a'}
   ]);
   else if (scene === 'inter') overlay([
@@ -301,9 +325,10 @@ function draw(){
     {t: 'Click to continue', y: 380, s: 16}
   ]);
   else if (scene === 'gameover') overlay([
-    {t: 'GAME OVER', y: 250, s: 44, c: '#ff5964'},
-    {t: 'Final score: ' + score, y: 310, c: '#ffd76a'},
-    {t: 'You survived ' + wave + (wave === 1 ? ' wave' : ' waves'), y: 350, s: 16},
+    {t: 'GAME OVER', y: 236, s: 44, c: '#ff5964'},
+    {t: 'Final score: ' + score, y: 300, c: '#ffd76a'},
+    newBest ? {t: '— NEW BEST! —', y: 336, s: 20, c: '#fde047'} : {t: 'Best: ' + hi, y: 336, s: 18, c: '#8fb8ff'},
+    {t: 'You survived ' + wave + (wave === 1 ? ' wave' : ' waves'), y: 372, s: 16},
     {t: '— CLICK TO RESTART —', y: 430, c: '#7fe8ff'}
   ]);
 }

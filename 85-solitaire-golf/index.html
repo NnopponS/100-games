@@ -177,6 +177,9 @@
     font-variant-numeric: tabular-nums;
   }
   .card .corner .s { font-size: calc(var(--cw) * .23); margin-top: 1px; }
+.sic { width: 1em; height: 1em; vertical-align: -.1em; display: inline-block; }
+.card .corner .s .sic { width: calc(var(--cw) * .23); height: calc(var(--cw) * .23); }
+.card .pip .sic { width: calc(var(--cw) * .5); height: calc(var(--cw) * .5); }
 
   .card .pip {
     font-size: calc(var(--cw) * .64);
@@ -427,7 +430,7 @@
 <body>
 
 <header>
-  <h1>GOLF SOLITAIRE <span class="suit">♠</span><span class="suit red">♥</span></h1>
+  <h1>GOLF SOLITAIRE <span class="suit"><svg viewBox="0 0 24 24" style="width:.85em;height:.85em;vertical-align:-.08em"><path d="M12 2.5C7.5 7.3 4.2 10.6 4.2 13.8a4 4 0 0 0 6.9 2.8c-.4 1.9-1.3 3.3-2.5 4.2h6.8c-1.2-.9-2.1-2.3-2.5-4.2a4 4 0 0 0 6.9-2.8C19.8 10.6 16.5 7.3 12 2.5z" fill="currentColor"/></svg></span><span class="suit red"><svg viewBox="0 0 24 24" style="width:.85em;height:.85em;vertical-align:-.08em"><path d="M12 21C6.4 16.2 3 12.7 3 9.1A5.1 5.1 0 0 1 12 5.7 5.1 5.1 0 0 1 21 9.1c0 3.6-3.4 7.1-9 11.9z" fill="currentColor"/></svg></span></h1>
   <p class="tagline">Clear the table &mdash; play one rank above or below the waste card</p>
 </header>
 
@@ -461,7 +464,7 @@
 
 <div class="overlay hidden" id="overlay">
   <div class="panel" id="panel">
-    <div class="panel-icon" id="ovIcon">♠</div>
+    <div class="panel-icon" id="ovIcon"></div>
     <h2 id="ovTitle">You Win!</h2>
     <p id="ovMsg"></p>
     <div class="ov-btns">
@@ -478,11 +481,13 @@
   /* ---------------- Constants ---------------- */
   const RANKS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
   const SUITS = [
-    { sym: '♠', red: false },
-    { sym: '♥', red: true },
-    { sym: '♦', red: true },
-    { sym: '♣', red: false }
+    { svg: '<svg class="sic" viewBox="0 0 24 24"><path d="M12 2.5C7.5 7.3 4.2 10.6 4.2 13.8a4 4 0 0 0 6.9 2.8c-.4 1.9-1.3 3.3-2.5 4.2h6.8c-1.2-.9-2.1-2.3-2.5-4.2a4 4 0 0 0 6.9-2.8C19.8 10.6 16.5 7.3 12 2.5z" fill="currentColor"/></svg>', red: false },
+    { svg: '<svg class="sic" viewBox="0 0 24 24"><path d="M12 21C6.4 16.2 3 12.7 3 9.1A5.1 5.1 0 0 1 12 5.7 5.1 5.1 0 0 1 21 9.1c0 3.6-3.4 7.1-9 11.9z" fill="currentColor"/></svg>', red: true },
+    { svg: '<svg class="sic" viewBox="0 0 24 24"><path d="M12 2l6.5 9.5L12 22 5.5 11.5z" fill="currentColor"/></svg>', red: true },
+    { svg: '<svg class="sic" viewBox="0 0 24 24"><g fill="currentColor"><circle cx="12" cy="7.4" r="3.4"/><circle cx="7.6" cy="13.4" r="3.4"/><circle cx="16.4" cy="13.4" r="3.4"/><path d="M11 15.4c-.5 2.4-1.4 4-2.5 5h7c-1.1-1-2-2.6-2.5-5z"/></g></svg>', red: false }
   ];
+  const SUIT_ROW = SUITS.map(s => s.svg).join('');
+  const X_SVG = '<svg class="sic" viewBox="0 0 24 24" style="width:1.4em;height:1.4em"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>';
   const COLS = 7;
   const ROWS = 5;
   const TOTAL_TABLEAU = COLS * ROWS;
@@ -593,9 +598,9 @@
   /* ---------------- Rendering ---------------- */
   function cardInner(card) {
     const suit = SUITS[card.s];
-    return '<span class="corner tl"><span class="r">' + card.r + '</span><span class="s">' + suit.sym + '</span></span>' +
-           '<span class="pip">' + suit.sym + '</span>' +
-           '<span class="corner br"><span class="r">' + card.r + '</span><span class="s">' + suit.sym + '</span></span>';
+    return '<span class="corner tl"><span class="r">' + card.r + '</span><span class="s">' + suit.svg + '</span></span>' +
+           '<span class="pip">' + suit.svg + '</span>' +
+           '<span class="corner br"><span class="r">' + card.r + '</span><span class="s">' + suit.svg + '</span></span>';
   }
 
   function cardEl(card, playable) {
@@ -826,7 +831,7 @@
   /* ---------------- Overlay ---------------- */
   function showOverlay(win) {
     panelEl.classList.toggle('lose', !win);
-    $('ovIcon').textContent = win ? '♠♥♦♣' : '✕';
+    $('ovIcon').innerHTML = win ? SUIT_ROW : X_SVG;
     $('ovTitle').textContent = win ? 'You Win!' : 'Out of Moves';
     $('ovMsg').innerHTML = win
       ? 'All <b>' + TOTAL_TABLEAU + '</b> cards cleared in <b>' + moves + '</b> moves.'
