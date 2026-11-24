@@ -33,6 +33,10 @@ The first [gated release](https://github.com/NnopponS/100-games/actions/runs/454
 - **Air Hockey:** the computer can predict a bank shot off the side walls, rather than track only the puck position.
 - **Pixel Painter:** native tools create outcomes in the canvas rather than incrementing a generic challenge score.
 
+## Layout findings before release
+
+The first Daylight portrait sweep exposed six real horizontal overflows at a 390px viewport: Hangman (+134px), Wordle (+6px), Target Shooter (+16px), Farm Clicker (+3px), Jigsaw (+79px), and Laser Reflect (+109px). Corrections changed the underlying layouts: separate scene/keyboard rows, flexible keyboard keys, compact HUD grids, narrower shop panels, wrapped puzzle controls and a responsive laser stage. A second [browser run](https://github.com/NnopponS/100-games/actions/runs/45452697458) passed all 100 routes, native fullscreen and the Checkers fallback; its independent packaging check still caught that a generic index count included this report. Packaging now requires each of the 100 numbered game routes and separately checks evidence and images.
+
 ## Reproduce
 
 ```sh

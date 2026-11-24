@@ -51,15 +51,7 @@ jobs:
       - name: Verify Daylight stage, phone flow and audio teardown
         run: ARCADE_PLAYTEST_REPORT="$RUNNER_TEMP/arcade-playtest-evidence.json" ARCADE_PLAYTEST_SHOTS="$RUNNER_TEMP/arcade-playtest-shots" node tests/daylight-browser.cjs
       - name: Prepare the verified static release
-        run: |
-          set -euo pipefail
-          mkdir -p publish
-          cp -a .nojekyll index.html assets docs report publish/
-          cp "$RUNNER_TEMP/arcade-playtest-evidence.json" publish/report/evidence.json
-          cp "$RUNNER_TEMP"/arcade-playtest-shots/*.png publish/report/
-          cp -a [0-9]*/ publish/
-          test "$(find publish -mindepth 2 -maxdepth 2 -name index.html | wc -l)" -eq 100
-          printf '%s\n' "$GITHUB_SHA" > publish/arcade-release.txt
+        run: bash scripts/package-site.sh "$RUNNER_TEMP/arcade-playtest-evidence.json" "$RUNNER_TEMP/arcade-playtest-shots" "$GITHUB_SHA" publish
       - id: identity
         name: Name this attempt’s Pages artifact
         run: printf "artifact_name=github-pages-%s-%s\n" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" >> "$GITHUB_OUTPUT"
