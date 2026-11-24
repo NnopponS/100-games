@@ -2,7 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Memory Match</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -203,6 +209,9 @@
     .hud .stat { min-width: 76px; padding: 6px 10px; }
   }
 </style>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 
@@ -243,6 +252,7 @@
     gem:   '<svg viewBox="0 0 48 48"><path d="M14 6 h20 l8 12 L24 42 L6 18 Z" fill="#7df0e6" stroke="#1e8a84" stroke-width="2" stroke-linejoin="round"/><path d="M6 18 h36 M14 6 L18 18 L24 42 M34 6 L30 18 L24 42" stroke="#1e8a84" stroke-width="1.6" fill="none"/></svg>',
     flame: '<svg viewBox="0 0 48 48"><path d="M24 4 C28 12 36 16 36 26 C36 35 31 43 24 43 C17 43 12 35 12 26 C12 20 16 16 18 12 C20 16 22 18 24 18 C26 14 24 8 24 4 Z" fill="#ff8c42" stroke="#a8500f" stroke-width="2" stroke-linejoin="round"/><path d="M24 24 C27 28 30 30 30 34 C30 38 27 41 24 41 C21 41 18 38 18 34 C18 30 21 28 24 24 Z" fill="#ffd94d"/></svg>'
   };
+const arcadePlus = (new URLSearchParams(location.search).get('mode') === 'plus');
   var ICON_KEYS = Object.keys(ICONS);
   var BACK_SVG = '<svg width="46%" height="46%" viewBox="0 0 48 48"><path d="M24 6 L30 19 L43 24 L30 29 L24 42 L18 29 L5 24 L18 19 Z" fill="none" stroke="rgba(255,255,255,.85)" stroke-width="2.5" stroke-linejoin="round"/></svg>';
 
@@ -269,7 +279,7 @@
   var streak = 0;
 
   var bestStats = null;
-  try { bestStats = JSON.parse(localStorage.getItem('memory_best') || 'null'); } catch (e) {}
+  try { bestStats = JSON.parse(localStorage.getItem(('memory_best' + (new URLSearchParams(location.search).get('mode')==='plus'?'_plus':''))) || 'null'); } catch (e) {}
 
   // ---------- AAA audio ----------
   var ACX = null;
@@ -384,7 +394,9 @@
     board.innerHTML = '';
     var deck = shuffle(ICON_KEYS.concat(ICON_KEYS));
     deck.forEach(function (key) {
-      var card = document.createElement('div');
+      var card = document.createElement('button');
+      card.type='button'; card.setAttribute('aria-label','Hidden memory card');
+      card.style.padding='0'; card.style.border='0'; card.style.background='transparent';
       card.className = 'card';
       card.dataset.icon = key;
       card.innerHTML =
@@ -395,6 +407,16 @@
       card.addEventListener('click', onCardClick);
       board.appendChild(card);
     });
+    if (arcadePlus) {
+      var peekCards = Array.from(board.children);
+      lockBoard = true;
+      peekCards.forEach(card => card.classList.add('flipped'));
+      setTimeout(function () {
+        if (peekCards[0]?.parentElement !== board) return;
+        peekCards.forEach(card => card.classList.remove('flipped'));
+        lockBoard = false;
+      },1800);
+    }
   }
 
   function cardCenter(el) {
@@ -407,6 +429,7 @@
     ac();
     startTimer();
     this.classList.add('flipped');
+    this.setAttribute('aria-label', this.dataset.icon);
     sfx.flip();
 
     if (!firstCard) {
@@ -415,7 +438,7 @@
     }
 
     moves++;
-    movesEl.textContent = moves;
+    movesEl.textContent = arcadePlus ? moves + ' / 28' : moves;
 
     if (firstCard.dataset.icon === this.dataset.icon) {
       firstCard.classList.add('matched');
@@ -428,6 +451,7 @@
       firstCard = null;
       matchedPairs++;
       if (matchedPairs === ICON_KEYS.length) onWin();
+      else if (arcadePlus && moves >= 28) { lockBoard=true; stopTimer(); movesEl.textContent='OUT OF MOVES'; setTimeout(reset,1800); }
     } else {
       var a = firstCard, b = this;
       firstCard = null;
@@ -438,10 +462,13 @@
       a.classList.add('wrong');
       b.classList.add('wrong');
       setTimeout(function () {
+        if(a.parentElement !== board) return;
         a.classList.remove('flipped', 'wrong');
         b.classList.remove('flipped', 'wrong');
-        lockBoard = false;
-      }, FLIP_BACK_DELAY);
+        lockBoard = arcadePlus && moves >= 28;
+        if (lockBoard) { stopTimer(); setTimeout(reset, 1800); movesEl.textContent='OUT OF MOVES'; }
+        a.setAttribute('aria-label','Hidden memory card'); b.setAttribute('aria-label','Hidden memory card');
+      }, arcadePlus ? 420 : FLIP_BACK_DELAY);
     }
   }
 
@@ -456,7 +483,7 @@
     var isBest = !bestStats || moves < bestStats.moves || (moves === bestStats.moves && seconds < bestStats.seconds);
     if (isBest) {
       bestStats = { moves: moves, seconds: seconds };
-      try { localStorage.setItem('memory_best', JSON.stringify(bestStats)); } catch (e) {}
+      try { localStorage.setItem(('memory_best' + (new URLSearchParams(location.search).get('mode')==='plus'?'_plus':'')), JSON.stringify(bestStats)); } catch (e) {}
     }
     winBest.textContent = isBest ? 'NEW BEST!' : 'Best: ' + bestStats.moves + ' moves in ' + formatTime(bestStats.seconds);
     sfx.win();
@@ -492,13 +519,15 @@
 
   buildBoard();
 
+  window.__arcadeNativeUpgrade = {"id": 6, "name": "Memory Flash", "description": "preview the whole board, then matching seasons require a 28-move budget and quicker mismatch reveals."};
   // Report native gameplay state to the optional mission engine.
   window.__arcadeMissionSource = Object.assign({"id":6,"label":"Moves to complete","goals":[24,16,11],"note":"Match all eight pairs, then improve your move count.","kind":"lower","seconds":420}, { read: () => { return (matchedPairs === ICON_KEYS.length ? moves : Infinity); } });
 })();
 </script>
 
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

@@ -1,0 +1,127 @@
+{
+  "node": "v24.22.3",
+  "passed": 0,
+  "total": 20,
+  "results": [
+    {
+      "module": "signal",
+      "id": "A01-default-seeded-snapshot",
+      "pass": false,
+      "error": "Error: Not implemented"
+    },
+    {
+      "module": "signal",
+      "id": "A02-large-seeds-repeatable",
+      "pass": false,
+      "error": "Error: Not implemented"
+    },
+    {
+      "module": "signal",
+      "id": "A03-border-adjacency-no-wrap",
+      "pass": false,
+      "error": "Error: Not implemented"
+    },
+    {
+      "module": "signal",
+      "id": "A04-invalid-press-noop",
+      "pass": false,
+      "error": "Error: Not implemented"
+    },
+    {
+      "module": "signal",
+      "id": "A05-win-gate-undo-and-replay",
+      "pass": false,
+      "error": "Error: Not implemented"
+    },
+    {
+      "module": "signal",
+      "id": "A06-reset-and-deep-copy",
+      "pass": false,
+      "error": "Error: Not implemented"
+    },
+    {
+      "module": "signal",
+      "id": "A07-optimal-solvable-generated",
+      "pass": false,
+      "error": "Error: Not implemented"
+    },
+    {
+      "module": "signal",
+      "id": "A08-shortest-after-mutation-and-undo",
+      "pass": false,
+      "error": "Error: Not implemented"
+    },
+    {
+      "module": "signal",
+      "id": "A09-unreachable-and-already-solved",
+      "pass": false,
+      "error": "Error: Not implemented"
+    },
+    {
+      "module": "signal",
+      "id": "A10-reject-malformed-construction",
+      "pass": false,
+      "error": "AssertionError [ERR_ASSERTION]: The error is expected to be an instance of \"RangeError\". Received \"Error\"\n\nError message:\n\nNot implemented"
+    },
+    {
+      "module": "flux",
+      "id": "B01-default-and-chosen-seeds",
+      "pass": false,
+      "error": "Error: Not implemented"
+    },
+    {
+      "module": "flux",
+      "id": "B02-no-double-merge-score-spawn",
+      "pass": false,
+      "error": "Error: Not implemented"
+    },
+    {
+      "module": "flux",
+      "id": "B03-all-four-directions",
+      "pass": false,
+      "error": "Error: Not implemented"
+    },
+    {
+      "module": "flux",
+      "id": "B04-noop-and-invalid-consume-no-rng",
+      "pass": false,
+      "error": "Error: Not implemented"
+    },
+    {
+      "module": "flux",
+      "id": "B05-undo-restores-score-board-and-rng",
+      "pass": false,
+      "error": "Error: Not implemented"
+    },
+    {
+      "module": "flux",
+      "id": "B06-reset-restores-seeded-stream",
+      "pass": false,
+      "error": "Error: Not implemented"
+    },
+    {
+      "module": "flux",
+      "id": "B07-full-and-capped-merge-cases",
+      "pass": false,
+      "error": "Error: Not implemented"
+    },
+    {
+      "module": "flux",
+      "id": "B08-no-premature-win-cap-and-copy",
+      "pass": false,
+      "error": "Error: Not implemented"
+    },
+    {
+      "module": "flux",
+      "id": "B09-deterministic-multiturn-oracle",
+      "pass": false,
+      "error": "Error: Not implemented"
+    },
+    {
+      "module": "flux",
+      "id": "B10-invalid-board-seed",
+      "pass": false,
+      "error": "AssertionError [ERR_ASSERTION]: The error is expected to be an instance of \"RangeError\". Received \"Error\"\n\nError message:\n\nNot implemented"
+    }
+  ]
+}

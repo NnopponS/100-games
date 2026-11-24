@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
 <title>Air Hockey vs AI — First to 7</title>
 <style>
@@ -71,6 +77,11 @@ window.__gsfx = (function(){
   return api;
 })();
 </script>
+
+<script>window.__arcadeNativeUpgrade = {"id": 39, "name": "Bankshot CPU", "description": "The CPU predicts bank shots off the side walls instead of reacting to the puck\u2019s current position."}; const arcadeVariant = new URLSearchParams(location.search).get("mode") === "plus" || new URLSearchParams(location.search).get("plus") === "1";</script>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 <div id="wrap"><canvas id="game"></canvas></div>
@@ -187,6 +198,11 @@ function step(h) {
     const comingHome = puck.y < 170 && puck.vy < 0;
     if (comingHome) {                     // emergency block
       tx = puck.x; ty = Math.min(puck.y - 20, 150);
+      if (arcadeVariant && puck.vy < -5) {
+        const span = W - 2 * PUCK_R, t = Math.max(0, (ty - puck.y) / puck.vy);
+        const folded = ((puck.x + puck.vx * t - PUCK_R) % (2 * span) + 2 * span) % (2 * span);
+        tx = PUCK_R + Math.min(folded, 2 * span - folded);
+      }
     } else if (puck.y < H / 2 + 60) {     // attack: get behind puck, aim at player goal
       const dx = W / 2 - puck.x, dy = H - puck.y;
       const L = Math.hypot(dx, dy) || 1;
@@ -412,7 +428,8 @@ requestAnimationFrame(frame);
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

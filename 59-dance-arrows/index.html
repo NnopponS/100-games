@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Dance Arrows</title>
 <style>
@@ -68,6 +74,11 @@ kbd{display:inline-block;min-width:20px;padding:2px 5px;margin:0 1px;border:1px 
 .overlay h2{font-size:26px;letter-spacing:.2em}
 #foot{display:flex;justify-content:space-between;font-size:9px;color:#4e5c7d;letter-spacing:.22em;padding:0 5px}
 </style>
+
+<script>window.__arcadeNativeUpgrade = {"id": 59, "name": "Mirror Steps", "description": "The patterns are mirrored left-to-right, and tight scoring windows reward more exact timing."}; const arcadeVariant = new URLSearchParams(location.search).get("mode") === "plus" || new URLSearchParams(location.search).get("plus") === "1";</script>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 <div id="game">
@@ -133,7 +144,7 @@ const diffBtns = Array.from(document.querySelectorAll('#diffs button'));
 const BPM = 140, BEAT = 60 / BPM, BAR = BEAT * 4;
 const SONG_BARS = 27, SONG_LEN = SONG_BARS * BAR;
 const APPROACH = 1.25, LEAD = 3;
-const WIN = { perfect: 0.055, great: 0.11, good: 0.165, miss: 0.2 };
+const WIN = arcadeVariant ? {perfect:.038,great:.085,good:.133,miss:.18} : { perfect: 0.055, great: 0.11, good: 0.165, miss: 0.2 };
 const COLORS = ['#ff5d8f', '#29c7ff', '#7cffb2', '#ffd166'];
 const KEY_LABEL = ['\u2190', '\u2193', '\u2191', '\u2192'];
 const JCOL = { perfect: '#7cffb2', great: '#29c7ff', good: '#ffd166', miss: '#ff5d8f', broken: '#ff5d8f' };
@@ -545,10 +556,11 @@ function buildChart(key) {
       let maxT = -1, maxLane = -1;
       for (const c of cell) {
         const t = barT + c[0] * BEAT / 4;
-        const lane = (c[1] + k) % 4;
+        const rawLane = (c[1]+k)%4;
+        const lane = arcadeVariant ? 3-rawLane : rawLane;
         const dur = (c[2] || 0) * BEAT;
         out.push({ t, lane, dur, state: 'idle', judge: null, lastTick: 0 });
-        if (t >= maxT) { maxT = t; maxLane = lane; }
+        if (t >= maxT) { maxT = t; maxLane = rawLane; }
       }
       lastT = maxT;
       lastLane = maxLane;
@@ -1273,7 +1285,8 @@ requestAnimationFrame(frame);
   window.__arcadeMissionSource = Object.assign({"id":59,"label":"Dance combo","goals":[8,16,30],"note":"Chain your best note judgments. The selected chart changes the challenge.","seconds":200}, { read: () => { return (maxCombo); } });
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

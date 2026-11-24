@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
 <title>Neon Pinball</title>
 <style>
@@ -25,6 +31,9 @@
   .tbtn svg{width:14px;height:14px}
   .tbtn.launch{background:linear-gradient(180deg,#7c3aed,#5b21b6)}
 </style>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 <div class="wrap">
@@ -115,6 +124,8 @@
   let leftFlip = false, rightFlip = false, launchCharge = 0, charging = false;
   let lAng = 0.42, rAng = Math.PI - 0.42;
   const sparks = [];
+  const litBumpers = new Set();
+  let bankAwarded = false;
 
   const bumpers = [
     { x: 130, y: 170, r: 24, pts: 100, col: '#f43f5e', hit: 0 },
@@ -125,6 +136,7 @@
   ];
 
   function resetBall() {
+    litBumpers.clear(); bankAwarded = false; updateBank();
     ball = { x: 374, y: 550, vx: 0, vy: 0, r: 9, inLane: true };
     Sfx.newBall();
   }
@@ -262,7 +274,11 @@
           ball.vx = nx * 420;
           ball.vy = ny * 420;
           b.hit = 0.18;
+          const firstHit = !litBumpers.has(b);
+          litBumpers.add(b);
+          if (firstHit) updateBank();
           addScore(b.pts);
+          if (!bankAwarded && litBumpers.size === bumpers.length) { bankAwarded = true; addScore(750); updateBank(); }
           Sfx.bump(b.pts);
           for (let i = 0; i < 8; i++) sparks.push({ x: b.x + nx * b.r, y: b.y + ny * b.r, vx: nx * 120 + (Math.random()-.5)*200, vy: ny * 120 + (Math.random()-.5)*200, life: .32 });
         }
@@ -441,12 +457,18 @@
 
   requestAnimationFrame(loop);
 
+
+  const bankReadout = document.createElement('div'); bankReadout.id = 'bumperBank';
+  function updateBank() { bankReadout.textContent = bankAwarded ? 'Bumper bank cleared: +750' : 'Light all bumpers: ' + litBumpers.size + '/' + bumpers.length; }
+  scoreEl.parentElement.after(bankReadout); updateBank();
+
   // Report native gameplay state to the optional mission engine.
   window.__arcadeMissionSource = Object.assign({"id":72,"label":"Pinball points","goals":[300,900,1600],"note":"Keep the ball alive and build points from bumpers and targets."}, { read: () => { return (score); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

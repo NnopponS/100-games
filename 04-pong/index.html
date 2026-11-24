@@ -2,7 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Pong</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -90,6 +96,9 @@
   #restartBtn:hover { background: #7dd3fc; color: #0a0a0f; transform: scale(1.05); }
   #wins { margin-top: 12px; font-size: 11px; letter-spacing: 3px; color: #565672; text-transform: uppercase; }
 </style>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
   <h1>Pong</h1>
@@ -119,21 +128,22 @@
   var aiScoreEl = document.getElementById('aiScore');
 
   var W = canvas.width, H = canvas.height;
-  var WIN_SCORE = 10;
+const arcadePlus = (new URLSearchParams(location.search).get('mode') === 'plus');
+  var WIN_SCORE = arcadePlus ? 7 : 10;
 
   var PADDLE_W = 12, PADDLE_H = 90, PADDLE_MARGIN = 24;
   var BALL_R = 7;
-  var PLAYER_SPEED = 6.5;
+  var PLAYER_SPEED = 6.5, paddleMotion = 0, lastPaddleY = H / 2;
   var AI_SPEED = 4.6;
   var AI_REACT_ZONE = 0.45;
   var BALL_SPEED0 = 5.2;
-  var BALL_SPEEDUP = 1.045;
+  var BALL_SPEEDUP = arcadePlus ? 1.065 : 1.045;
   var BALL_MAX = 12;
 
   var player, ai, ball, keys, running, over;
   var trail = [], sparks = [], shake = 0, animT = 0, rally = 0, rallyFlash = 0;
   var totalWins = 0;
-  try { totalWins = parseInt(localStorage.getItem('pong_wins'), 10) || 0; } catch (e) {}
+  try { totalWins = parseInt(localStorage.getItem(('pong_wins' + (new URLSearchParams(location.search).get('mode')==='plus'?'_plus':''))), 10) || 0; } catch (e) {}
 
   // ---------- AAA audio ----------
   var ACX = null;
@@ -196,7 +206,7 @@
       r: BALL_R
     };
     trail = [];
-    rally = 0;
+    rally = 0; lastPaddleY = player.y; paddleMotion = 0;
   }
 
   var score;
@@ -220,7 +230,7 @@
     bgm.stop();
     if (youWon) {
       totalWins++;
-      try { localStorage.setItem('pong_wins', String(totalWins)); } catch (e) {}
+      try { localStorage.setItem(('pong_wins' + (new URLSearchParams(location.search).get('mode')==='plus'?'_plus':'')), String(totalWins)); } catch (e) {}
       sfx.win();
     } else {
       sfx.lose();
@@ -249,7 +259,7 @@
     var speed = Math.min(Math.hypot(ball.vx, ball.vy) * BALL_SPEEDUP, BALL_MAX);
     var angle = rel * (Math.PI / 3);
     ball.vx = Math.cos(angle) * speed * dir;
-    ball.vy = Math.sin(angle) * speed;
+    ball.vy = Math.sin(angle) * speed + (arcadePlus && isPlayer ? clamp(paddleMotion,-5,5)*0.55 : 0);
     ball.x = dir > 0 ? p.x + p.w + ball.r + 0.5 : p.x - ball.r - 0.5;
     rally++;
     rallyFlash = 1;
@@ -265,8 +275,8 @@
     shake = 6;
     sparkBurst(ball.x < W / 2 ? 20 : W - 20, ball.y, winner === 'you' ? '#7dd3fc' : '#f472b6', 22);
     if (winner === 'you') sfx.youPt(); else sfx.aiPt();
-    if (score.you >= WIN_SCORE) { endGame(true); return; }
-    if (score.ai >= WIN_SCORE) { endGame(false); return; }
+    if (score.you >= WIN_SCORE && (!arcadePlus || score.you-score.ai >= 2)) { endGame(true); return; }
+    if (score.ai >= WIN_SCORE && (!arcadePlus || score.ai-score.you >= 2)) { endGame(false); return; }
     resetPositions(winner === 'you' ? 1 : -1);
   }
 
@@ -279,6 +289,7 @@
     if (keys.s) player.y += PLAYER_SPEED;
     player.y = clamp(player.y, 0, H - player.h);
 
+    paddleMotion = player.y - lastPaddleY; lastPaddleY = player.y;
     var aiCenter = ai.y + ai.h / 2;
     var ballComing = ball.vx > 0 || ball.x > W * AI_REACT_ZONE;
     var target = ballComing ? ball.y : H / 2;
@@ -453,12 +464,14 @@
   winsEl.textContent = totalWins > 0 ? 'Career wins: ' + totalWins : '';
   requestAnimationFrame(loop);
 
+  window.__arcadeNativeUpgrade = {"id": 4, "name": "Spin Cup", "description": "first to seven by two, with paddle motion imparting spin and stronger late-rally ball speed."};
   // Report native gameplay state to the optional mission engine.
   window.__arcadeMissionSource = Object.assign({"id":4,"label":"Points past the CPU","goals":[3,6,10],"note":"Outplay the CPU. Gold means taking the match."}, { read: () => { return (score?.you || 0); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

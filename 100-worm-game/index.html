@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Wrap-Around Worm</title>
 <style>
@@ -59,6 +65,9 @@
   .btn:active{transform:scale(.96)}
   .hint{font-size:.75rem;color:#5f8a70;font-weight:600}
 </style>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 <div class="wrap">
@@ -116,17 +125,20 @@
   let state = 'idle', worm = [], dir = { x:1, y:0 }, nextDir = { x:1, y:0 }, queued = [];
   let food = { x:15, y:12 }, bonus = null, bonusT = 0, score = 0, stepMs = 135, acc = 0, parts = [], eyes = { px:0, py:0 }, deathT = 0;
 
+  const rockMode = new URLSearchParams(location.search).get('mode') === 'plus';
+  let rocks = [], foodEaten = 0;
   function freeCell() {
-    while (true) {
-      const fx = Math.floor(Math.random()*N), fy = Math.floor(Math.random()*N);
-      if (!worm.some(s => s.x === fx && s.y === fy) && !(food.x === fx && food.y === fy)) return { x: fx, y: fy };
-    }
+    const taken = new Set([...worm,...rocks,...(bonus ? [bonus] : []),food].map(p=>p.y*N+p.x));
+    const free = Array.from({length:N*N}, (_,i)=>i).filter(i=>!taken.has(i));
+    if (!free.length) return null;
+    const i = free[Math.floor(Math.random()*free.length)]; return {x:i%N, y:Math.floor(i/N)};
   }
-  function placeFood() { food = freeCell(); }
+  function placeFood() { const next = freeCell(); if (next) food = next; }
 
   function reset() {
     worm = [{x:10,y:12},{x:9,y:12},{x:8,y:12},{x:7,y:12}];
     dir = {x:1,y:0}; nextDir = {x:1,y:0}; queued = [];
+    rocks = []; foodEaten = 0;
     score = 0; stepMs = 135; acc = 0; parts = []; bonus = null; bonusT = 0; deathT = 0;
     placeFood();
     lenEl.textContent = '4'; scoreEl.textContent = '0';
@@ -174,15 +186,16 @@
     }
     dir = nextDir;
     const head = { x: (worm[0].x + dir.x + N) % N, y: (worm[0].y + dir.y + N) % N };
-    if (worm.some((s, i) => i < worm.length - 1 && s.x === head.x && s.y === head.y)) {
+    const rockHit = rocks.some(s=>s.x===head.x&&s.y===head.y);
+    if (rockHit || worm.some((s, i) => i < worm.length - 1 && s.x === head.x && s.y === head.y)) {
       state = 'over';
       deathT = 1;
       if (score > best) { best = score; bestEl.textContent = best; localStorage.setItem('worm_best', String(best)); }
       tone(240, .5, 'sawtooth', .1, 60);
       setTimeout(() => {
-        ovT.textContent = 'TAIL BITTEN!';
+        ovT.textContent = rockHit ? 'ROCK COLLISION!' : 'TAIL BITTEN!';
         ovT.classList.add('hot');
-        ovP.innerHTML = 'You ran into yourself.';
+        ovP.textContent = rockHit ? 'Plan a clear route around the new rocks.' : 'You ran into yourself.';
         ovStats.style.display = 'flex';
         ovStats.innerHTML = `<div>Score <b>${score}</b></div><div>Length <b>${worm.length}</b></div><div>Best <b>${best}</b></div>`;
         startBtn.textContent = 'PLAY AGAIN';
@@ -194,7 +207,8 @@
 
     let ate = false;
     if (head.x === food.x && head.y === food.y) {
-      score += 10;
+      score += 10; foodEaten++;
+      if (rockMode && foodEaten % 5 === 0 && rocks.length < 8) { const spot=freeCell(); if (spot && Math.hypot(spot.x-head.x,spot.y-head.y)>3) rocks.push(spot); }
       burst(food.x, food.y, '#f87171');
       placeFood();
       crunch();
@@ -305,6 +319,8 @@
       ctx.beginPath(); ctx.moveTo(0, i*SZ); ctx.lineTo(c.width, i*SZ); ctx.stroke();
     }
 
+    ctx.fillStyle = '#64748b';
+    for (const p of rocks) ctx.fillRect(p.x*SZ+2,p.y*SZ+2,SZ-4,SZ-4);
     drawApple(food.x, food.y, t, false);
 
     if (bonus) {
@@ -353,7 +369,9 @@
   c.addEventListener('pointerdown', e => {
     e.preventDefault();
     swipeStart = { x: e.clientX, y: e.clientY };
+    try { c.setPointerCapture(e.pointerId); } catch {}
   });
+  c.addEventListener('pointercancel', () => { swipeStart = null; });
   c.addEventListener('pointerup', e => {
     if (!swipeStart || state !== 'play') { swipeStart = null; return; }
     const dx = e.clientX - swipeStart.x, dy = e.clientY - swipeStart.y;
@@ -375,12 +393,16 @@
   startBtn.onclick = () => { ovT.classList.remove('hot'); ovStats.style.display = 'none'; reset(); };
   requestAnimationFrame(loop);
 
+
+  if (rockMode) { const rockNote = document.createElement('small'); rockNote.textContent = 'Arcade+ · Rocks appear every five apples'; lenEl.parentElement.after(rockNote); }
+
   // Report native gameplay state to the optional mission engine.
   window.__arcadeMissionSource = Object.assign({"id":100,"label":"Worm length gained","goals":[4,9,16],"note":"Eat safely and avoid crossing your growing trail."}, { read: () => { return (Math.max(0, worm.length - 4)); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

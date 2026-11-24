@@ -1,0 +1,7 @@
+arm	worker	event	utc
+single	single	dispatch	2026-11-24T17:33:38Z
+single	single	complete	2026-11-24T17:35:38Z
+parallel	signal	dispatch	2026-11-24T17:36:16Z
+parallel	flux	dispatch	2026-11-24T17:36:29Z
+parallel	signal	complete	2026-11-24T17:37:40Z
+parallel	flux	complete	2026-11-24T17:38:07Z

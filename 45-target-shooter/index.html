@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Target Shooter</title>
 <style>
@@ -192,6 +198,11 @@
 
   .hidden { display: none !important; }
 </style>
+
+<script>window.__arcadeNativeUpgrade = {"id": 45, "name": "Discipline Range", "description": "Missed clicks cost 0.75 seconds, while moving targets keep their normal lifespan."}; const arcadeVariant = new URLSearchParams(location.search).get("mode") === "plus" || new URLSearchParams(location.search).get("plus") === "1";</script>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 
@@ -269,7 +280,7 @@
   var best = 0;
   try { best = parseInt(localStorage.getItem('ts_best') || '0', 10) || 0; } catch (e) {}
   var startTime, lastSpawn, rafId;
-  var elapsed = 0;
+  var elapsed = 0, rangePenalty = 0;
 
   function rand(min, max) { return min + Math.random() * (max - min); }
 
@@ -281,7 +292,7 @@
   function spawnTarget() {
     var W = arena.clientWidth, H = arena.clientHeight;
     var bonus = Math.random() < 0.08;
-    var r = bonus ? rand(16, 22) : rand(16, 42);
+    var r = bonus ? rand(16, 22) : (arcadeVariant ? rand(15, 34) : rand(16, 42));
     var x = rand(r + 8, W - r - 8);
     var y = rand(r + 60, H - r - 8); // keep below HUD
 
@@ -373,6 +384,7 @@
     if (!running) return;
     nz(.07,.09,2600,1.2,'highpass');  // shot crack
     misses++;
+    if (arcadeVariant) rangePenalty += .75;
     combo = 0;
     tone(160,.12,'square',.05,90);
     missMark(e.clientX, e.clientY);
@@ -385,7 +397,7 @@
     var dt = Math.min(0.05, (now - update.last) / 1000);
     update.last = now;
 
-    if (elapsed >= GAME_SECONDS) { endGame(); return; }
+    if (elapsed + rangePenalty >= GAME_SECONDS) { endGame(); return; }
 
     // spawn
     if (now - lastSpawn > spawnInterval()) {
@@ -425,11 +437,11 @@
     }
 
     // timer
-    var left = Math.ceil(GAME_SECONDS - elapsed);
+    var left = Math.max(0,Math.ceil(GAME_SECONDS-elapsed-rangePenalty));
     if (left !== prevLeft && left <= 5 && left > 0) tone(920,.05,'square',.06);
     prevLeft = left;
     timeEl.textContent = left;
-    var frac = 1 - elapsed / GAME_SECONDS;
+    var frac = 1 - (elapsed + rangePenalty) / GAME_SECONDS;
     timebar.style.transform = "scaleX(" + frac + ")";
     timebar.classList.toggle("low", frac < 0.25);
 
@@ -449,7 +461,7 @@
     while (targets.length) removeTarget(targets[0]);
     arena.querySelectorAll(".pop,.miss-mark").forEach(function (n) { n.remove(); });
 
-    score = 0; hits = 0; misses = 0; escaped = 0; elapsed = 0;
+    score = 0; hits = 0; misses = 0; escaped = 0; elapsed = 0; rangePenalty = 0;
     combo = 0; prevLeft = GAME_SECONDS;
     running = true;
     ac();
@@ -511,7 +523,8 @@
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

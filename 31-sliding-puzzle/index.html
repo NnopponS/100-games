@@ -2,7 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>15 Sliding Puzzle</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -177,6 +183,9 @@ window.__gsfx = (function(){
   return api;
 })();
 </script>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
   <h1>15 Sliding Puzzle</h1>
@@ -210,7 +219,7 @@ window.__gsfx = (function(){
   var N = 4, TOTAL = 16;
   var bestEl = document.getElementById('best');
   var bestData = {};
-  try { bestData = JSON.parse(localStorage.getItem('sp_best') || '{}'); } catch (e) {}
+  try { bestData = JSON.parse(localStorage.getItem(('sp_best' + (new URLSearchParams(location.search).get('mode')==='plus'?'_plus':''))) || '{}'); } catch (e) {}
   function fmtT(s) { return Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2); }
   function showBest() {
     var b = bestData[N];
@@ -235,6 +244,7 @@ window.__gsfx = (function(){
   var timeEl = document.getElementById('time');
   var overlay = document.getElementById('overlay');
   var winStats = document.getElementById('winStats');
+const arcadePlus = (new URLSearchParams(location.search).get('mode') === 'plus');
   var hintBtn = document.getElementById('hintBtn');
 
   var cells = [];        // cells[i] = tile value (0 = empty) at position i
@@ -293,6 +303,17 @@ window.__gsfx = (function(){
   // Fisher-Yates on 1..15, then fix parity so the puzzle is always solvable.
   // With the empty cell on the last row, solvable iff inversion count is even.
   function shuffledCells() {
+    if (arcadePlus) {
+      const cells=Array.from({length:TOTAL},(_,i)=>(i+1)%TOTAL);
+      let blank=TOTAL-1, previous=-1;
+      for(let i=0;i<Math.max(20,N*N*4);i++){
+        const row=Math.floor(blank/N), col=blank%N;
+        const next=[row?blank-N:-1,row<N-1?blank+N:-1,col?blank-1:-1,col<N-1?blank+1:-1].filter(k=>k>=0&&k!==previous);
+        const k=next[Math.floor(Math.random()*next.length)];
+        cells[blank]=cells[k];cells[k]=0;previous=blank;blank=k;
+      }
+      return cells;
+    }
     var vals = [];
     for (var v = 1; v < TOTAL; v++) vals.push(v);
     for (var i = vals.length - 1; i > 0; i--) {
@@ -329,6 +350,7 @@ window.__gsfx = (function(){
     var idx = cells.indexOf(v);
     var empty = cells.indexOf(0);
     var tp = posToRC(idx), ep = posToRC(empty);
+    if (arcadePlus && Math.abs(tp.r-ep.r)+Math.abs(tp.c-ep.c)!==1) return;
     if (tp.r !== ep.r && tp.c !== ep.c) return; // not in line with gap
 
     // Slide every tile between clicked tile and the gap, starting
@@ -362,7 +384,7 @@ window.__gsfx = (function(){
     var cur = { m: moves, t: seconds };
     if (!bestData[N] || cur.m < bestData[N].m || (cur.m === bestData[N].m && cur.t < bestData[N].t)) {
       bestData[N] = cur; nb = true;
-      try { localStorage.setItem('sp_best', JSON.stringify(bestData)); } catch (e) {}
+      try { localStorage.setItem(('sp_best' + (new URLSearchParams(location.search).get('mode')==='plus'?'_plus':'')), JSON.stringify(bestData)); } catch (e) {}
       showBest();
     }
     setTimeout(function () {
@@ -373,6 +395,7 @@ window.__gsfx = (function(){
   }
 
   var hintTimer = null;
+  if (arcadePlus) {hintBtn.disabled=true;hintBtn.textContent='Adjacent tiles only';}
   hintBtn.addEventListener('click', function () {
     if (solved) return;
     clearTimeout(hintTimer);
@@ -396,12 +419,14 @@ window.__gsfx = (function(){
   buildTiles();
   newGame();
 
+  window.__arcadeNativeUpgrade = {"id": 31, "name": "Single-Step Slide", "description": "no multi-tile shoves. Boards are scrambled by a solvable random walk and hints are disabled in this mode."};
   // Report native gameplay state to the optional mission engine.
   window.__arcadeMissionSource = Object.assign({"id":31,"label":"Slide moves to solve","goals":[120,75,45],"note":"Finish the sliding puzzle, then try a more efficient route.","kind":"lower","seconds":420}, { read: () => { return (solved ? moves : Infinity); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

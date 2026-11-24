@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Flags Quiz</title>
 <style>
@@ -53,6 +59,11 @@
   @keyframes blink{50%{opacity:.6}}
   @media (max-width:420px){.top{font-size:.78rem}.pill{padding:6px 9px}}
 </style>
+
+<script>window.__arcadeNativeUpgrade = {"id": 62, "name": "Passport Blitz", "description": "Each flag has seven seconds. A timeout reveals the answer and resets your streak."}; const arcadeVariant = new URLSearchParams(location.search).get("mode") === "plus" || new URLSearchParams(location.search).get("plus") === "1";</script>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 <div class="card">
@@ -143,7 +154,9 @@
 
   function shuffle(a) { return [...a].sort(() => Math.random() - 0.5); }
 
+  let passportTimer, passportSession = 0;
   function start() {
+    passportSession++; clearTimeout(passportTimer);
     deck = shuffle(FLAGS).slice(0, 15);
     idx = 0; score = 0; streak = 0; locked = false;
     scoreEl.textContent = '0'; streakEl.textContent = '0';
@@ -182,11 +195,15 @@
       b.onclick = () => pick(b, o.name === target.name, target.name);
       choicesEl.appendChild(b);
     });
+    if (arcadeVariant) {
+      msgEl.textContent = 'Seven seconds. Which country is it?';
+      passportTimer = setTimeout(() => pick(null,false,target.name), 7000);
+    }
   }
 
   function pick(btn, ok, rightName) {
     if (locked) return;
-    locked = true;
+    locked = true; clearTimeout(passportTimer);
     const btns = [...choicesEl.children];
     btns.forEach(b => {
       b.disabled = true;
@@ -201,15 +218,14 @@
       btn.classList.remove('dim');
       Sfx.good(streak);
     } else {
-      btn.classList.add('bad');
-      btn.classList.remove('dim');
+      if (btn) { btn.classList.add('bad'); btn.classList.remove('dim'); }
       streak = 0;
-      msgEl.textContent = `Oops! That was ${rightName}.`;
+      msgEl.textContent = btn ? `Oops! That was ${rightName}.` : `Time out. That was ${rightName}.`;
       Sfx.bad();
     }
     scoreEl.textContent = score;
     streakEl.textContent = streak;
-    setTimeout(() => { idx++; renderQ(); }, 1050);
+    const session=passportSession; setTimeout(() => { if(session===passportSession){idx++;renderQ();} }, 1050);
   }
 
   document.getElementById('restartBtn').onclick = start;
@@ -224,7 +240,8 @@
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

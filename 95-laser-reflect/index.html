@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Laser Reflect</title>
 <style>
@@ -68,6 +74,9 @@
   .btn:active{transform:scale(.96)}
   .hint{font-size:.75rem;color:#7d70a8;font-weight:600}
 </style>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 <div class="wrap">
@@ -144,14 +153,14 @@
 
   let lvlIdx = 0, moves = 0, solved = 0, gridMirrors = [], won = false, playing = false;
   let beamPath = [], beamHitTarget = false, beamEndWall = false, hoverCell = null, flashT = 0;
-  let stars = [];
+  let stars = [], orientHistory = [], hintUsed = false, chamberEpoch = 0;
   for (let i = 0; i < 60; i++) stars.push({ x: Math.random()*480, y: Math.random()*480, s: Math.random()*1.6 + .4, tw: Math.random()*6 });
 
   function loadLevel(i) {
-    lvlIdx = i;
+    lvlIdx = i; orientHistory = []; hintUsed = false; chamberEpoch++;
     const L = LEVELS[i];
     gridMirrors = L.mirrors.map(m => ({ ...m, rot: 0 }));
-    won = false;
+    won = false; showOptics();
     lvlEl.textContent = (i+1) + '/' + LEVELS.length;
     msgEl.textContent = 'Tap mirrors to rotate. Guide the beam to the crystal!';
     traceBeam();
@@ -178,14 +187,15 @@
     }
 
     if (beamHitTarget && !won) {
-      won = true;
+      won = true; showOptics();
       flashT = 1;
       solved++;
       scoreEl.textContent = solved;
       if (lvlIdx + 1 < LEVELS.length) {
         levelWin();
         msgEl.textContent = 'Crystal charged! Next chamber...';
-        setTimeout(() => loadLevel(lvlIdx + 1), 1100);
+        const old = chamberEpoch;
+        setTimeout(() => { if (chamberEpoch === old) loadLevel(lvlIdx + 1); }, 1100);
       } else {
         fanfare();
         const isRecord = !best || moves < best;
@@ -350,6 +360,7 @@
     const { col, r } = cellAt(e);
     const m = gridMirrors.find(x => x.r === r && x.c === col);
     if (m) {
+      orientHistory.push(m); showOptics();
       m.t = m.t === '/' ? '\\' : '/';
       moves++;
       movesEl.textContent = moves;
@@ -371,6 +382,41 @@
     loadLevel(0); audio();
   };
 
+  const undoOptic = document.createElement('button'), hintOptic = document.createElement('button');
+  undoOptic.type = hintOptic.type = 'button'; undoOptic.className = hintOptic.className = 'reset';
+  undoOptic.textContent = 'Undo mirror'; hintOptic.textContent = 'Optical hint';
+  function showOptics() { undoOptic.disabled = !orientHistory.length || won; hintOptic.disabled = hintUsed || won; }
+  function undoMirror() {
+    if (!playing || won || !orientHistory.length) return;
+    const m = orientHistory.pop(); m.t = m.t === '/' ? String.fromCharCode(92) : '/'; moves = Math.max(0, moves-1);
+    movesEl.textContent = moves; showOptics(); traceBeam();
+  }
+  function hintMirror() {
+    if (!playing || won || hintUsed) return;
+    const L = LEVELS[lvlIdx];
+    const hitFor = mask => {
+      let {r,c,dir} = L.emitter; const dr = [0,1,0,-1], dc = [1,0,-1,0];
+      for (let n=0;n<60;n++) {
+        r+=dr[dir]; c+=dc[dir];
+        if (r<0 || r>=N || c<0 || c>=N || L.walls.some(w=>w[0]===r&&w[1]===c)) return false;
+        if (L.target.r===r && L.target.c===c) return true;
+        const i=gridMirrors.findIndex(m=>m.r===r&&m.c===c);
+        if (i>=0) dir = ((gridMirrors[i].t === '/') !== !!(mask & (1<<i))) ? [3,2,1,0][dir] : [1,0,3,2][dir];
+      }
+      return false;
+    };
+    let bestMask = 0, min = Infinity;
+    for (let mask=1; mask < 1<<gridMirrors.length; mask++) {
+      const flips = mask.toString(2).replace(/0/g,'').length;
+      if (flips < min && hitFor(mask)) { min=flips; bestMask=mask; }
+    }
+    if (!bestMask) return;
+    const i=gridMirrors.findIndex((_,i)=>bestMask & (1<<i)), m=gridMirrors[i];
+    hintUsed=true; showOptics(); hoverCell={r:m.r,col:m.c};
+    msgEl.textContent = 'Try mirror at row ' + (m.r + 1) + ', column ' + (m.c + 1) + '.';
+  }
+  undoOptic.onclick = undoMirror; hintOptic.onclick = hintMirror;
+  document.getElementById('resetBtn').after(undoOptic,hintOptic);
   loadLevel(0); playing = false;
   let last = performance.now();
   (function loop(now) {
@@ -384,7 +430,8 @@
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Farm Clicker</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='%23f6b73c'%3E%3Ccircle cx='12' cy='4.2' r='3'/%3E%3Ccircle cx='17.5' cy='6.5' r='3'/%3E%3Ccircle cx='19.8' cy='12' r='3'/%3E%3Ccircle cx='17.5' cy='17.5' r='3'/%3E%3Ccircle cx='12' cy='19.8' r='3'/%3E%3Ccircle cx='6.5' cy='17.5' r='3'/%3E%3Ccircle cx='4.2' cy='12' r='3'/%3E%3Ccircle cx='6.5' cy='6.5' r='3'/%3E%3C/g%3E%3Ccircle cx='12' cy='12' r='4.4' fill='%238a5c28'/%3E%3C/svg%3E">
@@ -350,6 +356,9 @@
     .sun,.cloud,.plot.ripe,.plot.ripe .plot-art{animation:none}
   }
 </style>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 
@@ -919,7 +928,7 @@
     merged.plots = def.plots.map(function(dp, i){
       const sp = Array.isArray(s.plots) ? s.plots[i] : null;
       if (!sp || typeof sp !== 'object') return dp;
-      const out = { unlocked: !!sp.unlocked, crop: null, plantedAt: 0, watered: 0 };
+      const out = { unlocked: !!sp.unlocked, crop: null, plantedAt: 0, watered: 0, lastCrop: Object.hasOwn(CROP_MAP, sp.lastCrop) ? sp.lastCrop : null };
       if (out.unlocked && sp.crop && CROP_MAP[sp.crop] && Number.isFinite(sp.plantedAt)){
         out.crop = sp.crop;
         out.plantedAt = sp.plantedAt;
@@ -1023,7 +1032,9 @@
 
     const li = levelInfo(state.xp);
     const golden = Math.random() < GOLDEN_CHANCE;
-    const amount = sellFor(crop, li.level, golden);
+    const rotated = !!p.lastCrop && p.lastCrop !== crop.id;
+    const amount = Math.ceil(sellFor(crop, li.level, golden) * (rotated ? 1.15 : 1));
+    p.lastCrop = crop.id;
     const xpGain = crop.xp * (golden ? 2 : 1);
 
     state.coins += amount;
@@ -1038,6 +1049,7 @@
 
     const c = plotCenter(i);
     floatText(c.x, c.y - 6, '+' + fmtNum(amount) + ' ' + ic('coin'), golden ? 'gold' : '');
+    if (rotated) floatText(c.x, c.y - 28, 'ROTATION +15%', 'small');
     if (golden){
       floatText(c.x, c.y - 40, 'GOLDEN!', 'gold small');
       sparkle(c.x, c.y, ['spark','spark','coin'], 10);
@@ -1361,12 +1373,17 @@
 
   init();
 
+
+  const rotationTip = document.createElement('small'); rotationTip.textContent = 'Crop rotation: harvest a different species on the same plot for +15%.';
+  document.getElementById('farmHint')?.after(rotationTip);
+
   // Report native gameplay state to the optional mission engine.
   window.__arcadeMissionSource = Object.assign({"id":77,"label":"Fresh crops harvested","goals":[4,12,24],"delta":true,"note":"Plant crops, let them ripen, then collect. Past harvest totals don't count.","seconds":380}, { read: () => { return (state.stats.harvests); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

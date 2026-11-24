@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Button Masher</title>
 <style>
@@ -194,6 +200,11 @@
     75% { transform: translate(3px, -1px) scale(1.14); }
   }
 </style>
+
+<script>window.__arcadeNativeUpgrade = {"id": 57, "name": "Pulse Mash", "description": "Tap during GO windows only. Early taps cost a point; green lasts most of each pulse."}; const arcadeVariant = new URLSearchParams(location.search).get("mode") === "plus" || new URLSearchParams(location.search).get("plus") === "1";</script>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
   <div id="halo"></div>
@@ -262,9 +273,12 @@
     return 'FINGER OF FURY';
   }
 
+  function pulseOpen(now) { return (now-startTime)%1400 < 1060; }
+
   function press(cx, cy) {
     if (finished || counting) return;
     if (!running) { countdown(); return; }
+    if (arcadeVariant && !pulseOpen(performance.now())) { count=Math.max(0,count-1);countEl.textContent=count;return; }
     count++;
     hits.push(performance.now());
     countEl.textContent = count;
@@ -322,6 +336,7 @@
 
   function tick(now) {
     var elapsed = now - startTime;
+    if (arcadeVariant) msgEl.textContent = pulseOpen(now) ? 'GO · TAP NOW' : 'HOLD · WAIT';
     var remaining = Math.max(0, DURATION - elapsed);
     var secs = remaining / 1000;
     timeEl.textContent = secs.toFixed(1) + 's';
@@ -408,7 +423,8 @@
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

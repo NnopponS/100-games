@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
 <title>Stack Tower</title>
 <style>
@@ -10,6 +16,9 @@
     -webkit-user-select:none;user-select:none}
   canvas{display:block;touch-action:manipulation;cursor:pointer}
 </style>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 <canvas id="game"></canvas>
@@ -48,7 +57,7 @@ var tower=[],mover=null,debris=[],pops=[];
 var camY=0,shake=0,score=0,best=0,tNow=0;
 var stars=[];
 
-try{best=parseInt(localStorage.getItem('stackTowerBest')||'0',10)||0;}catch(e){}
+try{best=parseInt(localStorage.getItem(('stackTowerBest' + (new URLSearchParams(location.search).get('mode')==='plus'?'_plus':'')))||'0',10)||0;}catch(e){}
 for(var i=0;i<110;i++)
   stars.push({x:Math.random(),y:Math.random(),r:Math.random()*1.5+0.4,p:Math.random()*6.283});
 
@@ -122,7 +131,7 @@ function topY(){return tower.length*BLOCK_H;}
 function wy2s(wy){return H-GROUND-wy+camY;}
 function hsla(h,s,l,a){return 'hsla('+h+','+s+'%,'+l+'%,'+a+')';}
 
-function saveBest(){try{localStorage.setItem('stackTowerBest',String(best));}catch(e){}}
+function saveBest(){try{localStorage.setItem(('stackTowerBest' + (new URLSearchParams(location.search).get('mode')==='plus'?'_plus':'')),String(best));}catch(e){}}
 
 function reset(){
   tower=[{x:Math.round((W-BASE_W)/2),w:BASE_W,hue:hueAt(0)}];
@@ -130,6 +139,7 @@ function reset(){
   spawnMover();
 }
 
+const arcadePlus = (new URLSearchParams(location.search).get('mode') === 'plus');
 function spawnMover(){
   var top=topBlock();
   var w=Math.max(1,Math.round(top.w));
@@ -177,7 +187,12 @@ function land(){
   if(perfect){
     nx=top.x;nw=top.w;
     perfStreak++;
-    pops.push({x:top.x+top.w/2,y:ly+BLOCK_H+16,text:perfStreak>1?'PERFECT x'+perfStreak:'PERFECT',t:0});
+    var recovered = false;
+    if (arcadePlus && perfStreak%3===0 && nw<BASE_W) {
+      nw = Math.min(BASE_W,nw+14); nx = Math.max(0,Math.min(W-nw,top.x+(top.w-nw)/2));
+      recovered = true;
+    }
+    pops.push({x:top.x+top.w/2,y:ly+BLOCK_H+16,text:recovered?'WIDTH RECOVERED':perfStreak>1?'PERFECT x'+perfStreak:'PERFECT',t:0});
     sfx.perfect(perfStreak);
     if(window.AAA){
       AAA.burst(top.x+top.w/2,wy2s(ly),'#ffe27a',10+perfStreak*2);
@@ -352,12 +367,14 @@ function frame(now){
 reset();
 requestAnimationFrame(frame);
 
+  window.__arcadeNativeUpgrade = {"id": 19, "name": "Precision Recovery", "description": "each third consecutive perfect landing rebuilds part of the platform, offsetting width lost earlier."};
   // Report native gameplay state to the optional mission engine.
   window.__arcadeMissionSource = Object.assign({"id":19,"label":"Perfect drops in a row","goals":[2,4,7],"note":"Drop blocks flush with the tower; off-center drops break the streak."}, { read: () => { return (perfStreak || 0); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

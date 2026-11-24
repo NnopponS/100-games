@@ -2,7 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Doodle Jump</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -82,6 +88,9 @@
   .hint { margin-top: 8px; font-size: .78rem; color: #6a8a78; text-align: center; }
  .hint .karr { width: 11px; height: 11px; fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; vertical-align: -1px; }
 </style>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 
@@ -127,7 +136,7 @@
   var screenBest = document.getElementById('screenBest');
 
   var best = 0;
-  try { best = parseInt(localStorage.getItem('doodle_best') || '0', 10) || 0; } catch (e) {}
+  try { best = parseInt(localStorage.getItem(('doodle_best' + (new URLSearchParams(location.search).get('mode')==='plus'?'_plus':''))) || '0', 10) || 0; } catch (e) {}
   bestEl.textContent = best;
   screenBest.textContent = best > 0 ? 'Best: ' + best + 'm' : '';
 
@@ -197,16 +206,18 @@
     clouds.push({ x: Math.random() * W, y: Math.random() * H, s: 20 + Math.random() * 30, depth: 0.3 + Math.random() * 0.5 });
   }
 
+const arcadePlus = (new URLSearchParams(location.search).get('mode') === 'plus');
   function addPlat(y) {
     // difficulty: more moving/cracked platforms higher up
     var diff = Math.min(1, score / 4000);
     var kind = 'normal';
     var r = Math.random();
-    if (r < 0.12 + diff * 0.18) kind = 'moving';
-    else if (r < 0.12 + diff * 0.18 + 0.08 + diff * 0.14) kind = 'cracked';
-    var p = { x: 30 + Math.random() * (W - 100), y: y, w: 74, h: 16, kind: kind, vx: 0, broken: false, spring: false };
+    var movingRate = (arcadePlus ? .25 : .12) + diff*.18;
+    if (r < movingRate) kind = 'moving';
+    else if (r < movingRate + .08 + diff*.14) kind = 'cracked';
+    var p = { x: 30 + Math.random() * (W - 100), y: y, w: arcadePlus ? 66 : 74, h: 16, kind: kind, vx: 0, broken: false, spring: false };
     if (kind === 'moving') p.vx = (Math.random() < .5 ? -1 : 1) * (50 + diff * 70);
-    if (kind === 'normal' && Math.random() < 0.09) p.spring = true;
+    if (kind === 'normal' && Math.random() < (arcadePlus ? .20 : .09)) p.spring = true;
     plats.push(p);
   }
 
@@ -234,7 +245,7 @@
   function addScore() {
     var s = Math.floor(-camY / 10);
     if (s > score) { score = s; scoreEl.textContent = score; }
-    if (score > best) { best = score; bestEl.textContent = best; try { localStorage.setItem('doodle_best', String(best)); } catch (e) {} }
+    if (score > best) { best = score; bestEl.textContent = best; try { localStorage.setItem(('doodle_best' + (new URLSearchParams(location.search).get('mode')==='plus'?'_plus':'')), String(best)); } catch (e) {} }
   }
 
   function gameOver() {
@@ -262,7 +273,7 @@
     if (keys.ArrowLeft || keys.a) steer -= 1;
     if (keys.ArrowRight || keys.d) steer += 1;
     steer += steerTouch;
-    doodle.vx = steer * 320;
+    doodle.vx = steer*320 + (arcadePlus ? Math.sin(camY/170 + doodle.y/130)*(38 + Math.abs(doodle.x-W/2)*.10) : 0);
     if (steer !== 0) doodle.face = steer > 0 ? 1 : -1;
 
     doodle.vy += GRAV * dt;
@@ -454,13 +465,15 @@
   reset();
   requestAnimationFrame(loop);
 
+  window.__arcadeNativeUpgrade = {"id": 15, "name": "Wind Garden", "description": "land on narrower, more varied aerial routes, with intermittent wind near the edges and extra springs as escape routes."};
   // Report native gameplay state to the optional mission engine.
   window.__arcadeMissionSource = Object.assign({"id":15,"label":"Height reached","goals":[400,1000,2000],"note":"Climb by chaining platform landings; only your highest altitude counts."}, { read: () => { return (score || 0); } });
 })();
 </script>
 
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

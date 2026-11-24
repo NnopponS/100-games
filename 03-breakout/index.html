@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Breakout</title>
 <style>
@@ -129,6 +135,9 @@
   #powerStatus { min-height:1.2em; text-align:center; }
   body { overflow-y:auto; }
 </style>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 
@@ -215,6 +224,7 @@
     try { best = parseInt(localStorage.getItem(bestKey()), 10) || 0; } catch (e) {}
     bestEl.textContent = best;
   }
+  if ((new URLSearchParams(location.search).get('mode') === 'plus')) modeSelect.value = 'lab';
   readMode();
 
   // ---------- AAA audio ----------
@@ -771,13 +781,15 @@
   intro();
   loop();
 
+  window.__arcadeNativeUpgrade = {"id": 3, "name": "Brick Lab", "description": "Brick Lab starts with rotating formations, two-hit armor, falling paddle wideners and one-use ball shields."};
   // Report native gameplay state to the optional mission engine.
   window.__arcadeMissionSource = Object.assign({"id":3,"label":"Brick points","goals":[180,420,850],"note":"Break bricks and keep your rally alive to earn combo points."}, { read: () => { return (score || 0); } });
 })();
 </script>
 
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Treasure Dive</title>
 <style>
@@ -65,6 +71,9 @@
   .btn:active{transform:scale(.96)}
   .hint{font-size:.75rem;color:#5f85a3;font-weight:600}
 </style>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 <div class="wrap">
@@ -119,6 +128,7 @@
   let best = Number(localStorage.getItem('dive_best') || 0);
   let state = 'idle', diver, items, foes, bubbles, airs, score = 0, bag = 0, o2 = 100, keys = {}, pointer = null, hurtT = 0, depth = 0;
 
+  let bailTime = 0;
   function spawnItem() {
     const deep = Math.random();
     const y = SURF + 60 + deep * (H - SURF - 90);
@@ -142,7 +152,7 @@
 
   function reset() {
     diver = { x: W/2, y: SURF - 6, r: 14, face: 1 };
-    score = 0; bag = 0; o2 = 100; hurtT = 0;
+    score = 0; bag = 0; o2 = 100; hurtT = 0; bailTime = 0; updateBail();
     items = []; foes = []; bubbles = []; airs = [];
     for (let i = 0; i < 12; i++) spawnItem();
     for (let i = 0; i < 6; i++) spawnFoe(i);
@@ -175,7 +185,8 @@
       if (dist > 8) { dx = pdx / dist; dy = pdy / dist; }
     }
     const mag = Math.hypot(dx, dy) || 1;
-    const spd = 218;
+    bailTime = Math.max(0, bailTime - dt);
+    const spd = 218 * (1 - Math.min(.32, bag / 420)) * (bailTime > 0 ? 1.45 : 1);
     if (dx || dy) {
       diver.x = Math.max(16, Math.min(W - 16, diver.x + (dx/mag)*spd*dt));
       diver.y = Math.max(SURF - 8, Math.min(H - 18, diver.y + (dy/mag)*spd*dt));
@@ -192,7 +203,7 @@
         bagEl.textContent = '0';
         splash();
         if (o2 > 60 || was < 30) tone(700, .12, 'triangle', .05, 980);
-        bag = 0;
+        bag = 0; updateBail();
       }
     } else {
       const depthFactor = 1 + (diver.y - SURF) / H * .95;
@@ -206,7 +217,7 @@
     for (let i = items.length - 1; i >= 0; i--) {
       const it = items[i];
       if (Math.hypot(diver.x - it.x, diver.y - it.y) < diver.r + it.r) {
-        bag += it.val;
+        bag += it.val; updateBail();
         bagEl.textContent = bag;
         tone(660 + Math.min(300, bag), .1, 'triangle', .06, 900);
         items.splice(i, 1);
@@ -490,12 +501,20 @@
   draw(0);
   requestAnimationFrame(loop);
 
+
+  const bailButton = document.createElement('button'); bailButton.type = 'button'; bailButton.className = 'btn';
+  function updateBail() { bailButton.textContent = 'Drop load · Q'; bailButton.disabled = bag <= 0; }
+  function bail() { if (state !== 'play' || bag <= 0) return; bag = Math.max(0, bag - Math.max(10, Math.ceil(bag / 2))); bailTime = .85; bagEl.textContent = bag; updateBail(); }
+  bailButton.onclick = bail; bagEl.parentElement.after(bailButton); updateBail();
+  window.addEventListener('keydown', e => { if (!e.repeat && e.code === 'KeyQ') bail(); });
+
   // Report native gameplay state to the optional mission engine.
   window.__arcadeMissionSource = Object.assign({"id":92,"label":"Banked treasure points","goals":[50,120,250],"note":"Surface to turn the bag into points. Unbanked treasure doesn't count."}, { read: () => { return (score); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

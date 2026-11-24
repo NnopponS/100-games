@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>World Capitals Quiz</title>
 <style>
@@ -106,6 +112,9 @@
     background: rgba(251,191,36,.14); border: 1px solid rgba(251,191,36,.45); color: #fcd34d; margin-bottom: 4px; }
   .restart { display: none; }
 </style>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 <div class="card">
@@ -309,17 +318,19 @@ function nextQuestion() {
   locked = false;
   var entry = pool[qIndex];
   var country = entry[0];
-  var capital = entry[1];
+  var reverse = (qIndex + 1) % 3 === 0;
+  var capital = reverse ? entry[0] : entry[1];
+  var answerColumn = reverse ? 0 : 1;
   currentCapital = capital;
 
   var wrong = [];
-  var candidates = shuffle(DATA.filter(function (e) { return e[1] !== capital; }));
+  var candidates = shuffle(DATA.filter(function (e) { return e[answerColumn] !== capital; }));
   for (var i = 0; i < candidates.length && wrong.length < 3; i++) {
-    if (wrong.indexOf(candidates[i][1]) === -1) wrong.push(candidates[i][1]);
+    if (wrong.indexOf(candidates[i][answerColumn]) === -1) wrong.push(candidates[i][answerColumn]);
   }
   var options = shuffle([capital].concat(wrong));
 
-  countryEl.textContent = country;
+  countryEl.textContent = reverse ? 'Which country has the capital ' + entry[1] + '?' : 'Capital of ' + country + '?';
   feedbackEl.textContent = '';
   feedbackEl.className = 'feedback';
   answersEl.innerHTML = '';
@@ -419,7 +430,8 @@ window.addEventListener('keydown', function (e) {
   window.__arcadeMissionSource = Object.assign({"id":78,"label":"Capitals answered correctly","goals":[5,9,13],"note":"Choose capitals before each question timer ends.","seconds":200}, { read: () => { return (correctCount); } });
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

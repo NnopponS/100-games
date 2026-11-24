@@ -2,7 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Tetris</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -170,6 +176,9 @@
     .sidebar { width: 96px; }
   }
 </style>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 <div>
@@ -209,6 +218,7 @@
       </div>
     </div>
   </div>
+  <div style="text-align:center"><button type="button" id="hold-piece" hidden style="min-height:38px;padding:2px 12px;border-radius:8px">Hold piece</button></div>
   <div id="touchpad">
     <button data-k="left" aria-label="Left">&#9664;</button>
     <button data-k="rotate" aria-label="Rotate">&#8635;</button>
@@ -228,6 +238,7 @@
 <script>
 (function() {
 'use strict';
+const arcadePlus = (new URLSearchParams(location.search).get('mode') === 'plus');
 const COLS = 10, ROWS = 20, CELL = 30;
 const canvas = document.getElementById('board');
 const ctx = canvas.getContext('2d');
@@ -256,10 +267,11 @@ const COLORS = {
 };
 const SCORE_TABLE = [0, 100, 300, 500, 800];
 
+let heldType = null, holdUsed = false;
 let grid, piece, nextPiece, score, level, lines, dropInterval, dropTimer, lastTime, gameOver, bag;
 let best = 0, clearAnim = null, particles = [], popups = [], shake = 0, animT = 0;
 
-try { best = parseInt(localStorage.getItem('tetris_best'), 10) || 0; } catch (e) {}
+try { best = parseInt(localStorage.getItem(('tetris_best' + (new URLSearchParams(location.search).get('mode')==='plus'?'_plus':''))), 10) || 0; } catch (e) {}
 bestEl.textContent = best;
 
 // ---------- AAA audio ----------
@@ -327,6 +339,8 @@ const bgm = {
   },
   stop() { if (this.t) clearInterval(this.t); this.t = null; }
 };
+
+if (arcadePlus) { const h = document.getElementById('hold-piece'); h.hidden = false; h.onclick = holdPiece; }
 
 function newBag() {
   const keys = Object.keys(SHAPES);
@@ -435,6 +449,18 @@ function move(dx) {
   if (!collides(piece.matrix, piece.x + dx, piece.y)) { piece.x += dx; sfx.move(); }
 }
 
+function holdPiece() {
+  if (!arcadePlus || gameOver || holdUsed || !piece) return;
+  const prior = heldType;
+  heldType = piece.type;
+  piece = spawn(prior || nextPiece);
+  if (!prior) nextPiece = randomType();
+  holdUsed = true;
+  if (collides(piece.matrix,piece.x,piece.y)) { endGame(); return; }
+  drawNext();
+  document.getElementById('hold-piece').textContent = 'Held: ' + heldType + ' · used';
+}
+
 function softDrop() {
   if (!collides(piece.matrix, piece.x, piece.y + 1)) {
     piece.y++;
@@ -460,6 +486,8 @@ function lockPiece() {
   merge();
   sfx.lock();
   clearLines();
+  holdUsed = false;
+  if (arcadePlus) document.getElementById('hold-piece').textContent = heldType ? 'Hold: ' + heldType : 'Hold piece';
   piece = spawn(nextPiece);
   nextPiece = randomType();
   if (collides(piece.matrix, piece.x, piece.y)) {
@@ -475,7 +503,7 @@ function updateHUD() {
   if (score > best) {
     best = score;
     bestEl.textContent = best;
-    try { localStorage.setItem('tetris_best', String(best)); } catch (e) {}
+    try { localStorage.setItem(('tetris_best' + (new URLSearchParams(location.search).get('mode')==='plus'?'_plus':'')), String(best)); } catch (e) {}
   }
 }
 
@@ -594,6 +622,8 @@ function endGame() {
 }
 
 function reset() {
+  heldType = null; holdUsed = false;
+  if (arcadePlus) document.getElementById('hold-piece').textContent = 'Hold piece';
   ac();
   grid = Array.from({length: ROWS}, () => new Array(COLS).fill(null));
   bag = newBag();
@@ -658,6 +688,7 @@ function action(k) {
 document.addEventListener('keydown', e => {
   if (e.key === 'r' || e.key === 'R') { reset(); return; }
   if (gameOver) return;
+  if (arcadePlus && e.code === 'KeyC' && !e.repeat) { e.preventDefault(); holdPiece(); return; }
   const map = { ArrowLeft: 'left', ArrowRight: 'right', ArrowDown: 'down', ArrowUp: 'rotate', ' ': 'drop' };
   const k = map[e.key];
   if (!k) return;
@@ -721,12 +752,14 @@ document.getElementById('restartBtn').addEventListener('click', reset);
 reset();
 requestAnimationFrame(loop);
 
+  window.__arcadeNativeUpgrade = {"id": 5, "name": "Hold Stack", "description": "swap one tetromino per placement with C or the on-screen Hold control."};
   // Report native gameplay state to the optional mission engine.
   window.__arcadeMissionSource = Object.assign({"id":5,"label":"Lines cleared","goals":[2,6,12],"note":"Complete rows. Soft and hard drop points do not count."}, { read: () => { return (lines || 0); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

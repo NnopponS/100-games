@@ -3,9 +3,10 @@ const path = require('node:path');
 const vm = require('node:vm');
 const assert = require('node:assert/strict');
 
-function freshGame(dir, api, scriptIndex = 0) {
+function freshGame(dir, api, scriptIndex = -1, search = '') {
   const html = fs.readFileSync(path.join(__dirname, '..', dir, 'index.html'), 'utf8');
-  const code = [...html.matchAll(/<script>\s*([\s\S]*?)<\/script>/g)][scriptIndex][1];
+  const parts = [...html.matchAll(/<script>\s*([\s\S]*?)<\/script>/g)];
+  const code = parts.at(scriptIndex)[1];
   const handlers = new Map();
   const items = new Map(), storage = new Map();
   let timeouts = [];
@@ -15,15 +16,25 @@ function freshGame(dir, api, scriptIndex = 0) {
   }});
   function el(id) {
     let cls = new Set();
+    const attrs = new Set();
     return {
-      id, textContent: '', innerHTML: '', style:{}, width: dir === '03-breakout' ? 720 : 400,
+      id, textContent: '', innerHTML: '', style:{setProperty(){}}, dataset:{}, width: dir === '03-breakout' ? 720 : 400,
       height: dir === '03-breakout' ? 480 : 400, clientWidth:400, value:'classic',
-      classList: {add:c=>cls.add(c), remove:c=>cls.delete(c), contains:c=>cls.has(c)},
+      classList: {add:(...cs)=>cs.forEach(c=>cls.add(c)), remove:(...cs)=>cs.forEach(c=>cls.delete(c)), contains:c=>cls.has(c), toggle(c,v){ if(v===undefined) v=!cls.has(c); return v ? cls.add(c) : cls.delete(c); }},
       get className(){return [...cls].join(' ');},
       set className(value){cls=new Set(value.split(/\s+/).filter(Boolean));},
-      children: [], getContext:()=>ctx, getBoundingClientRect:()=>({left:0, top:0, width:400}),
+      children: [], getContext:()=>ctx, getBoundingClientRect:()=>({left:0, top:0, width:400, height:400}),
       addEventListener(type,f){handlers.set(id+':'+type,f);}, remove(){},
-      querySelectorAll(){return [];}, insertBefore(node){this.children.push(node);}, blur(){}
+      querySelectorAll(selector){return this.children.filter(e=>e.className.split(' ').includes(selector.slice(1)));},
+      querySelector(selector){
+        if(selector === '.mole'){const m=el('mole');m.parentElement=this;return m;}
+        return el(selector);
+      },
+      appendChild(node){node.parentElement=this; this.children.push(node); return node;},
+      insertBefore(node){this.appendChild(node);},
+      insertAdjacentElement(_pos,node){this.appendChild(node);},
+      removeAttribute(name){attrs.delete(name);}, setAttribute(name){attrs.add(name);},
+      hasAttribute(name){return attrs.has(name);}, blur(){}
     };
   }
   const document = {
@@ -31,9 +42,11 @@ function freshGame(dir, api, scriptIndex = 0) {
     getElementById(id){if(!items.has(id)) items.set(id,el(id));return items.get(id);},
     createElement(id){return el(id);},
     body: {appendChild(){}},
+    querySelectorAll(){return [];},
     addEventListener(type,f){handlers.set('document:'+type,f);}
   };
   const sandbox = {
+    URLSearchParams, location:{search}, innerWidth:390, innerHeight:844,
     document, getComputedStyle:()=>({paddingLeft:'10px'}),
     performance:{now:()=>1000},
     localStorage:{getItem:k=>storage.get(k) || null, setItem:(k,v)=>storage.set(k,String(v))},
@@ -41,9 +54,10 @@ function freshGame(dir, api, scriptIndex = 0) {
     setInterval:()=>1, clearInterval:()=>{},
     setTimeout:f=>{timeouts.push(f); return timeouts.length;},
     clearTimeout:id=>{if(id) timeouts[id-1]=null;},
-    requestAnimationFrame:()=>{}, addEventListener:()=>{}
+    requestAnimationFrame:()=>{}, addEventListener:()=>{}, matchMedia:()=>({matches:false})
   };
   sandbox.window = sandbox;
+  for(const [,prelude] of parts.filter(m=>m[1]!==code && /const arcadeVariant.*URLSearchParams/.test(m[1]))) vm.runInNewContext(prelude,sandbox);
   const end = code.lastIndexOf('})();');
   const bridge = ';window.nativeTest=' + api + ';';
   vm.runInNewContext(end < 0 ? code + bridge : code.slice(0,end) + bridge + code.slice(end), sandbox, {filename:dir});
@@ -56,6 +70,8 @@ function freshGame(dir, api, scriptIndex = 0) {
   }};
 }
 
+module.exports = freshGame;
+if (require.main === module) {
 {
   const g=freshGame('02-snake', `{
     start, step, state:()=>({running,head:snake[0],walls,score,gold}), put:(head,d,apple)=>{
@@ -168,7 +184,7 @@ function freshGame(dir, api, scriptIndex = 0) {
     state:()=>({board, turn, selected, locked}),
     chain:()=>{board = newBoard().map(row=>row.map(()=>0)); board[5][0]=RED;
       board[4][1]=BLK; board[2][3]=BLK; board[0][7]=BLK; turn='red'; selected=null; locked=false;}
-  }`, 1);
+  }`);
   const click = (r,c) => g.handlers.get('board:click')({target:{closest:() => ({dataset:{r,c}})}});
   click(5,0); click(4,1);
   assert.equal(g.api.state().board[5][0],0);
@@ -191,3 +207,4 @@ function freshGame(dir, api, scriptIndex = 0) {
   assert.equal(g.ellipseCalls(),18);
 }
 console.log('Snake edge/barrier/bonus and score isolation, Breakout armor/catch/shield/layout, 2048 daily budget/determinism/undo/reset and score isolation, Checkers move and multiple captures, Runner cloud render passed');
+}

@@ -2,7 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Tic Tac Toe — vs AI</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -155,6 +161,9 @@
 
   #fx { position: fixed; inset: 0; pointer-events: none; z-index: 30; }
 </style>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 
@@ -192,9 +201,10 @@
   var cells = [];
   var state = [];
   var over = false, aiThinking = false;
+const arcadePlus = (new URLSearchParams(location.search).get('mode') === 'plus');
   var diff = 'hard';
   var scores = { x: 0, o: 0, d: 0 };
-  try { scores = JSON.parse(localStorage.getItem('ttt_scores') || 'null') || scores; } catch (e) {}
+  try { scores = JSON.parse(localStorage.getItem(('ttt_scores' + (new URLSearchParams(location.search).get('mode')==='plus'?'_plus':''))) || 'null') || scores; } catch (e) {}
 
   var X_SVG = '<svg viewBox="0 0 100 100"><g class="markX" stroke="#5affdc" stroke-width="11" stroke-linecap="round" filter="drop-shadow(0 0 7px rgba(90,255,220,.8))"><path d="M22 22 L78 78"/><path d="M78 22 L22 78"/></g></svg>';
   var O_SVG = '<svg viewBox="0 0 100 100"><g class="markO" fill="none" stroke="#ff9de2" stroke-width="11" filter="drop-shadow(0 0 7px rgba(255,157,226,.8))"><circle cx="50" cy="50" r="31"/></g></svg>';
@@ -359,7 +369,7 @@
       sfx.draw();
     }
     if (over) {
-      try { localStorage.setItem('ttt_scores', JSON.stringify(scores)); } catch (e) {}
+      try { localStorage.setItem(('ttt_scores' + (new URLSearchParams(location.search).get('mode')==='plus'?'_plus':'')), JSON.stringify(scores)); } catch (e) {}
       againBtn.classList.add('show');
     }
   }
@@ -383,6 +393,11 @@
     strike.classList.remove('show');
     againBtn.classList.remove('show');
     statusEl.innerHTML = 'Your turn — <span class="x">X</span>';
+    if (arcadePlus) {
+      var opening = [0,2,6,8][Math.floor(Math.random()*4)];
+      state[opening]='O'; cells[opening].innerHTML = O_SVG; cells[opening].classList.add('taken');
+      statusEl.textContent='Opening Gambit: computer opens in a corner. Your move.';
+    }
     sfx.reset();
   }
 
@@ -419,13 +434,15 @@
   sX.textContent = scores.x; sD.textContent = scores.d; sO.textContent = scores.o;
   reset();
 
+  window.__arcadeNativeUpgrade = {"id": 10, "name": "Opening Gambit", "description": "AI opens with a pre-placed corner mark each board; the player must defend from turn one."};
   // Report native gameplay state to the optional mission engine.
   window.__arcadeMissionSource = Object.assign({"id":10,"label":"Round result","goals":[1,2,3],"note":"Draw for bronze, win on Easy for silver, or win on Medium for gold. Hard AI can be held to a draw."}, { read: () => { return (over ? (winner(state)?.who === 'X' ? (diff === 'easy' ? 2 : 3) : (state.every(Boolean) && !winner(state) ? 1 : 0)) : 0); } });
 })();
 </script>
 
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

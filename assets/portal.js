@@ -18,7 +18,8 @@
   const coverCache = new Map();
   const featured = [71, 9, 72, 25];
   const player = $('playerOverlay');
-  const frame = $('playerFrame');
+  const playerMount = $('playerMount');
+  let frame = null;
   const favoriteFilter = $('favFilterBtn');
   const dailyEligible = games.filter(game => game.dir !== '30-blackjack' && game.dir !== '86-slot-machine');
   let playing = null;
@@ -29,6 +30,8 @@
   const playerRoot = $('portalPage');
   const controls = $('playerOverlay').querySelector('.player-right');
   const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const features = window.ARCADE_FEATURES || window.ARCADE_PLUS_FEATURES || {};
+  const featureFor = game => Array.isArray(features) ? features.find(item => Number(item.id) === game.id) : features[game.id] ?? features[game.dir];
   const medalTitles = ['No medal yet', 'Bronze', 'Silver', 'Gold'];
 
   const node = (tag, className, text) => {
@@ -81,12 +84,13 @@
   }
 
   function routeFor(game, date, mode = 'classic') {
-    return '#play=' + game.dir + (date ? '&daily=' + date : mode === 'trial' ? '&mode=trial' : '');
+    return '#play=' + game.dir + (date ? '&daily=' + date : mode === 'trial' || mode === 'plus' ? '&mode=' + mode : '');
   }
   function gameUrl(game, date, mode, restart = false) {
     const params = new URLSearchParams();
     if (date) params.set('daily', date);
-    else if (mode === 'trial') params.set('mode', 'trial');
+    else if (mode === 'trial' || mode === 'plus') params.set('mode', mode);
+    params.set('edition', 'daylight');
     if (restart) params.set('restart', Date.now());
     return './' + game.dir + '/index.html' + (params.size ? '?' + params : '');
   }
@@ -134,12 +138,12 @@
   function makeCard(game, accent = false) {
     const article = node('article', 'game-card');
     const link = node('a', 'game-link');
-    link.href = routeFor(game);
+    link.href = routeFor(game, null, 'plus');
     link.dataset.gameId = game.id;
     link.onclick = event => {
       if (modifierClick(event)) return;
       event.preventDefault();
-      launch(game, null, link);
+      launch(game, null, link, 'plus');
     };
     const media = node('div', 'game-media');
     if (window.makeGameCover) {
@@ -165,6 +169,8 @@
     const copy = node('div', 'game-copy');
     const labels = node('div');
     labels.append(node('strong', '', game.title), node('small', '', genre[game.cat] || 'Arcade'));
+    const feature = featureFor(game);
+    if (feature?.name) labels.append(node('small', 'game-variant', 'Arcade+ · ' + feature.name));
     const arrow = node('span', 'play-arrow', '↗');
     arrow.setAttribute('aria-hidden', 'true');
     copy.append(labels, arrow);
@@ -227,12 +233,47 @@
   }
 
   function paintPlayerMode({game,date,mode}) {
+    const feature = featureFor(game);
     $('playerTitle').textContent = game.title;
-    $('playerCat').textContent = date ? `Daily challenge · ${date} UTC` : (mode === 'trial' ? 'Medal Trial' : '#' + String(game.id).padStart(2, '0') + ' / ' + (genre[game.cat] || 'Arcade'));
+    $('playerCat').textContent = date ? `Daily challenge · ${date} UTC` : mode === 'trial' ? 'Medal Trial' : mode === 'plus' ? 'Arcade+' : '#' + String(game.id).padStart(2, '0') + ' / ' + (genre[game.cat] || 'Arcade');
     $('classicModeBtn').setAttribute('aria-pressed', String(mode === 'classic'));
+    $('plusModeBtn').setAttribute('aria-pressed', String(mode === 'plus'));
     $('trialModeBtn').setAttribute('aria-pressed', String(mode === 'trial'));
     $('openDirectLink').href = gameUrl(game, date, mode);
-    frame.title = game.title + (date ? ' daily challenge' : mode === 'trial' ? ' medal trial' : '');
+    const info = $('playerFeature');
+    info.hidden = !(mode === 'plus' && (feature?.description || feature?.name));
+    info.textContent = info.hidden ? '' : [feature.name, feature.description].filter(Boolean).join(' · ');
+    if (frame) frame.title = game.title + (date ? ' daily challenge' : mode === 'trial' ? ' medal trial' : mode === 'plus' ? ' Arcade+ mode' : '');
+  }
+
+  function deactivateFrame() {
+    if (!frame) return;
+    const old = frame;
+    frame = null;
+    old.onload = null;
+    let audioLifecycle;
+    try { audioLifecycle = old.contentWindow?.ArcadeAudioLifecycle; } catch {}
+    try { audioLifecycle?.setActive(false); } catch {}
+    try { audioLifecycle?.destroy(); } catch {}
+    old.remove();
+  }
+
+  function mountFrame(current, restart = false) {
+    deactivateFrame();
+    const next = node('iframe', 'player-frame');
+    next.id = 'playerFrame';
+    next.allow = 'fullscreen';
+    frame = next;
+    next.onload = () => {
+      if (playing !== current || frame !== next) return;
+      try {
+        next.contentWindow?.ArcadeAudioLifecycle?.setActive(!document.hidden);
+        if (!document.hidden) next.contentWindow?.focus();
+      } catch {}
+    };
+    next.src = gameUrl(current.game, current.date, current.mode, restart);
+    playerMount.append(next);
+    paintPlayerMode(current);
   }
 
   function launch(game, date, opener, mode = 'classic') {
@@ -240,17 +281,15 @@
     // Validate the day and the rotated game's identity before awarding daily progress.
     if (dailyForDate(date)?.id !== game.id) date = null;
     else if (date !== new Date().toISOString().slice(0, 10)) { date = null; mode = 'trial'; }
-    mode = date ? 'daily' : mode === 'trial' ? 'trial' : 'classic';
+    mode = date ? 'daily' : ['trial','plus'].includes(mode) ? mode : 'classic';
     if (playing?.game.id === game.id && playing.date === date && playing.mode === mode && player.open) return;
     if (!player.open) returnFocus = opener || document.activeElement;
     const current = {game, date, mode};
     playing = current;
     recents = [game.id, ...recents.filter(id => id !== game.id)].slice(0, 10);
     write('arcade100_recent', recents);
-    paintPlayerMode(current);
-    frame.onload = () => { if (playing === current) try { frame.contentWindow.focus(); } catch {} };
-    frame.src = gameUrl(game, date, mode);
     if (!player.open) player.showModal();
+    mountFrame(current);
     document.body.style.overflow = 'hidden';
     playerRoot.inert = true;
     const hash = routeFor(game, date, mode);
@@ -260,11 +299,10 @@
   function closePlayer(fromRoute = false) {
     if (!player.open) return;
     if (document.fullscreenElement === player) document.exitFullscreen?.().catch(() => {});
+    deactivateFrame();
     player.close();
     playerRoot.inert = false;
     document.body.style.overflow = '';
-    frame.onload = null;
-    frame.src = 'about:blank';
     playing = null;
     if (!fromRoute && location.hash.startsWith('#play=')) history.pushState(null, '', location.pathname + location.search);
     paintDaily();
@@ -287,7 +325,7 @@
   function shiftGame(direction) {
     if (!playing || !games.length) return;
     const at = games.findIndex(game => game.id === playing.game.id);
-    launch(games[(at + direction + games.length) % games.length], null, null, playing.mode === 'trial' ? 'trial' : 'classic');
+    launch(games[(at + direction + games.length) % games.length], null, null, playing.mode === 'daily' ? 'plus' : playing.mode);
   }
   favoriteFilter.onclick = () => {
     state.favorites = !state.favorites;
@@ -298,7 +336,7 @@
   };
   $('randomBtn').onclick = event => {
     const pool = dailyEligible.filter(game => game.id !== recents[0]);
-    if (pool.length) launch(pool[Math.floor(Math.random() * pool.length)], null, event.currentTarget);
+    if (pool.length) launch(pool[Math.floor(Math.random() * pool.length)], null, event.currentTarget, 'plus');
   };
   $('clearRecentBtn').onclick = () => {
     recents = [];
@@ -315,24 +353,27 @@
   };
   $('sortSelect').onchange = event => { state.sort = event.target.value; renderLibrary(); };
   $('closePlayerBtn').onclick = () => closePlayer();
+  $('plusModeBtn').onclick = () => { if (playing) launch(playing.game, null, null, 'plus'); };
   $('classicModeBtn').onclick = () => { if (playing) launch(playing.game, null, null, 'classic'); };
   $('trialModeBtn').onclick = () => { if (playing) launch(playing.game, null, null, 'trial'); };
   $('prevGameBtn').onclick = () => shiftGame(-1);
   $('nextGameBtn').onclick = () => shiftGame(1);
   $('reloadGameBtn').onclick = () => {
-    if (playing) frame.src = gameUrl(playing.game, playing.date, playing.mode, true);
+    if (playing) mountFrame(playing, true);
   };
   $('fullscreenBtn').hidden = !document.fullscreenEnabled || !player.requestFullscreen;
   $('fullscreenBtn').onclick = () => {
     const pending = document.fullscreenElement ? document.exitFullscreen?.() : player.requestFullscreen?.();
-    pending?.catch(() => frame.focus());
+    pending?.catch(() => frame?.focus());
   };
   document.addEventListener('fullscreenchange', () => {
-    $('fullscreenBtn').textContent = document.fullscreenElement ? 'Exit fullscreen' : 'Fullscreen';
+    const action = document.fullscreenElement ? 'Exit fullscreen' : 'Fullscreen';
+    $('fullscreenBtn').setAttribute('aria-label', action);
+    $('fullscreenBtn').title = action;
   });
   player.addEventListener('cancel', event => { event.preventDefault(); closePlayer(); });
   controls.addEventListener('keydown', event => {
-    if (event.key === 'ArrowDown') { event.preventDefault(); frame.focus(); }
+    if (event.key === 'ArrowDown') { event.preventDefault(); frame?.focus(); }
   });
   window.addEventListener('keydown', event => {
     if (event.key !== '/' || event.altKey || event.ctrlKey || event.metaKey
@@ -343,20 +384,21 @@
   window.addEventListener('hashchange', handleHash);
   window.addEventListener('popstate', handleHash);
   window.addEventListener('message', event => {
-    if (!playing || event.source !== frame.contentWindow
+    if (!playing || !frame || event.source !== frame.contentWindow
       || (location.protocol !== 'file:' && event.origin !== location.origin)
       || Number(event.data?.id) !== playing.game.id) return;
     if (event.data.type === 'arcade100:mission') paintDaily();
-    if (event.data.type === 'arcade100:mode' && ['classic','trial'].includes(event.data.mode)) {
-      playing.mode = event.data.mode;
-      playing.date = null;
-      paintPlayerMode(playing);
-      const hash = routeFor(playing.game, null, playing.mode);
-      if (location.hash !== hash) history.pushState({arcadePlayer:true}, '', hash);
+    if (event.data.type === 'arcade100:mode' && ['classic','plus','trial'].includes(event.data.mode)) {
+      launch(playing.game, null, null, event.data.mode);
     }
   });
   window.addEventListener('storage', event => { if (event.key?.startsWith('arcade100:daily:')) paintDaily(); });
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) syncDaily(); });
+  document.addEventListener('visibilitychange', () => {
+    try { frame?.contentWindow?.ArcadeAudioLifecycle?.setActive(!document.hidden); } catch {}
+    if (!document.hidden) syncDaily();
+  });
+  window.addEventListener('pagehide', event => { if (!event.persisted) deactivateFrame(); else try { frame?.contentWindow?.ArcadeAudioLifecycle?.setActive(false); } catch {} });
+  window.addEventListener('pageshow', () => { try { frame?.contentWindow?.ArcadeAudioLifecycle?.setActive(!document.hidden); } catch {} });
   window.setInterval(syncDaily, 60000);
   const sound = $('portalSound');
   const syncSound = () => { sound.setAttribute('aria-pressed', String(uiSound)); sound.textContent = uiSound ? 'UI sound on' : 'UI sound off'; };

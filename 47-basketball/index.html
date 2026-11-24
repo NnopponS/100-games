@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
 <title>Basketball Shootout</title>
 <style>
@@ -10,6 +16,11 @@
   .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
   canvas{display:block;touch-action:none;cursor:crosshair;}
 </style>
+
+<script>window.__arcadeNativeUpgrade = {"id": 47, "name": "Moving Hoop", "description": "The hoop and backboard move up and down together. Read the motion before committing your shot."}; const arcadeVariant = new URLSearchParams(location.search).get("mode") === "plus" || new URLSearchParams(location.search).get("plus") === "1";</script>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 <canvas id="cv"></canvas>
@@ -205,6 +216,11 @@ function collide(prevY){
 function tick(){
   if(state==='play'){
     timeLeft-=1/60;
+    if (arcadeVariant) {
+      const targetY = Math.round(H*.33 + Math.min(40,H*.065) * Math.sin((TIME_LIMIT-timeLeft)*2));
+      const shift = targetY-rimY; rimY = targetY;
+      rimL.y += shift; rimR.y += shift; board.y += shift;
+    }
     const s=Math.ceil(timeLeft);
     if(s!==prevSec&&s<=5&&s>0)tone(920,.05,'square',.05);
     prevSec=s;
@@ -450,7 +466,8 @@ requestAnimationFrame(frame);
   window.__arcadeMissionSource = Object.assign({"id":47,"label":"Hoops made","goals":[3,7,12],"note":"Sink successful shots before the buzzer. Attempts and misses do not count."}, { read: () => { return (makes || 0); } });
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

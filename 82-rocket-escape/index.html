@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
 <title>Rocket Escape</title>
 <link rel="icon" href="data:," />
@@ -138,6 +144,9 @@
   }
   #btnUp:active,#btnUp.on{background:radial-gradient(circle at 50% 34%, rgba(255,215,150,.6), rgba(90,40,10,.7))}
 </style>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 <canvas id="game" aria-label="Rocket Escape game area"></canvas>
@@ -376,7 +385,7 @@
     state.deadTimer = 0;
     state.flame = 0;
     state.overShown = false;
-    state.mile = 0;
+    state.mile = 0; state.boost = 1; state.boostTime = 0;
     state.thrustSfxT = 0;
     sfxLaunch();
     state.asteroids.length = 0;
@@ -480,7 +489,11 @@
     r.vx += steer * hAcc * dt;
     r.vx *= Math.exp(-2.4 * dt);
 
-    var thrusting = input.up || input.pointerActive;
+    state.boost = Math.min(1, (state.boost || 0) + dt * .115);
+    state.boostTime = Math.max(0, (state.boostTime || 0) - dt);
+    var thrusting = input.up || input.pointerActive || state.boostTime > 0;
+    if (state.boostTime > 0) { thrustA *= 1.72; r.vx += steer * hAcc * dt; }
+    if (boostButton) { boostButton.disabled = state.boost < 1; boostButton.textContent = state.boost >= 1 ? 'Boost' : Math.floor(state.boost * 100) + '%'; }
     r.thrust = thrusting;
     state.flame += ((thrusting ? 1 : 0) - state.flame) * Math.min(1, dt * 14);
 
@@ -1066,12 +1079,22 @@
   refreshHUD();
   requestAnimationFrame(frame);
 
+
+  var boostButton = document.createElement('button'); boostButton.type = 'button'; boostButton.className = 'tbtn'; boostButton.textContent = 'Boost';
+  boostButton.setAttribute('aria-label', 'Boost rocket');
+  function useBoost() { if (state.mode === 'playing' && state.boost >= 1) { state.boost = 0; state.boostTime = .55; state.rocket.vy -= U * .39; } }
+  boostButton.onclick = useBoost;
+  document.getElementById('btnUp').after(boostButton);
+  // Expose the same ability without requiring a touchscreen.
+  window.addEventListener('keydown', function(e) { if (!e.repeat && e.code === 'KeyX') useBoost(); });
+
   // Report native gameplay state to the optional mission engine.
   window.__arcadeMissionSource = Object.assign({"id":82,"label":"Climb altitude","goals":[350,900,1600],"note":"Thread obstacles while using thrust to climb."}, { read: () => { return (state.alt); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

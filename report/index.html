@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f6f8fc">
+<title>Engineering Playtest · Arcade 100</title>
+<style>
+:root{color-scheme:only light;background:#f6f8fc;color:#17243d;font:500 16px/1.62 Inter,system-ui,sans-serif}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0} main{width:min(100% - 32px,1060px);margin:0 auto;padding:30px 0 70px}
+a{color:#1d52b4;text-underline-offset:.23em} a:hover{color:#163578}
+header{padding:24px 0 35px;border-bottom:1px solid #c8d4e7}
+.top{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;align-items:center}
+.kicker{font-weight:800;font-size:.78rem;letter-spacing:.13em;text-transform:uppercase;color:#225aac}
+h1{font-size:clamp(2.5rem,8vw,5.3rem);letter-spacing:-.07em;line-height:.93;margin:20px 0 16px;max-width:14ch}
+.lead{font-size:clamp(1rem,3vw,1.27rem);max-width:52ch;color:#405470;margin:0}
+section{margin:35px 0}
+h2{font-size:clamp(1.6rem,4vw,2.2rem);letter-spacing:-.04em;line-height:1.1;margin:.35em 0 .55em}
+.notice{padding:13px 18px;border-left:4px solid #db8e1b;background:#fff5dc;border-radius:.35rem;color:#513e20}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.metric{display:grid;gap:5px;background:white;border:1px solid #d8e2f2;border-radius:14px;padding:13px 16px}
+.metric strong{font-size:clamp(1.4rem,4vw,2rem);line-height:1;color:#163c86;letter-spacing:-.06em}
+small{color:#405778}
+.workflow{color:#415470;margin-top:12px;font-size:.9rem;overflow-wrap:anywhere}
+.links{display:flex;gap:16px;flex-wrap:wrap}
+.tools{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:15px 0}
+input{background:white;border:1px solid #aabbd6;border-radius:11px;padding:9px 13px;min-height:44px;color:inherit;font:inherit;width:min(100%,400px)}
+.games{margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;list-style:none}
+.games li{background:#fff;border:1px solid #d8e2f2;border-radius:14px;padding:10px 14px;overflow-wrap:anywhere}
+.games h3{color:#254071;font-size:1rem;line-height:1.3;margin:3px 0}
+.games p{font-size:.94rem;margin:3px 0;color:#42556f}
+.shots{display:grid;grid-template-columns:repeat(2,minmax(0,280px));gap:16px;margin-top:18px}.shots[hidden]{display:none}.shots figure{margin:0}.shots img{max-width:100%;height:auto;border:1px solid #b8cae6;border-radius:10px}.shots figcaption{font-size:.85rem;color:#415470}
+.section-summary{font-size:.96rem;color:#42556f;max-width:68ch}
+:focus-visible{outline:3px solid #225aac;outline-offset:3px}
+@media(max-width:580px){.grid,.games{grid-template-columns:1fr}.metric{grid-template-columns:108px 1fr;align-items:center}main{width:min(100% - 24px,1060px);padding-top:14px}}
+</style>
+</head>
+<body>
+<main>
+<header>
+<div class="top"><span class="kicker">Arcade 100 · Lab notebook</span><a href="../?edition=daylight">Back to the arcade</a></div>
+<h1>What actually passed.</h1>
+<p class="lead">100 games built with subagents. Then a real player on a phone exposed what the first automation did not measure. The follow-up treats the arcade as a reproducible engineering experiment.</p>
+</header>
+<section aria-labelledby="validation">
+<span class="kicker">01 / Exact-release evidence</span>
+<h2 id="validation">Verified on the published build</h2>
+<div class="grid">
+  <div class="metric"><strong id="titleCount">—</strong><small>Mobile game routes checked</small></div>
+  <div class="metric"><strong id="mediaStatus">—</strong><small>Background, Back and sound ownership</small></div>
+  <div class="metric"><strong id="featureCount">—</strong><small>Native game-specific changes</small></div>
+</div>
+<p class="workflow" id="run">Release evidence is attached by CI on GitHub Pages.</p>
+<div class="shots" id="shots" hidden>
+<figure><img data-src="./daylight-mobile-library.png" width="780" height="1688" alt="Daylight Arcade 100 library rendered in a mobile Chromium viewport"><figcaption>Library, tested with a dark browser preference.</figcaption></figure>
+<figure><img data-src="./daylight-mobile-whack.png" width="780" height="1688" alt="Whack-a-Mole running inside the light mobile game player"><figcaption>Native Whack-a-Mole stage and compact player.</figcaption></figure>
+</div>
+<p class="notice">These are automated Chromium observations, not real-user analytics or full playthroughs. The phone viewport is emulated, not a physical Brave device.</p>
+</section>
+<section aria-labelledby="methods">
+<span class="kicker">02 / Methods</span>
+<h2 id="methods">A game can load and still fail a player.</h2>
+<p class="section-summary">The previous launch sweep did not inspect the actual stage palette, sound when navigating back, or late-game rules. This edition adds tests for those distinct questions and reports exactly what they cover.</p>
+<div class="links">
+<a href="https://github.com/NnopponS/100-games/blob/main/docs/release-playtest.md">Read the reproducible playtest method</a>
+<a href="https://github.com/NnopponS/100-games/blob/main/AI_EXPERIMENT_REPORT.md">Original orchestration notes</a>
+<a href="../docs/game-feature-matrix.csv">Download the feature matrix</a>
+<a href="https://github.com/NnopponS/100-games/blob/main/docs/agent-benchmark.md">Controlled multi-agent pilot &amp; raw data</a>
+</div>
+</section>
+<section aria-labelledby="experiment">
+<span class="kicker">Pilot / Agent workflow</span>
+<h2 id="experiment">The same 20 checks, two scheduling strategies.</h2>
+<div class="grid">
+<div class="metric"><strong>120 s</strong><small>One worker, 20/20 checks</small></div>
+<div class="metric"><strong>111 s</strong><small>Two eligible workers, 20/20 checks</small></div>
+<div class="metric"><strong>71 s</strong><small>Observed parallel overlap</small></div>
+</div>
+<p class="section-summary">Two matched mechanics tasks in one paired pilot. The parallel arm used 182 observed worker-seconds versus 120; these are not compute or token counts. This pilot is not a prediction about all 100 games.</p>
+<p><a href="../docs/benchmark/measurements.json">Inspect raw measurements</a> · <a href="https://github.com/NnopponS/100-games/blob/main/docs/agent-benchmark.md">Read methods, acceptance checks and limitations</a></p>
+</section>
+<section aria-labelledby="matrix">
+<span class="kicker">03 / Game-by-game changes</span>
+<h2 id="matrix">See what Arcade+ changes.</h2>
+<div class="tools"><label for="filter">Find a title or mechanic</label><input type="search" id="filter" placeholder="Example: checkers, combo, rhythm"><output id="matched" aria-live="polite"></output></div>
+<ul class="games" id="games"></ul>
+</section>
+</main>
+<script src="../assets/features.js?v=daylight1"></script>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const games = Array.isArray(window.ARCADE_FEATURES) ? window.ARCADE_FEATURES : [];
+  $('featureCount').textContent = games.length || '—';
+  function draw() {
+    const q = $('filter').value.trim().toLowerCase();
+    const matched = games.filter(g => [g.title,g.name,g.description,g.id].join(' ').toLowerCase().includes(q));
+    const f = document.createDocumentFragment();
+    for (const item of matched) {
+      const li = document.createElement('li'), n = document.createElement('h3'), a = document.createElement('a');
+      a.href = '../?edition=daylight#play=' + encodeURIComponent(item.slug) + '&mode=plus';
+      a.textContent = '#' + String(item.id).padStart(2,'0') + ' ' + item.title;
+      n.appendChild(a);
+      const p = document.createElement('p'); p.textContent = item.name + ': ' + item.description; li.append(n,p); f.appendChild(li);
+    }
+    $('games').replaceChildren(f);
+    $('matched').textContent = matched.length + ' of ' + games.length;
+  }
+  $('filter').addEventListener('input',draw); draw();
+  fetch('./evidence.json',{cache:'no-store'})
+    .then(response => response.ok ? response.json() : Promise.reject(new Error('missing release evidence')))
+    .then(e => {
+      if (e.schema !== 1 || !e.title_routes || !e.flows) return;
+      $('shots').hidden=false;
+      $('shots').querySelectorAll('[data-src]').forEach(img=>{img.src=img.dataset.src});
+      $('titleCount').textContent = e.title_routes.passed + '/' + e.title_routes.planned;
+      $('mediaStatus').textContent = e.flows.two_owned_contexts_silenced_and_closed ? 'Passed' : 'Not verified';
+      const text = 'Chromium ' + e.browser + '; ' + e.device.viewport.width + ' × ' + e.device.viewport.height +
+        ' touch viewport, dark preference; commit ' + e.revision + '. ';
+      $('run').textContent = text;
+      if (typeof e.run_id==='string' && /^\d+$/.test(e.run_id)) {
+        const a=document.createElement('a'); a.href='https://github.com/NnopponS/100-games/actions/runs/'+e.run_id;
+        a.textContent='Open exact verification run'; $('run').append(a);
+      }
+    })
+    .catch(() => {});
+})();
+</script>
+</body>
+</html>

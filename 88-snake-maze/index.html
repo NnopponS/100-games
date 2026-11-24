@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
 <title>Snake Maze</title>
 <style>
@@ -188,6 +194,9 @@
     .brand { display: none; }
   }
 </style>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 <div class="wrap">
@@ -441,6 +450,7 @@
     state.orbs = pool.slice(0, n).map((p) => ({ x: p.x, y: p.y, ph: Math.random() * TAU }));
   }
 
+  const arcadePlus = new URLSearchParams(location.search).get('mode') === 'plus';
   function buildLevel(level) {
     const cols = Math.min(17, 13 + Math.floor((level - 1) / 2) * 2);
     const rows = Math.min(13, 9 + Math.floor((level - 1) / 2) * 2);
@@ -457,7 +467,7 @@
     state.orbs = [];
     placeSnakeAtStart();
 
-    state.total = 4 + Math.min(5, Math.ceil(level / 2));
+    state.total = 4 + Math.min(5, Math.ceil(level / 2)) + (arcadePlus ? 1 : 0);
     spawnOrbs(state.total);
 
     state.tickDur = Math.max(62, 120 - (level - 1) * 7);
@@ -625,6 +635,9 @@
       return hitWall(nx, ny);
     }
 
+    const eating = state.orbs.some(o => o.x === nx && o.y === ny);
+    const occupied = arcadePlus && state.snake.slice(0, state.grow > 0 || eating ? state.snake.length : -1).some(p => p.x === nx && p.y === ny);
+    if (occupied) return hitWall(nx, ny);
     state.snake.unshift({ x: nx, y: ny });
 
     const oi = state.orbs.findIndex((o) => o.x === nx && o.y === ny);
@@ -1037,12 +1050,16 @@
   showTitle();
   requestAnimationFrame(frame);
 
+
+  if (arcadePlus) elOrbs.parentElement.title = 'Arcade+: your tail is solid and each maze has an extra orb.';
+
   // Report native gameplay state to the optional mission engine.
   window.__arcadeMissionSource = Object.assign({"id":88,"label":"Snake Maze levels cleared","goals":[1,2,4],"note":"Gather all orbs and reach the exit without hitting walls."}, { read: () => { return (state.level - 1); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

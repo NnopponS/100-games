@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
 <title>Ice Curling</title>
 <style>
@@ -29,6 +35,9 @@
   .btn-res{background:#334155;color:#fff}
   #msg{text-align:center;font-weight:800;color:#93c5fd;text-shadow:0 0 12px rgba(56,189,248,.35);min-height:1.4em}
 </style>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 <div class="wrap">
@@ -124,6 +133,7 @@
 
   let stones = [], end = 1, turn = 0, pScore = 0, cScore = 0, sliding = false, sweeping = false, over = false;
   let record = { w: 0, l: 0, t: 0 };
+  let sweepFuel = 0;
   try { record = JSON.parse(localStorage.getItem('curl_record') || 'null') || record; } catch (e) {}
 
   function showRecord() {
@@ -132,7 +142,7 @@
   showRecord();
 
   function reset() {
-    stones = []; end = 1; turn = 0; pScore = 0; cScore = 0; sliding = false; over = false;
+    stones = []; end = 1; turn = 0; pScore = 0; cScore = 0; sliding = false; over = false; sweeping = false; sweepFuel = 0; showSweep();
     pEl.textContent = '0'; cEl.textContent = '0'; endEl.textContent = '1/8';
     msgEl.textContent = 'End 1 — Your throw (Red)!';
   }
@@ -146,6 +156,7 @@
       curl: curl * 1.1, team, r: 15, spin: 0
     });
     sliding = true;
+    sweepFuel = team === "red" ? 1.55 : 0; showSweep();
     Sfx.throw();
   }
 
@@ -190,13 +201,14 @@
 
   function update(dt) {
     const active = stones[stones.length - 1];
+    if (sweeping && active?.team === "red" && sweepFuel > 0) { sweepFuel = Math.max(0, sweepFuel - dt); showSweep(); }
     if (active) active.vx += active.curl * dt * 0.35;
 
     for (let i = 0; i < stones.length; i++) {
       const s = stones[i];
       s.x += s.vx * dt; s.y += s.vy * dt;
       s.spin += s.vx * dt * 0.05 + s.curl * dt * 0.02;
-      const drag = (sweeping && s === active) ? 0.992 : 0.981;
+      const drag = (sweeping && sweepFuel > 0 && s === active && s.team === "red") ? 0.992 : 0.981;
       s.vx *= Math.pow(drag, dt * 60);
       s.vy *= Math.pow(drag, dt * 60);
       if (s.x < 35 + s.r) { s.x = 35 + s.r; s.vx *= -0.6; }
@@ -317,13 +329,14 @@
   };
   const sweepBtn = document.getElementById('sweepBtn');
   let sweepTicks = 0;
-  sweepBtn.onpointerdown = e => { e.preventDefault(); Sfx.unlock(); sweeping = true; };
+  function showSweep() { sweepBtn.textContent = sweepFuel > 0 ? 'Sweep ' + Math.ceil(sweepFuel * 10) / 10 + 's' : 'Sweep'; }
+  sweepBtn.onpointerdown = e => { e.preventDefault(); Sfx.unlock(); if (sliding && sweepFuel > 0) { sweeping = true; try { sweepBtn.setPointerCapture(e.pointerId); } catch {} } };
   const stopSweep = () => { sweeping = false; };
   sweepBtn.onpointerup = stopSweep;
   sweepBtn.onpointercancel = stopSweep;
   sweepBtn.onpointerleave = stopSweep;
   sweepBtn.oncontextmenu = e => e.preventDefault();
-  setInterval(() => { if (sweeping) Sfx.sweep(); }, 140);
+  setInterval(() => { if (sweeping && sweepFuel > 0) Sfx.sweep(); }, 140);
   document.getElementById('resetBtn').onclick = () => { Sfx.unlock(); reset(); };
   reset();
   requestAnimationFrame(loop);
@@ -388,7 +401,8 @@
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

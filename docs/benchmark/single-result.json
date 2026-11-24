@@ -1,0 +1,107 @@
+{
+  "node": "v24.22.3",
+  "passed": 20,
+  "total": 20,
+  "results": [
+    {
+      "module": "signal",
+      "id": "A01-default-seeded-snapshot",
+      "pass": true
+    },
+    {
+      "module": "signal",
+      "id": "A02-large-seeds-repeatable",
+      "pass": true
+    },
+    {
+      "module": "signal",
+      "id": "A03-border-adjacency-no-wrap",
+      "pass": true
+    },
+    {
+      "module": "signal",
+      "id": "A04-invalid-press-noop",
+      "pass": true
+    },
+    {
+      "module": "signal",
+      "id": "A05-win-gate-undo-and-replay",
+      "pass": true
+    },
+    {
+      "module": "signal",
+      "id": "A06-reset-and-deep-copy",
+      "pass": true
+    },
+    {
+      "module": "signal",
+      "id": "A07-optimal-solvable-generated",
+      "pass": true
+    },
+    {
+      "module": "signal",
+      "id": "A08-shortest-after-mutation-and-undo",
+      "pass": true
+    },
+    {
+      "module": "signal",
+      "id": "A09-unreachable-and-already-solved",
+      "pass": true
+    },
+    {
+      "module": "signal",
+      "id": "A10-reject-malformed-construction",
+      "pass": true
+    },
+    {
+      "module": "flux",
+      "id": "B01-default-and-chosen-seeds",
+      "pass": true
+    },
+    {
+      "module": "flux",
+      "id": "B02-no-double-merge-score-spawn",
+      "pass": true
+    },
+    {
+      "module": "flux",
+      "id": "B03-all-four-directions",
+      "pass": true
+    },
+    {
+      "module": "flux",
+      "id": "B04-noop-and-invalid-consume-no-rng",
+      "pass": true
+    },
+    {
+      "module": "flux",
+      "id": "B05-undo-restores-score-board-and-rng",
+      "pass": true
+    },
+    {
+      "module": "flux",
+      "id": "B06-reset-restores-seeded-stream",
+      "pass": true
+    },
+    {
+      "module": "flux",
+      "id": "B07-full-and-capped-merge-cases",
+      "pass": true
+    },
+    {
+      "module": "flux",
+      "id": "B08-no-premature-win-cap-and-copy",
+      "pass": true
+    },
+    {
+      "module": "flux",
+      "id": "B09-deterministic-multiturn-oracle",
+      "pass": true
+    },
+    {
+      "module": "flux",
+      "id": "B10-invalid-board-seed",
+      "pass": true
+    }
+  ]
+}

@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Falling Sand</title>
 <style>
@@ -86,6 +92,9 @@
     pointer-events: none;
   }
 </style>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
   <div id="toolbar">
@@ -165,7 +174,8 @@
     };
   })();
 
-  var EMPTY = 0, SAND = 1, WATER = 2, STONE = 3, FIRE = 5;
+  var EMPTY = 0, SAND = 1, WATER = 2, STONE = 3, FIRE = 5, STEAM = 6;
+  var simFrozen = false;
   var CELL = 4; // pixels per cell
 
   var canvas = document.getElementById('c');
@@ -184,6 +194,7 @@
   PAL[SAND]  = [[230,196,106],[222,185,92],[214,178,88],[238,204,120]];
   PAL[WATER] = [[56,140,224],[48,128,214],[66,152,236],[44,120,200]];
   PAL[STONE] = [[138,143,156],[128,133,146],[148,153,166],[120,125,138]];
+  PAL[STEAM] = [[164,202,212],[180,212,225],[198,229,237]];
   PAL[FIRE]  = [[255,107,53],[255,160,60],[255,205,86],[255,80,40]];
 
   function pick(el, i) {
@@ -266,7 +277,8 @@
             }
           if (hitWater) {
             // hiss: fire and a bit of the water evaporate
-            grid[i] = EMPTY;
+            grid[i] = STEAM;
+            updated[i] = frame;
             for (var wy2 = -1; wy2 <= 1; wy2++)
               for (var wx2 = -1; wx2 <= 1; wx2++) {
                 var nx2 = x + wx2, ny2 = y + wy2;
@@ -289,6 +301,12 @@
           // sideways jitter so flames dance
           var jx = x + (Math.random() < 0.5 ? 1 : -1);
           if (inB(jx, y) && grid[rowBase + jx] === EMPTY && Math.random() < 0.3) { move(i, rowBase + jx); continue; }
+        } else if (el === STEAM) {
+          if (y === 0 || Math.random() < 0.035) { grid[i] = EMPTY; continue; }
+          var av = (y - 1) * W;
+          if (grid[av + x] === EMPTY) { move(i, av + x); continue; }
+          var sx = x + (Math.random() < 0.5 ? -1 : 1);
+          if (inB(sx, y - 1) && grid[av + sx] === EMPTY) { move(i, av + sx); continue; }
         } else if (el === SAND) {
           var d = Math.random() < 0.5 ? 1 : -1;
           if (y + 1 < H) {
@@ -350,7 +368,7 @@
   }
 
   function loop() {
-    step();
+    if (!simFrozen) step();
     render();
     requestAnimationFrame(loop);
   }
@@ -430,12 +448,20 @@
   resize();
   loop();
 
+
+  var pauseSand = document.createElement('button'), stepSand = document.createElement('button');
+  pauseSand.type = stepSand.type = 'button'; pauseSand.textContent = 'Freeze'; stepSand.textContent = 'Step'; stepSand.disabled = true;
+  pauseSand.onclick = function () { simFrozen = !simFrozen; pauseSand.textContent = simFrozen ? 'Run' : 'Freeze'; stepSand.disabled = !simFrozen; pauseSand.setAttribute('aria-pressed', String(simFrozen)); };
+  stepSand.onclick = function () { if (simFrozen && grid) step(); };
+  document.getElementById('clear').before(pauseSand, stepSand);
+
   // Report native gameplay state to the optional mission engine.
   window.__arcadeMissionSource = Object.assign({"id":70,"label":"Materials sharing the board","goals":[2,3,4],"note":"Keep several materials present at once. Short-lived reactions may remove some.","seconds":180}, { read: () => { return (grid ? new Set(grid).size - (grid.includes(EMPTY) ? 1 : 0) : 0); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

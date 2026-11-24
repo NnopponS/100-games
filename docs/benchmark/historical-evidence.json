@@ -1,0 +1,56 @@
+{
+  "node": "v24.22.3",
+  "summary": [
+    {
+      "sha": "7fc5a2af210cd7ce654ba013eb2cc997bf66212e",
+      "authorUTC": "2026-11-16T19:47:20.000Z",
+      "commitUTC": "2026-11-16T19:47:20.000Z",
+      "subject": "Add 100 playable web games and arcade portal for GitHub Pages",
+      "htmlGames": 100,
+      "idsContiguous": true,
+      "bytes": 1391682,
+      "lines": 41832,
+      "scriptCount": 100,
+      "syntaxFailures": [],
+      "canvasMarkup": 60,
+      "svgMarkup": 3,
+      "nativeAudioReferences": 22,
+      "localStorageReferences": 36,
+      "reportPresent": false
+    },
+    {
+      "sha": "2e8b6316ac0939bc66b8cc1e02af94e434438c0a",
+      "authorUTC": "2026-11-16T20:17:28.000Z",
+      "commitUTC": "2026-11-16T20:17:28.000Z",
+      "subject": "Upgrade to 100% English AAA Arcade: 100 unique banners, Shadow-DOM FX/Audio HUD, game bug fixes & AI experiment report",
+      "htmlGames": 100,
+      "idsContiguous": true,
+      "bytes": 1397395,
+      "lines": 42036,
+      "scriptCount": 100,
+      "syntaxFailures": [],
+      "canvasMarkup": 60,
+      "svgMarkup": 3,
+      "nativeAudioReferences": 22,
+      "localStorageReferences": 36,
+      "reportPresent": true
+    },
+    {
+      "sha": "8843194ffb496b2f085936f4ce65e73abfc62425",
+      "authorUTC": "2026-11-17T10:10:09.000Z",
+      "commitUTC": "2026-11-17T10:10:34.000Z",
+      "subject": "AAA polish pass: mobile support, hand-drawn assets, richer visuals & sound",
+      "htmlGames": 100,
+      "idsContiguous": true,
+      "bytes": 2074295,
+      "lines": 54630,
+      "scriptCount": 112,
+      "syntaxFailures": [],
+      "canvasMarkup": 66,
+      "svgMarkup": 32,
+      "nativeAudioReferences": 94,
+      "localStorageReferences": 97,
+      "reportPresent": true
+    }
+  ]
+}

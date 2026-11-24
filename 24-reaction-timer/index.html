@@ -2,7 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Reaction Timer</title>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js" defer></script>
 <style>
@@ -155,6 +161,9 @@
   }
   #pb b { color: #ffd166; }
 </style>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 <canvas id="bg3d"></canvas>
@@ -181,13 +190,14 @@
   var avgLabel = document.getElementById('avgLabel');
   var pbEl = document.getElementById('pb');
 
-  var TOTAL = 5;
+const arcadePlus = (new URLSearchParams(location.search).get('mode') === 'plus');
+  var TOTAL = arcadePlus ? 7 : 5;
   var state = 'idle';
   var results = [];
-  var timer = null;
+  var timer = null, decoy = null, decoyOff = null;
   var goTime = 0;
   var pb = { best: 0, avg: 0 };
-  try { Object.assign(pb, JSON.parse(localStorage.getItem('rt_pb') || '{}')); } catch (e) {}
+  try { Object.assign(pb, JSON.parse(localStorage.getItem(('rt_pb' + (new URLSearchParams(location.search).get('mode')==='plus'?'_plus':''))) || '{}')); } catch (e) {}
 
   // ---------- Procedural SFX ----------
   var SFX = (function () {
@@ -279,8 +289,18 @@
     state = 'wait';
     setState('bg-wait', 'WAIT FOR GREEN…', 'Do not tap yet!');
     SFX.arm();
+    clearTimeout(decoy);clearTimeout(decoyOff);
     var delay = 1200 + Math.random() * 2800;
+    if(arcadePlus && delay>1850 && Math.random()<.72){
+      decoy=setTimeout(function(){
+        if(state!=='wait')return;
+        setState('bg-wait','AMBER ≠ GO','Wait for GREEN.');
+        sub.style.color='#ffdc8a';
+        decoyOff=setTimeout(function(){ if(state==='wait'){setState('bg-wait','WAIT FOR GREEN…','');sub.style.color='';} },220);
+      },delay-750);
+    }
     timer = setTimeout(function () {
+      sub.style.color='';
       state = 'go';
       goTime = performance.now();
       setState('bg-go', 'TAP!', '', true);
@@ -304,7 +324,7 @@
       var newBest = !pb.best || best < pb.best, newAvg = !pb.avg || a < pb.avg;
       if (newBest) pb.best = best;
       if (newAvg) pb.avg = a;
-      localStorage.setItem('rt_pb', JSON.stringify(pb));
+      localStorage.setItem(('rt_pb' + (new URLSearchParams(location.search).get('mode')==='plus'?'_plus':'')), JSON.stringify(pb));
       var verdict = a < 200 ? 'SUPERHUMAN!' : a < 250 ? 'BLAZING FAST!' :
                     a < 300 ? 'GREAT REFLEXES!' : a < 400 ? 'Not bad.' : 'Keep practicing.';
       setState('bg-done', Math.round(a) + ' ms avg',
@@ -328,7 +348,7 @@
       updateHud();
       startWait();
     } else if (state === 'wait') {
-      clearTimeout(timer);
+      clearTimeout(timer); clearTimeout(decoy); clearTimeout(decoyOff); sub.style.color='';
       state = 'fail-flash';
       results.push({ fail: true });
       SFX.fail();
@@ -354,6 +374,7 @@
 
   restartBtn.addEventListener('click', function (e) {
     e.stopPropagation();
+    clearTimeout(timer);clearTimeout(decoy);clearTimeout(decoyOff);sub.style.color='';
     results = [];
     state = 'idle';
     restartBtn.style.display = 'none';
@@ -373,6 +394,7 @@
 
   renderDots();
   updateHud();
+  window.__arcadeNativeUpgrade = {"id": 24, "name": "Fakeout Reflex", "description": "amber decoys interrupt the wait; wait for green while collecting seven samples."};
   // Report native gameplay state to the optional mission engine.
   window.__arcadeMissionSource = Object.assign({"id":24,"label":"Five-tap average (ms)","goals":[470,360,280],"note":"Wait for green on all five rounds. An early tap invalidates the medal attempt.","kind":"lower"}, { read: () => { return (state === 'done' && results.length === TOTAL && results.every(r => !r.fail) ? Math.round(results.reduce((total, r) => total + r.ms, 0) / TOTAL) : Infinity); } });
 })();
@@ -452,7 +474,8 @@
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

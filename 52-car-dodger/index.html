@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Car Dodger</title>
 <style>
@@ -58,6 +64,11 @@
     text-shadow: 0 2px 4px rgba(0,0,0,.9);
   }
 </style>
+
+<script>window.__arcadeNativeUpgrade = {"id": 52, "name": "Mixed Traffic", "description": "Cars approach at three different speeds; a lane that looks safe now may close sooner than expected."}; const arcadeVariant = new URLSearchParams(location.search).get("mode") === "plus" || new URLSearchParams(location.search).get("plus") === "1";</script>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 <div id="wrap">
@@ -140,7 +151,8 @@
     if (!free.length) return;
     var l = free[Math.floor(Math.random() * free.length)];
     var colors = ['#e74c3c', '#3498db', '#9b59b6', '#e67e22', '#1abc9c', '#ecf0f1'];
-    cars.push({ lane: l, y: -carH - 10, color: colors[Math.floor(Math.random() * colors.length)] });
+    var velocity = arcadeVariant ? [.60,.88,1.19][Math.floor(Math.random()*3)] : .85;
+    cars.push({ lane:l,y:-carH-10,color:colors[Math.floor(Math.random()*colors.length)],velocity:velocity });
   }
 
   function drawCar(x, y, color, isPlayer) {
@@ -205,7 +217,7 @@
     for (var i = cars.length - 1; i >= 0; i--) {
       var c = cars[i];
       var wasAbove = c.y < playerY;
-      c.y += (speed * 0.85) * dt;
+      c.y += (speed * c.velocity) * dt;
       if (c.y > H + 20) { cars.splice(i, 1); continue; }
       // near-miss: passed us in an adjacent lane
       if (wasAbove && c.y >= playerY && nearCd <= 0 &&
@@ -375,7 +387,8 @@
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

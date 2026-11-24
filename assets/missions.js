@@ -11,6 +11,7 @@
   const today = new Date().toISOString().slice(0, 10);
   const date = exactDate.test(queryDate) && queryDate === today ? queryDate : null;
   const trial = date !== null || params.get('mode') === 'trial';
+  const plus = !trial && (params.get('mode') === 'plus' || params.get('plus') === '1');
   function medalFor(goals, value, lower) {
     if (!Number.isFinite(value)) return 0;
     return goals.reduce((medal, goal, index) => (lower ? value <= goal : value >= goal) ? index + 1 : medal, 0);
@@ -38,7 +39,7 @@
     button.id = 'arcadeMissionButton';
     button.className = 'mission-button';
     button.setAttribute('aria-haspopup', 'dialog');
-    button.textContent = date ? 'Daily Trial' : trial ? 'Medal Trial' : 'Modes';
+    button.textContent = date ? 'Daily Trial' : trial ? 'Medal Trial' : plus ? 'Arcade+ Modes' : 'Modes';
     const style = document.createElement('style');
     style.textContent = `
       #arcadeMissionButton { padding:0 9px;background:#dde9ff;color:#143777;min-height:30px;min-width:61px }
@@ -68,6 +69,7 @@
       .mission-panel .mission-primary:hover {background:#1747b7;color:#fff}
       .mission-panel button:not(.mission-primary):hover {background:#dce8fb;color:#132941}
       .mission-panel .mission-close {font-size:17px;min-width:42px}
+      .mission-panel [hidden] {display:none !important}
       @media(max-width:420px){.mission-panel{padding:16px}.mission-panel h2{font-size:22px}}
     `;
     const dialog = document.createElement('dialog');
@@ -77,12 +79,13 @@
       <header><div><div class="eyebrow"></div><h2 id="missionHeading"></h2></div>
       <button type="button" class="mission-close" aria-label="Close mission">×</button></header>
       <p class="mission-note"></p>
+      <p class="mission-feature"></p>
       <ol aria-label="Medal targets"></ol>
       <p class="mission-status" role="status"></p>
       <p class="mission-rules"></p>
-      <footer><button type="button" class="mission-primary">Play Medal Trial</button><button type="button" class="mission-practice">Keep playing Classic</button></footer>
+      <footer><button type="button" class="mission-primary">Play Medal Trial</button><button type="button" class="mission-plus">Play Arcade+</button><button type="button" class="mission-practice">Keep playing Classic</button></footer>
     `;
-    dialog.querySelector('.eyebrow').textContent = date ? `Daily Trial · ${date} UTC` : trial ? 'Medal Trial · Arcade mode' : 'Classic · Arcade mode';
+    dialog.querySelector('.eyebrow').textContent = date ? `Daily Trial · ${date} UTC` : trial ? 'Medal Trial · Arcade mode' : plus ? 'Arcade+ · Arcade mode' : 'Classic · Arcade mode';
     dialog.querySelector('h2').textContent = label;
     dialog.querySelector('.mission-note').textContent = note;
     const medalList = goals.map((goal, i) => {
@@ -99,21 +102,30 @@
     const rules = dialog.querySelector('.mission-rules');
     const primary = dialog.querySelector('.mission-primary');
     const practice = dialog.querySelector('.mission-practice');
+    const plusButton = dialog.querySelector('.mission-plus');
+    const features = window.ARCADE_FEATURES || [];
+    const feature = Array.isArray(features) ? features.find(feature => Number(feature.id) === id) : features[id];
+    dialog.querySelector('.mission-feature').textContent = feature?.description ? `Arcade+: ${feature.description}` : 'Arcade+ adds a new game-specific mechanic.';
     dialog.querySelector('.mission-close').onclick = () => dialog.close();
     function selectMode(mode) {
       const url = new URL(location.href);
       url.searchParams.delete('daily');
+      url.searchParams.delete('plus');
       if (mode === 'classic') url.searchParams.delete('mode');
-      else url.searchParams.set('mode', 'trial');
+      else url.searchParams.set('mode', mode);
       try {
         if (window.parent !== window && location.origin !== 'null') {
           window.parent.postMessage({ type: 'arcade100:mode', id, mode }, location.origin);
+          return;
         }
       } catch {}
+      window.ArcadeAudioLifecycle?.destroy();
       location.assign(url);
     }
-    practice.textContent = trial ? 'Return to Classic' : 'Keep playing Classic';
-    practice.onclick = () => trial ? selectMode('classic') : dialog.close();
+    practice.textContent = trial || plus ? 'Return to Classic' : 'Keep playing Classic';
+    practice.onclick = () => trial || plus ? selectMode('classic') : dialog.close();
+    plusButton.hidden = plus;
+    plusButton.onclick = () => selectMode('plus');
     root.append(style, dialog);
     root.getElementById('hudBar')?.append(button);
     window.AAA?.repositionHud?.();
@@ -130,8 +142,8 @@
       button.dataset.medal = String(shownMedal);
       button.dataset.state = active ? 'active' : armed ? 'armed' : expired ? 'expired' : wonGold ? 'gold' : 'idle';
       const clock = secondsText(clamped(Math.ceil(remaining / 1000)));
-      button.textContent = active ? clock + (medal ? ' · ' + medalNames[medal] : '') : (date ? 'Daily Trial' : trial ? 'Medal Trial' : 'Modes');
-      button.setAttribute('aria-label', `${date ? 'Daily Trial' : trial ? 'Medal Trial' : 'Arcade modes'}: ${label}${active ? ', ' + clock + ' remaining' : ''}`);
+      button.textContent = active ? clock + (medal ? ' · ' + medalNames[medal] : '') : (date ? 'Daily Trial' : trial ? 'Medal Trial' : plus ? 'Arcade+ Modes' : 'Modes');
+      button.setAttribute('aria-label', `${date ? 'Daily Trial' : trial ? 'Medal Trial' : plus ? 'Arcade+ modes' : 'Arcade modes'}: ${label}${active ? ', ' + clock + ' remaining' : ''}`);
       for (let i = 0; i < medalList.length; i++) medalList[i].classList.toggle('earned', shownMedal > i);
       const statusText = active
         ? `${clock} left · ${nice(best)}${medal ? ' · ' + medalNames[medal] : ''}`
@@ -142,7 +154,7 @@
       if (status.textContent !== statusText) status.textContent = statusText;
       rules.textContent = trial
         ? `${secondsText(seconds)} of active play. The challenge clock pauses while hidden. Your best native performance counts; the trial does not modify your regular scores.`
-        : `Classic has no extra timer. Medal Trial gives you ${secondsText(seconds)} to hit this game’s medal targets, with a separate record.`;
+        : `${plus ? 'Arcade+ changes the play rules, with no extra clock.' : 'Classic has no extra timer.'} Medal Trial gives you ${secondsText(seconds)} to hit this game’s medal targets, with a separate record.`;
       primary.textContent = !trial ? 'Play Medal Trial' : active ? 'Resume trial' : armed ? 'Begin trial' : 'Retry trial';
     }
     function persist() {

@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Pool Lite</title>
 <style>
@@ -87,6 +93,9 @@
   }
   #hint { margin-top: 4px; font-size: 12px; color: #888; text-align: center; padding: 0 8px; }
 </style>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
   <div id="hud">
@@ -212,6 +221,7 @@ let cuePocketed = false;
 let gameOver = false;
 let aiming = false;
 let mouse = { x: 0, y: 0, down: false };
+let cueEnglish = 0, spinOnShot = 0;
 
 // ---------- Setup ----------
 function rack() {
@@ -234,7 +244,7 @@ function rack() {
     }
   }
   shots = 0;
-  cuePocketed = false;
+  cuePocketed = false; spinOnShot = 0;
   gameOver = false;
   aiming = false;
   msgEl.textContent = "";
@@ -316,6 +326,10 @@ function step() {
         const imp = -rel * BALL_BOUNCE;
         a.vx -= imp * nx; a.vy -= imp * ny;
         c.vx += imp * nx; c.vy += imp * ny;
+        if (spinOnShot && (a.n === 0 || c.n === 0)) {
+          const cue = a.n === 0 ? a : c, sign = a.n === 0 ? 1 : -1;
+          cue.vx += nx * sign * spinOnShot * imp * 0.45; cue.vy += ny * sign * spinOnShot * imp * 0.45; spinOnShot = 0;
+        }
         Sfx.clack(imp);
       }
     }
@@ -622,6 +636,7 @@ canvas.addEventListener("pointermove", e => {
 });
 
 canvas.addEventListener("pointerleave", () => { mouse.inside = false; });
+canvas.addEventListener("pointercancel", () => { mouse.down = false; aiming = false; });
 
 canvas.addEventListener("pointerup", e => {
   mouse.down = false;
@@ -631,6 +646,7 @@ canvas.addEventListener("pointerup", e => {
   if (a.power > 0.05) {
     const c = cueBall();
     const speed = a.power * MAX_SPEED;
+    spinOnShot = cueEnglish;
     c.vx = a.nx * speed;
     c.vy = a.ny * speed;
     shots++;
@@ -656,11 +672,19 @@ function loop() {
 rack();
 loop();
 
+
+const english = document.createElement('select');
+english.setAttribute('aria-label', 'Cue spin');
+for (const [value, title] of [[0,'Normal cue'],[1,'Topspin'],[-1,'Draw']]) { const opt = document.createElement('option'); opt.value = value; opt.textContent = title; english.append(opt); }
+english.onchange = () => { cueEnglish = Number(english.value); };
+restartBtn.before(english);
+
   // Report native gameplay state to the optional mission engine.
-  window.__arcadeMissionSource = Object.assign({"id":74,"label":"Object balls pocketed","goals":[3,8,15],"note":"Pocket object balls. Scratching the cue ball doesn't count.","seconds":420}, { read: () => { return (balls.filter(b => b.n !== 0 && b.pocketed).length); } });
+  window.__arcadeMissionSource = Object.assign({"id":74,"label":"Object balls pocketed","goals":[3,7,10],"note":"Pocket object balls. Scratching the cue ball doesn't count.","seconds":420}, { read: () => { return (balls.filter(b => b.n !== 0 && b.pocketed).length); } });
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

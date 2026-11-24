@@ -2,7 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Maze Runner</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -134,6 +140,9 @@
   #touch-pad .empty { visibility: hidden; }
   @media (pointer: coarse) { #touch-pad { display: grid; } }
 </style>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 <h1>Maze Runner</h1>
@@ -179,11 +188,13 @@ const winStats = document.getElementById('winStats');
 const sizeSel = document.getElementById('size');
 const DPR = Math.min(window.devicePixelRatio || 1, 2);
 
-const MAX_CANVAS = Math.min(window.innerWidth - 36, 560, window.innerHeight - 260);
+const arcadePlus = (new URLSearchParams(location.search).get('mode') === 'plus');
+const maxCanvas = () => Math.max(160,Math.min(window.innerWidth - 24,560,Math.max(280,window.innerHeight-175)));
+let arcadeKey=null;
 
 let N, cell, grid, player, exit, moves, startTime, timerId, won;
 let best = {};
-try { best = JSON.parse(localStorage.getItem('mz_best') || '{}'); } catch (e) {}
+try { best = JSON.parse(localStorage.getItem(('mz_best' + (new URLSearchParams(location.search).get('mode')==='plus'?'_plus':''))) || '{}'); } catch (e) {}
 let wallCanvas = null;
 let px = 0, py = 0;           // smooth draw position
 let trail = [];               // {x,y,t}
@@ -263,7 +274,7 @@ function generateMaze(n) {
   return g;
 }
 
-function farthestCell(n, g) {
+function farthestCell(n, g, seekKey) {
   const dist = Array.from({length: n}, () => new Array(n).fill(-1));
   const q = [[0, 0]];
   dist[0][0] = 0;
@@ -277,18 +288,19 @@ function farthestCell(n, g) {
     if (!(w & 4) && dist[y+1][x] < 0) { dist[y+1][x] = dist[y][x]+1; q.push([x, y+1]); }
     if (!(w & 8) && dist[y][x-1] < 0) { dist[y][x-1] = dist[y][x]+1; q.push([x-1, y]); }
   }
-  return far;
+  return seekKey ? q[Math.max(1,Math.floor(q.length*.54))] : far;
 }
 
 function setup() {
   N = parseInt(sizeSel.value, 10);
-  cell = Math.floor(MAX_CANVAS / N);
+  cell = Math.floor(maxCanvas() / N);
   const s = cell * N;
   canvas.width = canvas.height = s * DPR;
   canvas.style.width = canvas.style.height = s + 'px';
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   grid = generateMaze(N);
   exit = farthestCell(N, grid);
+  arcadeKey = arcadePlus ? farthestCell(N,grid,true) : null;
   player = {x: 0, y: 0};
   px = cell / 2; py = cell / 2;
   trail = [];
@@ -301,6 +313,7 @@ function setup() {
   movesEl.textContent = '0';
   bestEl.textContent = best[N] ? best[N].toFixed(1) + 's' : '\u2014';
   winEl.classList.remove('show');
+  if(arcadePlus) document.getElementById('hint').textContent='Find the gold key, then reach the green exit. Swipe or use arrows.';
   renderWalls();
   SFX.gen();
 }
@@ -356,6 +369,11 @@ function draw(now) {
   ctx.clearRect(0, 0, s, s);
   ctx.drawImage(wallCanvas, 0, 0, s, s);
 
+  if (arcadeKey) {
+    const [kx,ky]=arcadeKey, x=(kx+.5)*cell,y=(ky+.5)*cell;
+    ctx.fillStyle='#ffd77a';ctx.beginPath();ctx.arc(x,y,Math.max(2,cell*.24),0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='#965e0b';ctx.stroke();
+  }
   // exit portal — pulsing
   const ex = exit[0] * cell + cell / 2, ey = exit[1] * cell + cell / 2;
   const pulse = 0.72 + Math.sin(now / 260) * 0.18;
@@ -442,7 +460,13 @@ function move(dx, dy, wallBit) {
   movesEl.textContent = moves;
   trail.push({ x: px, y: py, t: performance.now() });
   SFX.step();
-  if (player.x === exit[0] && player.y === exit[1]) finish();
+  if(arcadeKey && player.x===arcadeKey[0] && player.y===arcadeKey[1]) {
+    arcadeKey=null;document.getElementById('hint').textContent='Key collected! Reach the green exit.'; SFX.record();
+  }
+  if (player.x === exit[0] && player.y === exit[1]) {
+    if(arcadeKey){document.getElementById('hint').textContent='Exit locked. Find the gold key first.';SFX.bump();}
+    else finish();
+  }
 }
 
 function finish() {
@@ -453,7 +477,7 @@ function finish() {
   let record = '';
   if (!best[N] || t < best[N]) {
     best[N] = t;
-    localStorage.setItem('mz_best', JSON.stringify(best));
+    localStorage.setItem(('mz_best' + (new URLSearchParams(location.search).get('mode')==='plus'?'_plus':'')), JSON.stringify(best));
     bestEl.textContent = t.toFixed(1) + 's';
     record = ' <b>New best!</b>';
     SFX.record();
@@ -509,11 +533,13 @@ sizeSel.addEventListener('change', setup);
 setup();
 requestAnimationFrame(draw);
 
+  window.__arcadeNativeUpgrade = {"id": 25, "name": "Keykeeper Maze", "description": "collect a glowing key midway before the exit opens. Maze sizing follows the available mobile viewport."};
   // Report native gameplay state to the optional mission engine.
   window.__arcadeMissionSource = Object.assign({"id":25,"label":"Maze side on escape","goals":[10,15,25],"note":"Choose a larger maze for a harder route. A medal requires reaching its exit.","seconds":420}, { read: () => { return (won ? N : 0); } });
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

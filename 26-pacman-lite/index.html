@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Pac-Man Lite</title>
 <style>
@@ -67,6 +73,9 @@
     text-transform:uppercase; color:#5a699a;
   }
 </style>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 <div class="wrap">
@@ -127,6 +136,7 @@
   var H = ROWS * CELL;
   var DPR = Math.min(window.devicePixelRatio || 1, 2);
 
+const arcadePlus = (new URLSearchParams(location.search).get('mode') === 'plus');
   var PAC_SPEED = 7.4;
   var GHOST_SPEED = 6.15;
   var GHOST_FRIGHT_SPEED = 4.1;
@@ -160,7 +170,7 @@
   var pac = null;
   var ghost = null;
   var score = 0;
-  var lives = 3;
+  var lives = arcadePlus ? 2 : 3;
   var level = 1;
   var dotsLeft = 0;
   var frightTimer = 0;
@@ -175,8 +185,8 @@
   var sirenT = 0, sirenAlt = false;
 
   function pacSpd() { return Math.min(9.8, PAC_SPEED + (level - 1) * 0.35); }
-  function ghostSpd() { return Math.min(pacSpd() * 0.97, GHOST_SPEED + (level - 1) * 0.4); }
-  function frightDur() { return Math.max(3, FRIGHT_TIME - (level - 1) * 0.4); }
+  function ghostSpd() { return Math.min(pacSpd() * (arcadePlus ? .995 : .97), GHOST_SPEED + (arcadePlus ? .55 : 0) + (level - 1)*.4); }
+  function frightDur() { return Math.max(arcadePlus ? 2.4 : 3, FRIGHT_TIME - (arcadePlus ? 2.4 : 0) - (level-1)*.4); }
 
   // ---------- Procedural SFX ----------
   var SFX = (function () {
@@ -234,7 +244,7 @@
   window.addEventListener('pointerdown', SFX.unlock, { passive: true });
   window.addEventListener('keydown', SFX.unlock);
 
-  try { highScore = parseInt(localStorage.getItem('pacman-lite-high') || '0', 10) || 0; } catch (e) { highScore = 0; }
+  try { highScore = parseInt(localStorage.getItem(('pacman-lite-high' + (new URLSearchParams(location.search).get('mode')==='plus'?'_plus':''))) || '0', 10) || 0; } catch (e) { highScore = 0; }
 
   /* ---------- maze helpers ---------- */
 
@@ -516,7 +526,7 @@
     }
     if (score > highScore) {
       highScore = score;
-      try { localStorage.setItem('pacman-lite-high', String(highScore)); } catch (e) {}
+      try { localStorage.setItem(('pacman-lite-high' + (new URLSearchParams(location.search).get('mode')==='plus'?'_plus':'')), String(highScore)); } catch (e) {}
     }
     updateHud();
   }
@@ -575,7 +585,7 @@
 
   function newGame() {
     score = 0;
-    lives = 3;
+    lives = arcadePlus ? 2 : 3;
     level = 1;
     banner = null;
     loadMaze();
@@ -958,12 +968,14 @@
   ovBtn.dataset.action = 'restart';
   requestAnimationFrame(frame);
 
+  window.__arcadeNativeUpgrade = {"id": 26, "name": "Chaser Rush", "description": "only two lives, shorter power windows, and a ghost that moves close to player speed as levels advance."};
   // Report native gameplay state to the optional mission engine.
   window.__arcadeMissionSource = Object.assign({"id":26,"label":"Mazes cleared","goals":[1,2,4],"note":"Clear all pellets before advancing. Ghost points alone do not count."}, { read: () => { return (Math.max(0, level - 1)); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

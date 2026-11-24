@@ -2,7 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Hangman</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -184,6 +190,9 @@
     .key { padding: 10px 0; }
   }
 </style>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 <h1>HANGMAN</h1>
@@ -255,6 +264,7 @@ const DIFF = [
   { maxLen: 99, freebie: false },
   { minLen: 8, freebie: false }
 ];
+const arcadePlus = (new URLSearchParams(location.search).get('mode') === 'plus');
 const MAX_MISSES = 6;
 
 // ---------- Procedural SFX ----------
@@ -320,7 +330,7 @@ const resultText = document.getElementById('resultText');
 
 let answer, guessed, misses, gameOver, diff = 1;
 let stats = { w: 0, l: 0, streak: 0, best: 0 };
-try { Object.assign(stats, JSON.parse(localStorage.getItem('hm_stats') || '{}')); } catch (e) {}
+try { Object.assign(stats, JSON.parse(localStorage.getItem(('hm_stats' + (new URLSearchParams(location.search).get('mode')==='plus'?'_plus':''))) || '{}')); } catch (e) {}
 diff = +(localStorage.getItem('hm_diff') || 1);
 
 // Stroke-based drawing: gallows = part 0, body parts 1..6
@@ -406,10 +416,21 @@ function pickWord() {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
+let hintUsed=false, hintArc=null;
+if(arcadePlus){
+  hintArc=document.createElement('button'); hintArc.type='button'; hintArc.className='key'; hintArc.style.cssText='width:auto;padding:5px 10px;margin:6px auto;display:block'; hintArc.textContent='Reveal 1 letter (costs 1 life)';
+  categoryEl.insertAdjacentElement('afterend',hintArc);
+  hintArc.onclick=()=>{
+    if(gameOver||hintUsed||misses.length>=MAX_MISSES-1)return;
+    const ch=[...answer].find(x=>x!==' '&&!guessed.has(x)); if(!ch)return;
+    hintUsed=true;hintArc.disabled=true;misses.push('★');guess(ch);
+  };
+}
 function newGame() {
-  const pick = pickWord();
+  const longWords = arcadePlus ? WORDS.filter(w=>w.word.length>=8) : [];
+  const pick = longWords.length ? longWords[Math.floor(Math.random()*longWords.length)] : pickWord();
   answer = pick.word.toUpperCase();
-  categoryEl.textContent = pick.cat;
+  categoryEl.textContent = arcadePlus ? "Category hidden · "+pick.word.replaceAll(" ","").length+" letters" : pick.cat;
   guessed = new Set();
   if (DIFF[diff].freebie) {
     const letters = [...new Set(answer.replace(/ /g, ''))];
@@ -417,6 +438,7 @@ function newGame() {
   }
   misses = [];
   gameOver = false;
+  hintUsed=false; if (hintArc) hintArc.disabled=false;
   overlay.classList.remove('show');
   buildKeyboard();
   renderWord();
@@ -511,7 +533,7 @@ function checkEnd() {
     renderWord();
     endPanel('lose', 'GAME OVER', `The word was <b>${answer}</b>`);
   }
-  localStorage.setItem('hm_stats', JSON.stringify(stats));
+  localStorage.setItem(('hm_stats' + (new URLSearchParams(location.search).get('mode')==='plus'?'_plus':'')), JSON.stringify(stats));
   updateStatus();
   updateStats();
   setTimeout(() => overlay.classList.add('show'), 650);
@@ -542,11 +564,13 @@ document.querySelectorAll('#diff button').forEach(b => b.classList.toggle('sel',
 
 newGame();
 
+  window.__arcadeNativeUpgrade = {"id": 22, "name": "Long Words", "description": "the category clue is withheld and tougher words are selected; spend one reveal at the cost of a life."};
   // Report native gameplay state to the optional mission engine.
   window.__arcadeMissionSource = Object.assign({"id":22,"label":"Words solved in a streak","goals":[1,3,5],"note":"Solve successive words without running out of guesses; only your existing current streak can continue."}, { read: () => { return (gameOver ? stats.streak : 0); } });
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

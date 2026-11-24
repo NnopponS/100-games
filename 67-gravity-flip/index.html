@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Gravity Flip Runner</title>
 <style>
@@ -26,6 +32,11 @@
     background: #0b0e1a;
   }
 </style>
+
+<script>window.__arcadeNativeUpgrade = {"id": 67, "name": "Crossed Gravity", "description": "The run regularly forces a choice between opposing obstacles. The paired traps alternate their safe side."}; const arcadeVariant = new URLSearchParams(location.search).get("mode") === "plus" || new URLSearchParams(location.search).get("plus") === "1";</script>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 <div id="wrap"><canvas id="game"></canvas></div>
@@ -118,7 +129,7 @@
 
   try { best = parseInt(localStorage.getItem('gfr_best'), 10) || 0; } catch (e) { best = 0; }
 
-  function reset() {
+  function reset() { if (arcadeVariant) trapCount = 0;
     player = {
       x: PLAYER_X,
       y: FLOOR_Y - PLAYER_SIZE,
@@ -154,8 +165,10 @@
   }
 
   // ---------- Spawning ----------
+  var trapCount = 0;
   function spawnObstacle() {
-    var roll = Math.random();
+    var pair = arcadeVariant && (++trapCount % 4 === 0);
+    var roll = pair ? .98 : Math.random();
     var diff = Math.min(1, distance / 1500);   // difficulty 0..1
 
     if (roll < 0.55) {
@@ -172,7 +185,7 @@
       obstacles.push({ type: 'block', x: W + 20, w: bw, h: bh, side: onCeilB ? -1 : 1 });
     } else {
       // Double: obstacles on BOTH sides, one taller — must pick the right side
-      var bigSide = Math.random() < 0.5 ? -1 : 1;
+      var bigSide = pair ? ((trapCount/4)%2===0 ? -1 : 1) : (Math.random() < 0.5 ? -1 : 1);
       var bigH = 130 + Math.random() * (60 + diff * 60);
       var smallH = 30 + Math.random() * 40;
       obstacles.push({ type: 'spike', x: W + 20, w: 34, h: bigH, side: bigSide });
@@ -589,7 +602,8 @@
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

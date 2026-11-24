@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Piano Tiles</title>
 <style>
@@ -106,7 +112,11 @@
     50% { transform: translateX(6px); }
     75% { transform: translateX(-4px); }
   }
+  .tile.rest-note {background:transparent!important;color:#54c8ee;border:2px dashed #54c8ee;outline-offset:-4px;font:bold 11px system-ui;padding:4px;}
 </style>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
   <div id="hud"><span id="score">0</span><span id="best"></span></div>
@@ -139,9 +149,10 @@
   var laneFlashes = board.querySelectorAll('.lane-flash');
   var hud = document.getElementById('hud');
 
-  try { best = +localStorage.getItem('pianoTilesBest') || 0; } catch (e) {}
+  try { best = +localStorage.getItem(('pianoTilesBest' + (new URLSearchParams(location.search).get('mode')==='plus'?'_plus':''))) || 0; } catch (e) {}
   bestEl.textContent = 'best ' + best;
 
+const arcadePlus = (new URLSearchParams(location.search).get('mode') === 'plus');
   function resize() {
     var r = board.getBoundingClientRect();
     W = r.width; H = r.height; laneW = W / LANES; rowH = H / 4;
@@ -163,7 +174,9 @@
     el.style.height = rowH + 'px';
     el.style.left = (lane * laneW) + 'px';
     board.appendChild(el);
-    var t = { lane: lane, y: y, el: el, hit: false };
+    var isRest = arcadePlus && score>1 && Math.random()<.20 && (!lastTile || !lastTile.rest);
+    if(isRest){ el.classList.add('rest-note'); el.textContent='REST'; }
+    var t = { lane: lane, y: y, el: el, hit: false, rest:isRest };
     tiles.push(t);
     lastTile = t;
     position(t);
@@ -207,7 +220,7 @@
     if (isBest) {
       best = score;
       bestEl.textContent = 'best ' + best;
-      try { localStorage.setItem('pianoTilesBest', best); } catch (e) {}
+      try { localStorage.setItem(('pianoTilesBest' + (new URLSearchParams(location.search).get('mode')==='plus'?'_plus':'')), best); } catch (e) {}
     }
     overlay.innerHTML = '<h1>GAME OVER</h1><p>Score: <b>' + score + '</b> &nbsp;&middot;&nbsp; Best: ' + best +
       (isBest && score > 0 ? '<br><br><b>NEW BEST!</b>' : '') +
@@ -231,6 +244,7 @@
   }
 
   function hitTile(t) {
+    if(t.rest) {gameOver(t);return;}
     t.hit = true;
     t.el.classList.add('hit');
     score++;
@@ -298,19 +312,21 @@
       var tl = tiles[i];
       tl.y += speed * dt;
       position(tl);
-      if (!tl.hit && tl.y >= H) { gameOver(tl); return; }
+      if (!tl.hit && !tl.rest && tl.y >= H) { gameOver(tl); return; }
       if (tl.y > H + rowH) { tl.el.remove(); tiles.splice(i, 1); }
     }
     if (!lastTile || lastTile.y >= 0) spawn(lastTile ? lastTile.y - rowH : -rowH);
   }
   requestAnimationFrame(frame);
 
+  window.__arcadeNativeUpgrade = {"id": 20, "name": "Offbeat", "description": "decoy notes interrupt the chart. Ignore outlined rests, hit the solid tiles, and avoid treating a rest as a note."};
   // Report native gameplay state to the optional mission engine.
   window.__arcadeMissionSource = Object.assign({"id":20,"label":"Tiles hit in sequence","goals":[10,25,50],"note":"Catch the descending tiles; missed tiles break the run."}, { read: () => { return (score || 0); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

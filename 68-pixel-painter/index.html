@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pixel Painter</title>
 <style>
@@ -191,6 +197,9 @@
     font-family: monospace;
   }
 </style>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 <div class="app">
@@ -309,7 +318,9 @@
   var tool = "paint";
   var color = PALETTE[5];
   var painting = false;
-  var eraseStroke = false;
+  var eraseStroke = false, mirrorBrush = false, undoStack = [];
+  function remember() { undoStack.push(cells.map(function(row) { return row.slice(); })); if (undoStack.length > 24) undoStack.shift(); }
+  function undoArt() { if (!undoStack.length) return; cells = undoStack.pop(); draw(); persist(); }
   var ART_KEY = "pixelPainter68_art";
   var persistTimer = null;
 
@@ -400,8 +411,10 @@
     var erasing = tool === "erase" || eraseStroke;
     var prev = cells[pos.y][pos.x];
     var next = erasing ? null : color;
-    if (prev !== next) {
+    var opposite = size - 1 - pos.x;
+    if (prev !== next || (mirrorBrush && cells[pos.y][opposite] !== next)) {
       cells[pos.y][pos.x] = next;
+      if (mirrorBrush) cells[pos.y][opposite] = next;
       Sfx.dab(erasing);
       draw();
       persist();
@@ -414,6 +427,7 @@
     canvas.setPointerCapture(e.pointerId);
     var pos = cellFromEvent(e);
     if (!pos) return;
+    if (tool !== "picker") remember();
     painting = true;
     eraseStroke = (e.button === 2);
     applyTool(pos);
@@ -469,6 +483,7 @@
   document.getElementById("btn-picker").addEventListener("click", function () { setTool("picker"); });
 
   document.getElementById("btn-fill").addEventListener("click", function () {
+    remember();
     for (var y = 0; y < size; y++)
       for (var x = 0; x < size; x++)
         cells[y][x] = color;
@@ -478,6 +493,7 @@
   });
 
   document.getElementById("btn-clear").addEventListener("click", function () {
+    remember();
     resetCells();
     Sfx.clear();
     draw();
@@ -485,6 +501,7 @@
   });
 
   gridSelect.addEventListener("change", function () {
+    undoStack = [];
     size = parseInt(gridSelect.value, 10);
     resetCells();
     draw();
@@ -517,6 +534,7 @@
   document.addEventListener("keydown", function (e) {
     if (e.target.tagName === "SELECT" || e.target.tagName === "INPUT") return;
     var k = e.key.toLowerCase();
+    if (k === "z" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); undoArt(); return; }
     if (k === "b") setTool("paint");
     else if (k === "e") setTool("erase");
     else if (k === "i") setTool("picker");
@@ -527,12 +545,21 @@
   setTool("paint");
   draw();
 
+
+  var mirror = document.createElement('button');
+  mirror.type = 'button'; mirror.className = 'tool-btn'; mirror.textContent = 'Mirror'; mirror.setAttribute('aria-pressed', 'false');
+  mirror.onclick = function () { mirrorBrush = !mirrorBrush; mirror.setAttribute('aria-pressed', String(mirrorBrush)); mirror.classList.toggle('active', mirrorBrush); };
+  var undo = document.createElement('button');
+  undo.type = 'button'; undo.className = 'tool-btn'; undo.textContent = 'Undo'; undo.onclick = undoArt;
+  document.getElementById('btn-picker').after(mirror, undo);
+
   // Report native gameplay state to the optional mission engine.
   window.__arcadeMissionSource = Object.assign({"id":68,"label":"Distinct colors on canvas","goals":[3,6,10],"note":"Build a multicolor piece. Repainting with the same color does not increase the count.","seconds":240,"changed":true}, { read: () => { return (new Set(cells.flat().filter(Boolean)).size); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

@@ -2,7 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Space Invaders</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -94,6 +100,9 @@
   @media (pointer: coarse) { .hint .kb { display: none; } }
   @media (pointer: fine) { .hint .tc { display: none; } }
 </style>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 
@@ -130,10 +139,11 @@
   var screenBest = document.getElementById('screenBest');
 
   var best = 0;
-  try { best = parseInt(localStorage.getItem('invaders_best') || '0', 10) || 0; } catch (e) {}
+  try { best = parseInt(localStorage.getItem(('invaders_best' + (new URLSearchParams(location.search).get('mode')==='plus'?'_plus':''))) || '0', 10) || 0; } catch (e) {}
   bestEl.textContent = best;
   screenBest.textContent = best > 0 ? 'Best: ' + best : '';
 
+const arcadePlus = (new URLSearchParams(location.search).get('mode') === 'plus');
   var COLS = 8, ROWS = 4;
   var IW = 40, IH = 28, IGAP = 14;
 
@@ -275,7 +285,7 @@
           x: 60 + c * (IW + IGAP),
           y: 70 + r * (IH + IGAP),
           type: r === 0 ? 0 : r < 3 ? 1 : 2,
-          alive: true,
+          alive: true, armor: arcadePlus && r === 0 ? 1 : 0, col: c,
           frame: 0
         });
       }
@@ -286,7 +296,7 @@
     ship = { x: W / 2, y: H - 60, w: 44, h: 20, cd: 0, inv: 0 };
     bullets = []; eBullets = []; parts = [];
     score = 0; lives = 3; wave = 1; shake = 0;
-    ufo = null; ufoTimer = 400 + Math.random() * 600;
+    ufo = null; ufoTimer = arcadePlus ? 13 + Math.random()*8 : 400 + Math.random()*600;
     spawnWave();
     scoreEl.textContent = '0';
     livesEl.textContent = '3';
@@ -306,7 +316,7 @@
     if (score > best) {
       best = score;
       bestEl.textContent = best;
-      try { localStorage.setItem('invaders_best', String(best)); } catch (e) {}
+      try { localStorage.setItem(('invaders_best' + (new URLSearchParams(location.search).get('mode')==='plus'?'_plus':'')), String(best)); } catch (e) {}
     }
   }
 
@@ -365,7 +375,8 @@
 
     // invader fire
     if (alive.length && Math.random() < dt * (0.7 + wave * 0.25 + urgency)) {
-      var s = alive[Math.floor(Math.random() * alive.length)];
+      var front = arcadePlus ? alive.filter(inv=>!alive.some(other=>other.col===inv.col && other.y>inv.y)) : alive;
+      var s = front[Math.floor(Math.random() * front.length)];
       eBullets.push({ x: s.x, y: s.y + IH / 2, vy: 150 + wave * 20 });
       sfx.eShoot();
     }
@@ -378,7 +389,7 @@
     if (ufo) {
       ufo.x += ufo.vx * dt;
       tone(0, 0, 'sine', 0); // keep ctx warm
-      if (ufo.x > W + 50) { ufo = null; ufoTimer = 500 + Math.random() * 700; }
+      if (ufo.x > W + 50) { ufo = null; ufoTimer = arcadePlus ? 17 + Math.random()*8 : 500 + Math.random()*700; }
     }
 
     // bullets
@@ -390,13 +401,14 @@
         addScore(bonus);
         boom(ufo.x, ufo.y, '#ff6a6a', 26);
         sfx.ufoKill();
-        ufo = null; ufoTimer = 500 + Math.random() * 700;
+        ufo = null; ufoTimer = arcadePlus ? 17 + Math.random()*8 : 500 + Math.random()*700;
         b.y = -99;
       }
       invaders.forEach(function (inv) {
         if (inv.alive && Math.abs(b.x - inv.x) < IW / 2 && Math.abs(b.y - inv.y) < IH / 2) {
-          inv.alive = false;
           b.y = -99;
+          if (inv.armor) { inv.armor = 0; sfx.kill(); boom(inv.x,inv.y,'#f4cf60',7); return; }
+          inv.alive = false;
           addScore(10 * (3 - inv.type));
           boom(inv.x, inv.y, INV_COLORS[inv.type], 14);
           sfx.kill();
@@ -478,6 +490,7 @@
     // invaders
     invaders.forEach(function (inv) {
       if (!inv.alive) return;
+      if (inv.armor) { ctx.fillStyle = '#ffe686'; ctx.fillRect(inv.x-IW/3,inv.y-IH/2-7,IW*2/3,3); }
       drawSprite(SPRITES[inv.type], inv.x - IW / 2, inv.y - IH / 2, IW, IH, INV_COLORS[inv.type], inv.frame);
     });
 
@@ -575,13 +588,15 @@
   reset();
   requestAnimationFrame(loop);
 
+  window.__arcadeNativeUpgrade = {"id": 12, "name": "Armored Fleet", "description": "helmet-lined command invaders need two shots before being eliminated; enemy shots come only from the front line."};
   // Report native gameplay state to the optional mission engine.
   window.__arcadeMissionSource = Object.assign({"id":12,"label":"Invader waves cleared","goals":[1,2,4],"note":"Clear every enemy in a wave to advance the challenge."}, { read: () => { return (Math.max(0, (wave || 1) - 1)); } });
 })();
 </script>
 
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Penalty Kicks</title>
 <style>
@@ -40,6 +46,11 @@
   }
   #restart:active { transform: translateY(2px); box-shadow: 0 1px 0 #c8a800; }
 </style>
+
+<script>window.__arcadeNativeUpgrade = {"id": 48, "name": "Read the Keeper", "description": "The keeper remembers your last shot zone. Repeating it makes a save much more likely."}; const arcadeVariant = new URLSearchParams(location.search).get("mode") === "plus" || new URLSearchParams(location.search).get("plus") === "1";</script>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 <h1>PENALTY KICKS</h1>
@@ -89,10 +100,10 @@ setInterval(()=>{
 },400);
 let cheerT=0,netHit=0;
 
-let phase, anim, hover, results, myScore, aiScore, round, sudden, banner, bannerT;
+let phase, anim, hover, results, myScore, aiScore, round, sudden, banner, bannerT, lastShotZone;
 
 function reset() {
-  phase = 'shoot';       // 'shoot' | 'keep' | 'over'
+  phase = 'shoot'; lastShotZone = null;       // 'shoot' | 'keep' | 'over'
   anim = null;           // active animation
   hover = null;          // hovered zone {c,r} or null
   results = { me: [], ai: [] };
@@ -140,10 +151,11 @@ cv.addEventListener('click', e => {
 function playerShoot(z, p) {
   // Keeper AI: reads your aim ~30% of the time, otherwise guesses randomly
   let kz;
-  if (z && Math.random() < 0.30) kz = z;
+  if (z && Math.random() < (arcadeVariant && sameZone(z,lastShotZone) ? .76 : .30)) kz = z;
   else kz = { c: (Math.random() * 3) | 0, r: (Math.random() * 2) | 0 };
   const target = z ? zoneCenter(z) : { x: p.x, y: Math.min(p.y, GOAL.y - 30) }; // off-goal click = skied/wide
   const scored = !!z && !sameZone(z, kz);
+  if (z) lastShotZone = z;
   nz(.1,.16,220,1,'lowpass'); tone(140,.08,'sine',.08); nz(.25,.06,2400,.8,'highpass');
   anim = { kind: 'shot', t: 0, dur: 55, ballFrom: SPOT, ballTo: target, keeperTo: zoneCenter(kz), z, scored,
            onDone: () => {
@@ -363,7 +375,8 @@ requestAnimationFrame(draw);
   window.__arcadeMissionSource = Object.assign({"id":48,"label":"Penalty goals","goals":[2,4,5],"note":"Beat the goalkeeper in different zones; saves alone cannot earn goal medals."}, { read: () => { return (myScore || 0); } });
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

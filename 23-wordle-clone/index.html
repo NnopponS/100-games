@@ -2,7 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Wordle Clone</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -218,6 +224,9 @@
   .drow .dt.hot { background: linear-gradient(90deg, #4ecb71, #2e8a4c); color: #fff; }
   .cf { position: fixed; width: 9px; height: 9px; border-radius: 2px; z-index: 30; pointer-events: none; }
 </style>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 <h1>WORDLE</h1>
@@ -440,6 +449,7 @@ const EXTRA = [
 ];
 const VALID = new Set([...ANSWERS, ...EXTRA]);
 
+const arcadePlus = (new URLSearchParams(location.search).get('mode') === 'plus');
 const ROWS = 6, COLS = 5;
 const WIN_MSGS = ['Genius!', 'Magnificent!', 'Impressive!', 'Splendid!', 'Great!', 'Phew!'];
 const KB_ROWS = ['QWERTYUIOP', 'ASDFGHJKL', 'ZXCVBNM'];
@@ -456,7 +466,7 @@ const statsEl = document.getElementById('stats');
 let answer, guesses, current, over, busy;
 let tiles = [], keyEls = {}, toastTimer;
 let stats = { p: 0, w: 0, streak: 0, best: 0, dist: [0, 0, 0, 0, 0, 0] };
-try { Object.assign(stats, JSON.parse(localStorage.getItem('wd_stats') || '{}')); } catch (e) {}
+try { Object.assign(stats, JSON.parse(localStorage.getItem(('wd_stats' + (new URLSearchParams(location.search).get('mode')==='plus'?'_plus':''))) || '{}')); } catch (e) {}
 
 // ---------- Procedural SFX ----------
 const SFX = (() => {
@@ -640,6 +650,18 @@ function submitGuess() {
     toast('Not in word list');
     return;
   }
+  if (arcadePlus) {
+    for (const previous of guesses) {
+      const known=evaluate(previous), minCounts={};
+      for(let i=0;i<COLS;i++){
+        if(known[i]==='correct' && current[i]!==previous[i]) {toast('Keep '+previous[i]+' in position '+(i+1));return;}
+        if(known[i]==='correct'||known[i]==='present') minCounts[previous[i]]=(minCounts[previous[i]]||0)+1;
+      }
+      for(const [ch,n] of Object.entries(minCounts)){
+        if([...current].filter(x=>x===ch).length<n){toast('Your guess must include '+ch);return;}
+      }
+    }
+  }
   busy = true;
   const guess = current;
   const res = evaluate(guess);
@@ -680,7 +702,7 @@ function submitGuess() {
       endPanel('lose', 'GAME OVER', `The word was <b>${answer}</b>`);
       setTimeout(() => overlay.classList.add('show'), 600);
     }
-    localStorage.setItem('wd_stats', JSON.stringify(stats));
+    localStorage.setItem(('wd_stats' + (new URLSearchParams(location.search).get('mode')==='plus'?'_plus':'')), JSON.stringify(stats));
     updateStats();
   }, COLS * 280 + 400);
 }
@@ -748,11 +770,13 @@ document.getElementById('overlayRestart').addEventListener('click', newGame);
 
 newGame();
 
+  window.__arcadeNativeUpgrade = {"id": 23, "name": "Hard Wordle", "description": "every later guess must keep all known greens and include known yellow letters; feedback explains each rejection."};
   // Report native gameplay state to the optional mission engine.
   window.__arcadeMissionSource = Object.assign({"id":23,"label":"Guesses to solve","goals":[6,4,3],"note":"Solve the word within fewer attempts. Invalid words and failed rounds do not count.","kind":"lower"}, { read: () => { return (over && guesses.at(-1) === answer ? guesses.length : Infinity); } });
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Reversi</title>
 <style>
@@ -145,6 +151,11 @@ window.__gsfx = (function(){
   return api;
 })();
 </script>
+
+<script>window.__arcadeNativeUpgrade = {"id": 35, "name": "Corner Siege", "description": "The CPU looks a move ahead to restrict mobility and deny dangerous corners."}; const arcadeVariant = new URLSearchParams(location.search).get("mode") === "plus" || new URLSearchParams(location.search).get("plus") === "1";</script>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 <h1><b>REVERSI</b></h1>
@@ -320,6 +331,13 @@ window.__gsfx = (function(){
       var copy = board.slice();
       var n = applyMove(copy, moves[i], WHITE);
       var s = WEIGHTS[moves[i]] + n * 2;
+      if (arcadeVariant) {
+        var replies = [];
+        for (var j = 0; j < copy.length; j++) if (copy[j] === EMPTY && flipsFor(copy, j, BLACK).length) replies.push(j);
+        s = WEIGHTS[moves[i]] + n - replies.length * 5;
+        if (!replies.length) s += 36;
+        if (replies.some(function(j){ return j === 0 || j === 7 || j === 56 || j === 63; })) s -= 90;
+      }
       // penalize giving the player a corner
       var pm = [0, 7, 56, 63];
       for (var k = 0; k < pm.length; k++) {
@@ -367,7 +385,8 @@ window.__gsfx = (function(){
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

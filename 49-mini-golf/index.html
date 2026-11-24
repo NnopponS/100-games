@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Mini Golf — 9 Holes</title>
 <style>
@@ -40,6 +46,11 @@
   .primary{background:#2f7a4d!important;border-color:#3f9c65!important}
   .primary:hover{background:#37905b!important}
 </style>
+
+<script>window.__arcadeNativeUpgrade = {"id": 49, "name": "Bankshot Open", "description": "Each course is mirrored top to bottom, and crisp rail rebounds reward bank shots."}; const arcadeVariant = new URLSearchParams(location.search).get("mode") === "plus" || new URLSearchParams(location.search).get("plus") === "1";</script>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 <div id="wrap">
@@ -66,7 +77,7 @@
 const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
 const infoEl=document.getElementById("info"), overlay=document.getElementById("overlay");
 const W=960,H=640,M=20;
-const BALL_R=8, CUP_R=11, WALL_T=12, REST=0.72;
+const BALL_R=8, CUP_R=11, WALL_T=12, REST=arcadeVariant ? .88 : .72;
 const FRICTION=0.986, SAND_FR=0.90, MAX_DRAG=230, PWR_K=0.055, MAX_V=15;
 const BOUNDARY=[[M,M,W-M,M],[W-M,M,W-M,H-M],[W-M,H-M,M,H-M],[M,H-M,M,M]];
 const PAR_NAMES=s=>s<=-3?"Albatross":s===-2?"Eagle":s===-1?"Birdie":s===0?"Par":s===1?"Bogey":s===2?"Double bogey":"+"+s;
@@ -82,7 +93,10 @@ const HOLES=[
  {par:3,tee:[140,320],cup:[820,320],w:[[680,120,680,520]],s:[],c:[]},
  {par:4,tee:[120,540],cup:[840,540],w:[[320,20,320,380],[560,260,560,620],[780,20,780,300]],s:[],c:[]},
  {par:4,tee:[130,320],cup:[870,320],w:[[330,120,610,290],[330,520,610,350]],s:[[540,430,170,70]],c:[[770,320,26]]},
-];
+].map(h => !arcadeVariant ? h : {...h,
+  tee:[h.tee[0],H-h.tee[1]], cup:[h.cup[0],H-h.cup[1]],
+  w:h.w.map(([x,y,X,Y])=>[x,H-y,X,H-Y]),
+  s:h.s.map(([x,y,w,h])=>[x,H-y-h,w,h]), c:h.c.map(([x,y,r])=>[x,H-y,r]) });
 
 // ===== AAA audio kit (procedural; honors overlay prefs) =====
 let AC=null;
@@ -464,7 +478,8 @@ requestAnimationFrame(frame);
   window.__arcadeMissionSource = Object.assign({"id":49,"label":"Holes under control","goals":[2,5,8],"note":"Sink each hole in no more than one stroke over par. Skipped holes do not qualify.","seconds":420}, { read: () => { return (scores.filter((s,i) => Number.isFinite(s) && s <= HOLES[i].par + 1).length); } });
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

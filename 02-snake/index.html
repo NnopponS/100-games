@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Snake</title>
 <style>
@@ -109,6 +115,9 @@
   body { overflow-y:auto; }
   #hint { margin-top: 12px; font-size: 0.8rem; color: #525b72; letter-spacing: 0.06em; text-align: center; }
 </style>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
   <h1>SNAKE</h1>
@@ -159,6 +168,7 @@
       : mode === 'maze' ? 'Avoid barriers · Golden apples expire' : 'Walls are solid · Original rules';
     loadBest();
   }
+  if ((new URLSearchParams(location.search).get('mode') === 'plus')) modeSelect.value = 'maze';
   readMode();
 
   // ---------- AAA audio ----------
@@ -542,12 +552,14 @@
   modeSelect.addEventListener('change', function() { readMode(); intro(); });
   intro();
 
+  window.__arcadeNativeUpgrade = {"id": 2, "name": "Maze Rush", "description": "Maze Rush starts with solid obstacles, timed golden apples and a separate high-score table. Wraparound remains selectable."};
   // Report native gameplay state to the optional mission engine.
   window.__arcadeMissionSource = Object.assign({"id":2,"label":"Apples eaten","goals":[4,10,20],"note":"Grow your snake without touching a wall or its tail."}, { read: () => { return (eaten); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

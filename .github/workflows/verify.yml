@@ -30,14 +30,29 @@ jobs:
           node-version: '24'
       - run: node tests/native-modes.cjs
       - run: node tests/laser.cjs
+      - run: node tests/audio-lifecycle.cjs
+      - run: node tests/stage-light.cjs
+      - run: node tests/plus-01-34.cjs
+      - run: node tests/plus-35-67.cjs
+      - run: node tests/late-native-rules.cjs
+      - name: Verify controlled pilot artifacts
+        working-directory: docs/benchmark
+        run: |
+          sha256sum -c preregister-sha256.txt
+          node scoring/run.mjs single
+          node scoring/run.mjs multi
       - run: npm install --no-save --no-package-lock playwright@1.62.1
       - run: npx playwright install --with-deps --only-shell chromium
       - run: node tests/browser-smoke.cjs
+      - name: Verify Daylight stage, phone flow and audio teardown
+        run: ARCADE_PLAYTEST_REPORT="$RUNNER_TEMP/arcade-playtest-evidence.json" ARCADE_PLAYTEST_SHOTS="$RUNNER_TEMP/arcade-playtest-shots" node tests/daylight-browser.cjs
       - name: Prepare the verified static release
         run: |
           set -euo pipefail
           mkdir -p publish
-          cp -a .nojekyll index.html assets docs publish/
+          cp -a .nojekyll index.html assets docs report publish/
+          cp "$RUNNER_TEMP/arcade-playtest-evidence.json" publish/report/evidence.json
+          cp "$RUNNER_TEMP"/arcade-playtest-shots/*.png publish/report/
           cp -a [0-9]*/ publish/
           test "$(find publish -mindepth 2 -maxdepth 2 -name index.html | wc -l)" -eq 100
           printf '%s\n' "$GITHUB_SHA" > publish/arcade-release.txt

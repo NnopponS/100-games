@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Balloon Pop</title>
 <style>
@@ -197,6 +203,11 @@
   #score.bump { transform: scale(1.18); }
   #bestLine { font-size: 13px; opacity: .8; margin-top: 4px; letter-spacing: 1px; }
 </style>
+
+<script>window.__arcadeNativeUpgrade = {"id": 55, "name": "Foil Decoys", "description": "Striped balloons are decoys. Popping one costs two points; gold and regular balloons still earn points."}; const arcadeVariant = new URLSearchParams(location.search).get("mode") === "plus" || new URLSearchParams(location.search).get("plus") === "1";</script>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 
@@ -283,6 +294,7 @@
 
   function spawnBalloon() {
     var golden = Math.random() < GOLD_CHANCE;
+    var decoy = arcadeVariant && !golden && Math.random() < .17;
     var el = document.createElement('div');
     el.className = 'balloon' + (golden ? ' golden' : '');
 
@@ -292,6 +304,10 @@
       el.style.color = c[1];
     }
 
+    if (decoy) {
+      el.style.background = 'repeating-linear-gradient(45deg,#40245b 0 8px,#fbf5e8 8px 16px)';
+      el.setAttribute('aria-label','Striped decoy: avoid this balloon');
+    }
     var string = document.createElement('div');
     string.className = 'string';
     el.appendChild(string);
@@ -313,7 +329,7 @@
       sway: rand(18, 42),
       swayPhase: rand(0, Math.PI * 2),
       swaySpeed: rand(1.5, 3),
-      golden: golden,
+      golden: golden, decoy: decoy,
       dead: false
     };
 
@@ -330,9 +346,9 @@
 
   function popBalloon(b, cx, cy) {
     b.dead = true;
-    var pts = b.golden ? GOLD_POINTS : NORMAL_POINTS;
-    score += pts;
-    popped++;
+    var pts = b.decoy ? -2 : b.golden ? GOLD_POINTS : NORMAL_POINTS;
+    score = Math.max(0,score+pts);
+    if (!b.decoy) popped++;
     scoreEl.textContent = score;
     poppedEl.textContent = popped;
     scoreEl.classList.remove('bump');
@@ -359,7 +375,7 @@
 
     var txt = document.createElement('div');
     txt.className = 'pop' + (b.golden ? ' gold' : '');
-    txt.textContent = '+' + pts;
+    txt.textContent = pts < 0 ? String(pts) : '+' + pts;
     txt.style.left = px + 'px';
     txt.style.top = py + 'px';
     document.body.appendChild(txt);
@@ -466,7 +482,8 @@
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

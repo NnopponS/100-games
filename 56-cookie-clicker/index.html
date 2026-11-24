@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Cookie Clicker</title>
 <style>
@@ -179,6 +185,11 @@
     #golden { width: 56px; height: 56px; }
   }
 </style>
+
+<script>window.__arcadeNativeUpgrade = {"id": 56, "name": "Golden Workshop", "description": "Start a separate bakery where buildings become expensive faster but golden cookies appear in short, frequent windows."}; const arcadeVariant = new URLSearchParams(location.search).get("mode") === "plus" || new URLSearchParams(location.search).get("plus") === "1";</script>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 <div id="game">
@@ -272,8 +283,8 @@ BUILDINGS.forEach(b => {
   );
 });
 
-const SAVE_KEY = "cookieClicker56_save";
-const PRICE_GROWTH = 1.15;
+const SAVE_KEY = arcadeVariant ? "cookieClicker56_plus_save" : "cookieClicker56_save";
+const PRICE_GROWTH = arcadeVariant ? 1.23 : 1.15;
 
 /* ==================== State ==================== */
 function freshState() {
@@ -414,7 +425,7 @@ function refreshUpgrades() {
 let goldenTimer = null;
 function scheduleGolden() {
   clearTimeout(goldenTimer);
-  const base = (60 + Math.random() * 90) * 1000; // 60-150s
+  const base = (arcadeVariant ? 13 + Math.random()*15 : 60 + Math.random()*90) * 1000; // 60-150s
   goldenTimer = setTimeout(showGolden, base * state.goldenRate);
 }
 function showGolden() {
@@ -427,7 +438,7 @@ function showGolden() {
       goldenEl.style.display = "none";
       scheduleGolden();
     }
-  }, 11000);
+  }, arcadeVariant ? 6000 : 11000);
 }
 goldenEl.addEventListener("click", e => {
   goldenEl.style.display = "none";
@@ -559,7 +570,8 @@ tick();
   window.__arcadeMissionSource = Object.assign({"id":56,"label":"New cookies baked","goals":[30,100,250],"delta":true,"note":"Bake fresh cookies after starting the mission. Spend on producers for more per second."}, { read: () => { return (state.totalBaked); } });
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

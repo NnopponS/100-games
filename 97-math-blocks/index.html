@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Math Blocks</title>
 <style>
@@ -88,6 +94,9 @@
   .btn:active{transform:scale(.96)}
   .hint{font-size:.75rem;color:#5f8a85;font-weight:600}
 </style>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 <div class="wrap">
@@ -99,7 +108,7 @@
   </div>
   <div class="grid" id="grid"></div>
   <div class="bar">
-    <span id="msg">Drag across touching blocks to hit the target!</span>
+    <span id="msg">Build a connected chain of at least ' + arcadeChain + ' blocks.</span>
     <div style="display:flex;gap:6px">
       <button class="b-clr" id="clrBtn">Clear</button>
       <button class="b-res" id="resBtn">Restart</button>
@@ -138,11 +147,25 @@
   let best = Number(localStorage.getItem('mathblocks_best') || 0);
   let board = [], selected = [], target = 10, score = 0, timeLeft = 90, timer = null, playing = false, dragging = false, clears = 0;
 
+  const arcadeChain = new URLSearchParams(location.search).get('mode') === 'plus' ? 3 : 2;
+  let revealLeft = 2, solution = [], clearingChain = false, mathEpoch = 0;
   const rndVal = () => 1 + Math.floor(Math.random()*9);
   const key = (r, c) => r + ',' + c;
 
   function newTarget() {
-    target = 10 + Math.floor(Math.random()*9);
+    // Sample a self-avoiding route, then make its sum the target. Any displayed
+    // target therefore has at least one contiguous legal solution.
+    const initial = {r: Math.floor(Math.random()*ROWS), c: Math.floor(Math.random()*COLS)};
+    solution = [initial];
+    const length = arcadeChain + Math.floor(Math.random()*2);
+    while (solution.length < length) {
+      const last = solution[solution.length-1];
+      const adjacent = [[1,0],[0,1],[-1,0],[0,-1]].map(d=>({r:last.r+d[0],c:last.c+d[1]})).filter(p=>p.r>=0&&p.r<ROWS&&p.c>=0&&p.c<COLS&&!solution.some(v=>v.r===p.r&&v.c===p.c));
+      if (!adjacent.length) break;
+      solution.push(adjacent[Math.floor(Math.random()*adjacent.length)]);
+    }
+    if (solution.length < arcadeChain) solution = Array.from({length:arcadeChain}, (_,c)=>({r:0,c}));
+    target = solution.reduce((n,p)=>n+board[p.r][p.c],0);
     targetEl.textContent = target;
   }
 
@@ -169,7 +192,7 @@
 
   function init() {
     board = Array.from({ length: ROWS }, () => Array.from({ length: COLS }, rndVal));
-    selected = []; score = 0; clears = 0; timeLeft = 90; playing = true;
+    selected = []; score = 0; clears = 0; timeLeft = 90; playing = true; revealLeft = 2; clearingChain = false; mathEpoch++; showChainHint();
     scoreEl.textContent = '0'; timeEl.textContent = '90s';
     msgEl.textContent = 'Drag across touching blocks to hit the target!';
     newTarget();
@@ -230,7 +253,9 @@
 
   function commit() {
     const total = selSum();
-    if (total === target && selected.length >= 2) {
+    if (clearingChain) return;
+    if (total === target && selected.length >= arcadeChain) {
+      clearingChain = true;
       const pts = target * selected.length;
       score += pts; clears++;
       scoreEl.textContent = score;
@@ -238,12 +263,13 @@
       const vanish = [...selected];
       tone(520 + Math.min(400, selected.length * 60), .14, 'triangle', .08, 900);
       for (const p of vanish) cellEl(p.r, p.c).classList.add('vanish');
+      const epoch = mathEpoch;
       setTimeout(() => {
+        if (epoch !== mathEpoch) return;
         for (const p of vanish) board[p.r][p.c] = 0;
-        applyGravityAndRefill();
+        applyGravityAndRefill(); clearingChain = false; newTarget();
       }, 180);
       selected = [];
-      newTarget();
     } else if (total > target) {
       msgEl.textContent = 'Over the target — chain released.';
       tone(200, .1, 'sine', .05, 140);
@@ -256,7 +282,7 @@
   }
 
   function addCell(r, c) {
-    if (board[r][c] <= 0) return;
+    if (clearingChain || board[r][c] <= 0) return;
     const idx = selected.findIndex(s => s.r === r && s.c === c);
     if (idx !== -1) {
       // backtracking over the path trims it
@@ -272,7 +298,7 @@
       tone(300 + Math.min(500, selSum() * 24), .05, 'sine', .045);
       paintSelection();
       const total = selSum();
-      if (total === target && selected.length >= 2) commit();
+      if (total === target && selected.length >= arcadeChain) commit();
       else if (total > target) { /* keep drawing until release */ }
     }
   }
@@ -314,12 +340,19 @@
   board = Array.from({ length: ROWS }, () => Array.from({ length: COLS }, rndVal));
   render();
 
+
+  const chainHint = document.createElement('button'); chainHint.type = 'button'; chainHint.className = 'b-clr';
+  function showChainHint() { chainHint.textContent = 'Find start (' + revealLeft + ')'; chainHint.disabled = !revealLeft; }
+  chainHint.onclick = () => { if (!playing || clearingChain || !revealLeft || !solution.length) return; const p = solution[0]; const d = cellEl(p.r,p.c); revealLeft--; showChainHint(); msgEl.textContent = 'Try row ' + (p.r + 1) + ', column ' + (p.c + 1) + '.'; d.animate?.([{outline:'4px solid #1e40af'},{outline:'4px solid transparent'}],{duration:1100}); };
+  document.getElementById('clrBtn').after(chainHint); showChainHint();
+
   // Report native gameplay state to the optional mission engine.
   window.__arcadeMissionSource = Object.assign({"id":97,"label":"Number groups cleared","goals":[4,9,16],"note":"Combine tiles to match the changing target sum.","seconds":105}, { read: () => { return (clears); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

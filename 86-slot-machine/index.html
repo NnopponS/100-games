@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Lucky Sevens — Slot Machine</title>
 <style>
@@ -93,6 +99,9 @@
   .hint{margin-top:9px;text-align:center;font-size:.75rem;color:#8f7db3;font-weight:600}
   canvas#coins{position:fixed;inset:0;pointer-events:none;z-index:50}
 </style>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 <canvas id="coins"></canvas>
@@ -336,12 +345,29 @@
   strips[2].innerHTML = `<div class="cell">${SYMBOLS[0].svg}</div>`;
   updateUI();
 
+
+  const lab = document.createElement('details');
+  const labTitle = document.createElement('summary'); labTitle.textContent = 'Symbol Lab · no credits';
+  const labStatus = document.createElement('p'); labStatus.setAttribute('role','status');
+  const labButtons = document.createElement('div'); labButtons.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap';
+  const states = [0,1,2]; let target = 0;
+  function labUpdate() {
+    labStatus.textContent = 'Match all three reels to ' + SYMBOLS[target].id + '. No stake and no payout.';
+    [...labButtons.children].forEach((b,i) => { b.textContent = 'Reel ' + (i + 1) + ': ' + SYMBOLS[states[i]].id; });
+  }
+  states.forEach((_,i) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn-sm'; b.onclick = () => {
+    states[i] = (states[i] + 1) % SYMBOLS.length; labUpdate();
+    if (states.every(v => v === target)) { target = (target + 1) % SYMBOLS.length; labStatus.textContent = 'Matched! Next triple: ' + SYMBOLS[target].id + '.'; }
+  }; labButtons.append(b); });
+  lab.append(labTitle, labStatus, labButtons); document.getElementById('paytable').after(lab); labUpdate();
+
   // Report native gameplay state to the optional mission engine.
   window.__arcadeMissionSource = Object.assign({"id":86,"label":"Practice credit gain","goals":[40,90,160],"delta":true,"note":"Practice with simulated credits only; no money or purchases."}, { read: () => { return (credits); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

@@ -4,13 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#f8f7f2">
+<meta name="color-scheme" content="light">
 <meta name="description" content="A browser arcade with 100 instant games, a daily challenge, and favorites.">
 <title>100 Games Arcade | Play something good</title>
 <link rel="icon" href="./assets/portal-mark.svg" type="image/svg+xml">
-<link rel="stylesheet" href="./assets/portal.css">
+<link rel="stylesheet" href="./assets/portal.css?v=daylight1">
+<script src="./assets/audio-lifecycle.js?v=daylight1"></script>
 <script defer src="./assets/games.js"></script>
 <script defer src="./assets/art.js"></script>
-<script defer src="./assets/portal.js"></script>
+<script defer src="./assets/features.js?v=daylight1"></script>
+<script defer src="./assets/portal.js?v=daylight1"></script>
 </head>
 <body>
 <div id="portalPage">
@@ -21,6 +24,7 @@
       <nav aria-label="Main navigation">
         <a href="#librarySection" class="nav-link">Library</a>
         <a href="#dailyChallenge" class="nav-link">Daily challenge</a>
+        <a href="./report/" class="nav-link">How it was built</a>
       </nav>
       <div class="mast-actions">
         <button id="favFilterBtn" type="button" class="button button-line" aria-pressed="false"><span aria-hidden="true">♡</span> <span>Favorites <span id="favCount">0</span></span></button>
@@ -32,9 +36,9 @@
   <main class="shell main-layout">
     <section class="hero" aria-labelledby="hero-title">
       <div class="hero-content">
-        <p class="eyebrow"><span class="status-dot"></span> ONLINE &amp; READY TO PLAY</p>
+        <p class="eyebrow"><span class="status-dot"></span> DAYLIGHT EDITION</p>
         <h1 id="hero-title">Play something<br><em>good.</em></h1>
-        <p class="hero-sub">A pocket arcade of 100 browser games. Play any game in Classic or take on its Medal Trial. A new spotlight challenge rotates daily.</p>
+        <p class="hero-sub">A pocket arcade of 100 browser games. Pick any game and try its new Arcade+ twist, the original Classic rules, or a Medal Trial.</p>
         <div class="hero-actions">
           <a class="button button-purple" href="#librarySection">Browse all games <span aria-hidden="true">↓</span></a>
           <a class="button button-line" href="#dailyChallenge">Daily challenge <span aria-hidden="true">↗</span></a>
@@ -78,7 +82,7 @@
     </section>
   </main>
 
-  <footer class="footer"><div class="shell footer-inner"><div><strong>100 Games Arcade</strong><p>Open in your browser. Make it your game.</p></div><div class="footer-links"><button class="button button-line" id="portalSound" type="button">UI sound off</button><a href="https://github.com/NnopponS/100-games">Source on GitHub ↗</a><a href="https://github.com/NnopponS/100-games/blob/main/AI_EXPERIMENT_REPORT.md">Original benchmark ↗</a></div></div></footer>
+  <footer class="footer"><div class="shell footer-inner"><div><strong>100 Games Arcade</strong><p>Open in your browser. Make it your game.</p></div><div class="footer-links"><button class="button button-line" id="portalSound" type="button">UI sound off</button><a href="https://github.com/NnopponS/100-games">Source on GitHub ↗</a><a href="./report/">Engineering report ↗</a></div></div></footer>
 </div>
 
 <dialog class="player-overlay" id="playerOverlay" aria-labelledby="playerTitle">
@@ -88,18 +92,20 @@
       <div class="player-label"><h2 id="playerTitle">Game</h2><p id="playerCat">Arcade</p></div>
     </div>
     <div class="mode-picker" role="group" aria-label="Game mode">
+      <button type="button" class="mode-button" id="plusModeBtn" aria-pressed="false">Arcade+</button>
       <button type="button" class="mode-button" id="classicModeBtn" aria-pressed="true">Classic</button>
       <button type="button" class="mode-button" id="trialModeBtn" aria-pressed="false"><span aria-hidden="true">✷</span> Medal Trial</button>
     </div>
     <div class="player-right" aria-label="Player controls">
       <button class="button button-line icon-button" id="prevGameBtn" type="button" aria-label="Previous game" title="Previous game">←</button>
       <button class="button button-line icon-button" id="nextGameBtn" type="button" aria-label="Next game" title="Next game">→</button>
-      <button class="button button-line" id="reloadGameBtn" type="button">Restart</button>
+      <button class="button button-line" id="reloadGameBtn" type="button"><span aria-hidden="true">↻</span> Restart</button>
       <a class="button button-line" id="openDirectLink" href="./" target="_blank" rel="noopener" title="Open game in a new tab">New tab <span aria-hidden="true">↗</span></a>
-      <button class="button button-purple" id="fullscreenBtn" type="button">Fullscreen</button>
+      <button class="button button-purple" id="fullscreenBtn" type="button" aria-label="Fullscreen" title="Fullscreen">⛶</button>
     </div>
+    <p class="player-feature" id="playerFeature" hidden></p>
   </div>
-  <iframe class="player-frame" id="playerFrame" title="Game player" allow="fullscreen" src="about:blank"></iframe>
+  <div class="player-mount" id="playerMount"></div>
 </dialog>
 </body>
 </html>

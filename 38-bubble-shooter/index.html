@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Bubble Shooter</title>
 <style>
@@ -76,6 +82,11 @@ window.__gsfx = (function(){
   return api;
 })();
 </script>
+
+<script>window.__arcadeNativeUpgrade = {"id": 38, "name": "Pocket Swap", "description": "Swap the current and next bubble once per shot. Use the Swap bubble button or Space."}; const arcadeVariant = new URLSearchParams(location.search).get("mode") === "plus" || new URLSearchParams(location.search).get("plus") === "1";</script>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 <div id="wrap">
@@ -95,6 +106,11 @@ const START_ROWS = 7, DROP_EVERY = 5;
 const SX = W / 2, SY = H - 46, DANGER = 540;
 
 let grid, flip, score, shotsLeft, current, nextC, moving, falling, state, flash;
+let swapUsed = false;
+function swapBubble() {
+  if (!arcadeVariant || swapUsed || moving || state !== 'play') return;
+  [current, nextC] = [nextC, current]; swapUsed = true; updateHUD();
+}
 let mouse = { x: SX, y: 0 };
 let best = 0;
 try { best = +localStorage.getItem('bubbleBest') || 0; } catch (e) {}
@@ -121,7 +137,7 @@ function nbrs(r, c) {
 }
 
 function init() {
-  grid = []; flip = 0; score = 0; shotsLeft = DROP_EVERY;
+  grid = []; flip = 0; score = 0; shotsLeft = DROP_EVERY; swapUsed = false;
   moving = null; falling = []; state = 'play'; flash = '';
   for (let r = 0; r < START_ROWS; r++) grid.push(filledRow(r));
   current = pickColor(); nextC = pickColor();
@@ -142,7 +158,7 @@ function fire() {
   if (state !== 'play' || moving) return;
   const a = aimAngle();
   moving = { x: SX, y: SY, vx: Math.cos(a) * SPEED, vy: Math.sin(a) * SPEED, color: current };
-  current = nextC; nextC = pickColor();
+  current = nextC; swapUsed = false; nextC = pickColor();
   sfx('shoot');
 }
 function step() {
@@ -308,6 +324,12 @@ cv.addEventListener('mousedown', e => { e.preventDefault(); if (state === 'over'
 cv.addEventListener('touchstart', e => { e.preventDefault(); setMouse(e.touches[0]); if (state === 'over') init(); else fire(); }, { passive: false });
 cv.addEventListener('touchmove', e => { e.preventDefault(); setMouse(e.touches[0]); }, { passive: false });
 document.getElementById('restart').addEventListener('click', init);
+if (arcadeVariant) {
+  const swapBtn = document.createElement('button');
+  swapBtn.type = 'button'; swapBtn.textContent = 'Swap bubble'; swapBtn.onclick = swapBubble;
+  document.getElementById('restart').after(swapBtn);
+  addEventListener('keydown', e => { if(e.code === 'Space' && !e.repeat && !e.target?.closest?.('button,input,select')) { e.preventDefault(); swapBubble(); } });
+}
 window.addEventListener('keydown', e => { if (e.key === 'r' || e.key === 'R') init(); });
 
 init();
@@ -317,7 +339,8 @@ init();
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

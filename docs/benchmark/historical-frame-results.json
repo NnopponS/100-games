@@ -1,0 +1,68 @@
+{
+  "node": "v24.22.3",
+  "before": "7fc5a2af210cd7ce654ba013eb2cc997bf66212e",
+  "after": "2e8b6316ac0939bc66b8cc1e02af94e434438c0a",
+  "environment": "VM: native inline script, stub DOM/Canvas, observable rAF queue; no Chromium",
+  "results": [
+    {
+      "game": "91-volcano-escape",
+      "before": {
+        "queuedAtLoad": 0,
+        "queuedAfterStart": 0,
+        "executedFrames": 0,
+        "queuedAfterTwoCallbacks": 0
+      },
+      "after": {
+        "queuedAtLoad": 1,
+        "queuedAfterStart": 1,
+        "executedFrames": 2,
+        "queuedAfterTwoCallbacks": 1
+      }
+    },
+    {
+      "game": "92-treasure-dive",
+      "before": {
+        "queuedAtLoad": 0,
+        "queuedAfterStart": 0,
+        "executedFrames": 0,
+        "queuedAfterTwoCallbacks": 0
+      },
+      "after": {
+        "queuedAtLoad": 1,
+        "queuedAfterStart": 1,
+        "executedFrames": 2,
+        "queuedAfterTwoCallbacks": 1
+      }
+    },
+    {
+      "game": "93-bug-squash",
+      "before": {
+        "queuedAtLoad": 0,
+        "queuedAfterStart": 0,
+        "executedFrames": 0,
+        "queuedAfterTwoCallbacks": 0
+      },
+      "after": {
+        "queuedAtLoad": 1,
+        "queuedAfterStart": 1,
+        "executedFrames": 2,
+        "queuedAfterTwoCallbacks": 1
+      }
+    },
+    {
+      "game": "94-ghost-catch",
+      "before": {
+        "queuedAtLoad": 0,
+        "queuedAfterStart": 0,
+        "executedFrames": 0,
+        "queuedAfterTwoCallbacks": 0
+      },
+      "after": {
+        "queuedAtLoad": 1,
+        "queuedAfterStart": 1,
+        "executedFrames": 2,
+        "queuedAfterTwoCallbacks": 1
+      }
+    }
+  ]
+}

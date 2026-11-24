@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Color Match Rush</title>
 <style>
@@ -90,6 +96,9 @@
   .btn:active{transform:scale(.96)}
   .hint{font-size:.75rem;color:#5f7299;font-weight:600}
 </style>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 <div class="card">
@@ -149,7 +158,11 @@
   bestEl.textContent = best;
   let playing = false, score = 0, streak = 0, maxStreak = 0, answers = 0, timeLeft = 40, isMatch = false, timer = null, flashT = null;
 
+  const reverseEnabled = new URLSearchParams(location.search).get('mode') === 'plus';
+  let reversed = false;
   function nextPrompt() {
+    reversed = reverseEnabled && (answers + 1) % 6 === 0;
+    ruleLabel.textContent = reversed ? 'REVERSE · Yes means a mismatch' : 'MATCH · Is the ink the word?';
     // difficulty: later prompts mismatch more often (harder reads)
     const hard = answers > 15;
     const w = PALETTE[Math.floor(Math.random()*PALETTE.length)];
@@ -202,13 +215,13 @@
     if (!playing) return;
     answers++;
     clearTimeout(flashT);
-    if (choice === isMatch) {
+    if (choice === (reversed ? !isMatch : isMatch)) {
       streak++;
       maxStreak = Math.max(maxStreak, streak);
       const mult = Math.min(5, 1 + Math.floor(streak / 4));
-      score += 10 * mult;
+      score += (reversed ? 15 : 10) * mult;
       comboEl.textContent = 'x' + mult;
-      subEl.textContent = '+' + (10 * mult) + ' · streak ' + streak;
+      subEl.textContent = '+' + ((reversed ? 15 : 10) * mult) + ' · streak ' + streak;
       wordBox.classList.remove('bad'); wordBox.classList.add('good');
       tone(620 + mult * 60, .09, 'triangle', .06, 820);
     } else {
@@ -244,12 +257,18 @@
     swipeX = null;
   });
 
+
+  const ruleLabel = document.createElement('p'); ruleLabel.textContent = 'MATCH · Is the ink the word?';
+  ruleLabel.id = 'colorActiveRule'; ruleLabel.setAttribute('aria-live','polite'); ruleLabel.style.fontWeight = '800';
+  wordBox.after(ruleLabel);
+
   // Report native gameplay state to the optional mission engine.
   window.__arcadeMissionSource = Object.assign({"id":96,"label":"Color-match streak","goals":[4,8,15],"note":"Compare the ink with the written word. Correct consecutive answers build a streak.","seconds":50}, { read: () => { return (maxStreak); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

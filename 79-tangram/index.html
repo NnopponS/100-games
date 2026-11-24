@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Tangram Puzzle</title>
 <style>
@@ -20,6 +26,9 @@
   .b-nxt{background:linear-gradient(180deg,#fde68a,#f59e0b);color:#1c1002;box-shadow:0 6px 18px -6px rgba(251,191,36,.7)}
   .b-res{background:#334155;color:#fff;border:1px solid #475569}
 </style>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 <div class="wrap">
@@ -98,6 +107,14 @@
 
   let pIdx = 0, moves = 0, pieces = [], drag = null, selected = null, won = false;
   let solved = 0;
+  let moveHistory = [];
+  function rememberMove() { moveHistory.push({ list: pieces.slice(), poses: pieces.map(p => [p,p.x,p.y,p.ang,p.snapped]), moves, selected }); if (moveHistory.length > 60) moveHistory.shift(); }
+  function undoMove() {
+    if (drag || won || !moveHistory.length) return;
+    const frame = moveHistory.pop(); pieces = frame.list; selected = frame.selected; moves = frame.moves;
+    for (const [p,x,y,angle,snapped] of frame.poses) { p.x = x; p.y = y; p.ang = angle; p.snapped = snapped; }
+    movesEl.textContent = moves; updateCount();
+  }
   try { solved = Math.max(0, parseInt(localStorage.getItem('tangram.solved') || '0', 10) || 0); } catch (e) {}
   const movesEl = document.getElementById('moves');
   solvedEl.textContent = solved;
@@ -141,7 +158,7 @@
   function loadPuzzle(i) {
     pIdx = (i + PUZZLES.length) % PUZZLES.length;
     const P = PUZZLES[pIdx];
-    won = false;
+    won = false; moveHistory = [];
     pnameEl.textContent = P.name;
     const trayX = [85, 85, 85, 515, 515];
     const trayY = [90, 200, 320, 140, 280];
@@ -157,7 +174,7 @@
     moves = 0;
     movesEl.textContent = '0';
     updateCount();
-    msgEl.textContent = 'Drag pieces into the target silhouette. Tap a piece or press R to rotate.';
+    msgEl.textContent = 'Fit the pieces. Tap/R rotates; Z undoes. Par: ' + pieces.length * 3 + ' moves.';
   }
 
   function updateCount() {
@@ -168,7 +185,7 @@
       solved++;
       solvedEl.textContent = solved;
       try { localStorage.setItem('tangram.solved', String(solved)); } catch (e) {}
-      msgEl.textContent = `${PUZZLES[pIdx].name} complete in ${moves} moves — hit Next for another!`;
+      msgEl.textContent = `${PUZZLES[pIdx].name} complete in ${moves} moves (${moves <= pieces.length * 3 ? 'par met' : 'over par'}) — try another!`;
       boom(300, 210);
       sfxWin();
       if (window.AAA) {
@@ -273,7 +290,8 @@
     for (let i = pieces.length - 1; i >= 0; i--) {
       const p = pieces[i];
       if (pointInPoly(x, y, polyPts(p.pts, p.x, p.y, p.ang))) {
-        selected = p;
+        if (won) return;
+        rememberMove(); selected = p;
         drag = { p, ox: x - p.x, oy: y - p.y, moved: false };
         pieces.splice(i, 1); pieces.push(p);
         sfxPick();
@@ -302,7 +320,8 @@
   });
 
   function rotateSelected() {
-    if (!selected) return;
+    if (!selected || won || drag) return;
+    rememberMove(); moves++; movesEl.textContent = moves;
     selected.ang = (selected.ang + 45) % 360;
     sfxRotate();
     checkSnap(selected);
@@ -311,16 +330,21 @@
   document.getElementById('rotBtn').onclick = rotateSelected;
   document.getElementById('nextBtn').onclick = () => loadPuzzle(pIdx + 1);
   document.getElementById('resetBtn').onclick = () => loadPuzzle(pIdx);
-  window.addEventListener('keydown', e => { if (e.code === 'KeyR') rotateSelected(); });
+  window.addEventListener('keydown', e => { if (e.code === 'KeyR') rotateSelected(); else if (e.code === 'KeyZ') undoMove(); });
   loadPuzzle(0);
   draw();
 
+
+  const undoBtn = document.createElement('button'); undoBtn.type = 'button'; undoBtn.textContent = 'Undo move'; undoBtn.className = 'b-rot';
+  undoBtn.onclick = undoMove; document.getElementById('rotBtn').after(undoBtn);
+
   // Report native gameplay state to the optional mission engine.
-  window.__arcadeMissionSource = Object.assign({"id":79,"label":"Tangram pieces snapped","goals":[3,5,7],"note":"Rotate and fit pieces into their exact positions.","seconds":360}, { read: () => { return (pieces.filter(p => p.snapped).length); } });
+  window.__arcadeMissionSource = Object.assign({"id":79,"label":"Tangram pieces snapped","goals":[2,4,5],"note":"Rotate and fit pieces into their exact positions.","seconds":360}, { read: () => { return (pieces.filter(p => p.snapped).length); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

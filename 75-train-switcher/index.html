@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
 <title>Train Switcher</title>
 <style>
@@ -21,6 +27,9 @@
   .bar{display:flex;justify-content:space-between;align-items:center;font-size:.9rem;color:#cbd5e1;gap:10px}
   button{padding:9px 16px;border:none;border-radius:9px;background:linear-gradient(180deg,#38bdf8,#0284c7);color:#04121f;font-weight:900;cursor:pointer;font-family:inherit;flex:none}
 </style>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 <div class="wrap">
@@ -159,7 +168,9 @@
 
   let lvlIdx = 0, score = 0, trains = [], queue = [], spawnT = 0, delivered = 0, need = 0, state = 'play';
 
+  let holdFuel = 1, holdFor = 0, levelEpoch = 0;
   function loadLevel(i) {
+    levelEpoch++; holdFuel = 1; holdFor = 0; showHold();
     lvlIdx = i;
     const L = LEVELS[i];
     trains = [];
@@ -192,6 +203,7 @@
 
   function update(dt) {
     const L = LEVELS[lvlIdx];
+    if (holdFor > 0) { holdFor = Math.max(0, holdFor - dt); showHold(); return; }
     spawnT -= dt;
     if (spawnT <= 0 && queue.length > 0) {
       const col = queue.shift();
@@ -224,7 +236,8 @@
                 msgEl.textContent = 'Level Clear! Loading next...';
                 Sfx.level();
                 state = 'wait';
-                setTimeout(() => loadLevel(lvlIdx + 1), 1000);
+                const before = levelEpoch;
+                setTimeout(() => { if (levelEpoch === before && state === 'wait') loadLevel(lvlIdx + 1); }, 1000);
               } else {
                 state = 'win';
                 if (score > best) {
@@ -355,6 +368,10 @@
   });
 
   document.getElementById('resetBtn').onclick = () => { score = 0; scoreEl.textContent = '0'; loadLevel(0); };
+  const holdSignal = document.createElement('button'); holdSignal.type = 'button'; holdSignal.textContent = 'Hold traffic';
+  function showHold() { holdSignal.disabled = holdFuel === 0; holdSignal.textContent = holdFor > 0 ? 'Holding ' + Math.ceil(holdFor) + 's' : holdFuel ? 'Hold traffic' : 'Hold used'; }
+  holdSignal.onclick = () => { if (state === 'play' && holdFuel) { holdFuel = 0; holdFor = 2; showHold(); } };
+  document.getElementById('resetBtn').before(holdSignal);
   loadLevel(0);
   requestAnimationFrame(loop);
 
@@ -363,7 +380,8 @@
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

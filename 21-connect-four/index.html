@@ -2,7 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Connect Four vs AI</title>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js" defer></script>
 <style>
@@ -166,6 +172,9 @@
     #markers { grid-template-columns: repeat(7, 11.5vw); gap: 1.5vw; padding: 0 2.5vw; }
   }
 </style>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
   <canvas id="bg3d"></canvas>
@@ -200,6 +209,7 @@
 (function () {
   'use strict';
   var COLS = 7, ROWS = 6, HUMAN = 1, AI = 2;
+const arcadePlus = (new URLSearchParams(location.search).get('mode') === 'plus');
   var DEPTHS = [2, 5, 7], RAND = [0.4, 0.08, 0];
 
   var boardEl = document.getElementById('board');
@@ -212,7 +222,7 @@
   var cells = [], markers = [];
   var grid, gameOver, aiThinking, selCol = 3, diff = 1, ghostCell = null;
   var record = { w: 0, l: 0, d: 0 };
-  try { Object.assign(record, JSON.parse(localStorage.getItem('c4_record') || '{}')); } catch (e) {}
+  try { Object.assign(record, JSON.parse(localStorage.getItem(('c4_record' + (new URLSearchParams(location.search).get('mode')==='plus'?'_plus':''))) || '{}')); } catch (e) {}
   diff = +(localStorage.getItem('c4_diff') || 1);
 
   // ---------- Procedural SFX ----------
@@ -263,7 +273,7 @@
   window.addEventListener('pointerdown', SFX.unlock, { passive: true });
   window.addEventListener('keydown', SFX.unlock);
 
-  function saveRecord() { localStorage.setItem('c4_record', JSON.stringify(record)); }
+  function saveRecord() { localStorage.setItem(('c4_record' + (new URLSearchParams(location.search).get('mode')==='plus'?'_plus':'')), JSON.stringify(record)); }
   function renderRecord() {
     document.getElementById('rW').textContent = record.w;
     document.getElementById('rD').textContent = record.d;
@@ -477,6 +487,7 @@
     if (winCells(g, HUMAN)) return { score: -1000000 - depth };
     var cols = validCols(g);
     if (depth === 0 || cols.length === 0) return { score: evaluate(g, AI) };
+    if (arcadePlus) cols.sort((a,b)=>Math.abs(a-3)-Math.abs(b-3));
     var bestCol = cols[0], i, col, res;
     if (maximizing) {
       var best = -Infinity;
@@ -507,7 +518,7 @@
   function bestMove() {
     var cols = validCols(grid);
     if (!cols.length) return -1;
-    if (Math.random() < RAND[diff]) return cols[(Math.random() * cols.length) | 0];
+    if (!arcadePlus && Math.random() < RAND[diff]) return cols[(Math.random() * cols.length) | 0];
     for (var i = 0; i < cols.length; i++) {
       dropPiece(grid, cols[i], AI);
       var w = !!winCells(grid, AI);
@@ -520,7 +531,7 @@
       undoPiece(grid, cols[i]);
       if (hw) return cols[i];
     }
-    return minimax(grid, DEPTHS[diff], -Infinity, Infinity, true).col;
+    return minimax(grid, arcadePlus ? Math.min(7,DEPTHS[diff]+2) : DEPTHS[diff], -Infinity, Infinity, true).col;
   }
 
   document.getElementById('restart').addEventListener('click', init);
@@ -541,6 +552,7 @@
   });
 
   init();
+  window.__arcadeNativeUpgrade = {"id": 21, "name": "Tactical Connect", "description": "CPU uses center-first traversal, deeper search and no random blunders at any difficulty; immediate threats still take priority."};
   // Report native gameplay state to the optional mission engine.
   window.__arcadeMissionSource = Object.assign({"id":21,"label":"CPU difficulty defeated","goals":[1,2,3],"note":"Win at Casual, Arcade, or Pro difficulty for increasingly rare medals.","seconds":420}, { read: () => { return (gameOver && endTitle.classList.contains('win') ? diff + 1 : 0); } });
 })();
@@ -611,7 +623,8 @@
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

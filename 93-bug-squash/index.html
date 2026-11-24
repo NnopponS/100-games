@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Bug Squash</title>
 <style>
@@ -60,6 +66,9 @@
   .btn:active{transform:scale(.96)}
   .hint{font-size:.75rem;color:#7d9a63;font-weight:600}
 </style>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 <div class="wrap">
@@ -125,6 +134,7 @@
 
   for (let i = 0; i < 130; i++) grassBlades.push({ x: Math.random()*W, y: Math.random()*H, a: Math.random()*Math.PI, l: 4 + Math.random()*7 });
 
+  let repelReady = true;
   const TYPES = [
     { kind:'ant',    speed: 60,  pts: 10, r: 15, hp: 1 },
     { kind:'beetle', speed: 44,  pts: 20, r: 19, hp: 2 },
@@ -146,7 +156,7 @@
 
   function reset() {
     bugs = []; splats = []; parts = []; score = 0; hp = 5; wave = 1; kills = 0; spawnTimer = .3;
-    combo = 0; comboT = 0; banner = ''; flash = 0;
+    combo = 0; comboT = 0; banner = ''; flash = 0; repelReady = true; showRepel();
     scoreEl.textContent = '0'; waveEl.textContent = '1'; comboEl.textContent = 'x1';
     hpEl.innerHTML = hearts(5);
     state = 'play';
@@ -396,6 +406,7 @@
           comboEl.textContent = 'x' + Math.max(1, combo);
           score += b.pts * Math.max(1, combo);
           kills++;
+          if (kills % 8 === 0) { repelReady = true; showRepel(); }
           const newWave = 1 + Math.floor(kills / 10);
           if (newWave !== wave) { wave = newWave; banner = 'WAVE ' + wave + '!'; bannerT = 1.4; tone(523,.18,'square',.06,1046); }
           scoreEl.textContent = score;
@@ -423,12 +434,24 @@
   draw(0);
   requestAnimationFrame(loop);
 
+
+  const repelButton = document.createElement('button'); repelButton.type = 'button'; repelButton.className = 'btn';
+  function showRepel() { repelButton.textContent = repelReady ? 'Repel · X' : 'Charge: 8 bugs'; repelButton.disabled = !repelReady; }
+  function repel() {
+    if (state !== 'play' || !repelReady || !bugs.length) return;
+    repelReady = false; showRepel(); banner = 'SWARM REPELLED'; bannerT = 1.1;
+    for (const b of bugs) { const dx = b.x - CX, dy = b.y - CY; const len = Math.hypot(dx,dy) || 1; b.x += dx / len * 95; b.y += dy / len * 95; }
+  }
+  repelButton.onclick = repel; waveEl.parentElement.after(repelButton); showRepel();
+  window.addEventListener('keydown', e => { if (!e.repeat && e.code === 'KeyX') repel(); });
+
   // Report native gameplay state to the optional mission engine.
   window.__arcadeMissionSource = Object.assign({"id":93,"label":"Bugs stopped","goals":[8,18,35],"note":"Clear bugs before they reach the picnic; prioritize the quickest ones."}, { read: () => { return (kills); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Bounce Ball</title>
 <style>
@@ -22,6 +28,9 @@
     width: auto;
   }
 </style>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 <canvas id="game" width="480" height="720"></canvas>
@@ -115,6 +124,7 @@
   }
 
   // --- state ---
+  var brakeReady = true, brakeButton;
   function meters() {
     return Math.max(0, Math.floor(-camY / PX_PER_M));
   }
@@ -124,6 +134,7 @@
   }
 
   function reset() {
+    brakeReady = true; if (brakeButton) brakeButton.disabled = false;
     ball = { x: W / 2, y: H - 300, vx: 0, vy: 0 };
     plats = [];
     parts = [];
@@ -208,6 +219,7 @@
   }
 
   function land(p) {
+    brakeReady = true; if (brakeButton) brakeButton.disabled = false;
     ball.y = p.y - R;
     ball.vy = p.spring ? -SPRING : -BOUNCE;
     squash = 1;
@@ -654,12 +666,20 @@
   reset();
   requestAnimationFrame(loop);
 
+
+  brakeButton = document.createElement('button'); brakeButton.type = 'button'; brakeButton.textContent = 'Air brake · B';
+  brakeButton.style.cssText = 'position:fixed;left:12px;bottom:12px;z-index:4;padding:.55rem .8rem';
+  function useBrake() { if (dead || !brakeReady) return; brakeReady = false; ball.vx *= .08; if (ball.vy > 0) ball.vy *= .48; brakeButton.disabled = true; }
+  brakeButton.onclick = useBrake; canvas.after(brakeButton);
+  window.addEventListener('keydown', function(e) { if (!e.repeat && e.code === 'KeyB') useBrake(); });
+
   // Report native gameplay state to the optional mission engine.
   window.__arcadeMissionSource = Object.assign({"id":89,"label":"Bounce height (m)","goals":[25,60,120],"note":"Aim for safe platforms while climbing."}, { read: () => { return (meters()); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

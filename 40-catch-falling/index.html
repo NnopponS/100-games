@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0, user-scalable=no">
 <title>Catch Falling Items</title>
 <style>
@@ -73,6 +79,11 @@ window.__gsfx = (function(){
   return api;
 })();
 </script>
+
+<script>window.__arcadeNativeUpgrade = {"id": 40, "name": "Harvest Streak", "description": "Every third fruit caught in a row is worth double. Missing fruit or catching a bomb breaks the streak."}; const arcadeVariant = new URLSearchParams(location.search).get("mode") === "plus" || new URLSearchParams(location.search).get("plus") === "1";</script>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 <div id="wrap">
@@ -323,7 +334,7 @@ function drawMoon(x, y, r) {
 
 let state = 'menu'; // menu | play | over
 let score = 0, lives = 3, best = 0;
-let elapsed = 0, spawnT = 0, shake = 0, flash = 0;
+let elapsed = 0, spawnT = 0, shake = 0, flash = 0, cleanCatch = 0;
 let items = [], parts = [];
 let bx = W / 2, tx = W / 2;
 const keys = { l: false, r: false };
@@ -336,7 +347,7 @@ const stars = Array.from({ length: 70 }, () => ({
 }));
 
 function reset() {
-  score = 0; lives = 3; elapsed = 0; spawnT = 600;
+  score = 0; lives = 3; elapsed = 0; spawnT = 600; cleanCatch = 0;
   shake = 0; flash = 0; items = []; parts = [];
   bx = tx = W / 2;
 }
@@ -420,20 +431,23 @@ function update(dt) {
     if (it.y > BASKET_Y - 8 && it.y < BASKET_Y + 34 &&
         Math.abs(it.x - bx) < BASKET_W / 2 + R * .45) {
       if (it.bomb) {
-        lives--; shake = .4; flash = .45;
+        lives--; cleanCatch = 0; shake = .4; flash = .45;
         burst(it.x, it.y, '#ff6b5e', 18);
         sfx('boom'); sfx('bad');
         items.splice(i, 1);
         if (lives <= 0) { gameOver(); return; }
       } else {
-        score += 10;
+        cleanCatch++;
+        const bonus = arcadeVariant && cleanCatch % 3 === 0;
+        score += bonus ? 20 : 10;
+        if (bonus && window.AAA) AAA.popup(innerWidth / 2, innerHeight * .28, 'HARVEST ×2', '#ffd76a');
         burst(it.x, it.y, FRUIT_COLOR[it.e] || '#ffd76a', 10);
         sfx('pop', Math.min(6, (score / 50) | 0));
         items.splice(i, 1);
       }
       continue;
     }
-    if (it.y > H + 40) items.splice(i, 1);
+    if (it.y > H + 40) { if (!it.bomb) cleanCatch = 0; items.splice(i, 1); }
   }
 
   for (let i = parts.length - 1; i >= 0; i--) {
@@ -514,7 +528,8 @@ requestAnimationFrame(frame);
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

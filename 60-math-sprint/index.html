@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Math Sprint</title>
 <style>
@@ -223,6 +229,11 @@
     100% { opacity: 0; }
   }
 </style>
+
+<script>window.__arcadeNativeUpgrade = {"id": 60, "name": "Two-Step Sprint", "description": "Some equations combine multiplication and addition or subtraction. Use order of operations."}; const arcadeVariant = new URLSearchParams(location.search).get("mode") === "plus" || new URLSearchParams(location.search).get("plus") === "1";</script>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 
@@ -291,6 +302,10 @@
 
   /* ---- question generation: difficulty scales with elapsed time ---- */
   function makeQuestion(lv) {
+    if (arcadeVariant && (lv>=2 || Math.random()<.40)) {
+      var x=2+rnd(lv<2?6:11), y=2+rnd(7), z=1+rnd(11), sign=Math.random()<.5 ? 1 : -1;
+      return {text:x+' × '+y+(sign===1?' + ':' − ')+z,ans:x*y+sign*z};
+    }
     var a, b, op, ans;
     if (lv === 0) {            // small add/sub
       op = pick(['+', '+', '-']);
@@ -508,7 +523,8 @@
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

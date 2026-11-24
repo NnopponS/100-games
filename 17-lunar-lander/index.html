@@ -2,7 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, viewport-fit=cover">
 <title>Lunar Lander</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -52,6 +58,9 @@
   #btnThrust.on { background: radial-gradient(circle at 34% 30%, rgba(255,190,110,0.65), rgba(160,70,20,0.85)); }
   #btnThrust svg { width: 34px; height: 34px; }
 </style>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 <canvas id="game"></canvas>
@@ -259,6 +268,7 @@
 
   // ---------- Terrain ----------
   var terrain = [];
+const arcadePlus = (new URLSearchParams(location.search).get('mode') === 'plus');
   var pad = { x1: 0, x2: 0, y: 0 };
   var padW0 = 0;
 
@@ -267,7 +277,7 @@
     var seg = 24;
     var groundBase = H * 0.84;
     var shrink = Math.min(landings * 4, 40);
-    var padW = Math.max(46, Math.max(80, W * 0.09) - shrink);
+    var padW = Math.max(46, Math.max(80, W * .09) - shrink - (arcadePlus ? 12 : 0));
     padW0 = padW;
     var padCenter = W * 0.15 + Math.random() * W * 0.7;
     pad.x1 = padCenter - padW / 2;
@@ -338,14 +348,16 @@
   var score = 0, streak = 0, landings = 0, best = 0, newBest = false;
   var lastAward = 0, shake = 0, warnT = 0, lowFuelWarned = false;
 
-  try { best = parseInt(localStorage.getItem('lunar-best') || '0', 10) || 0; } catch (e) {}
+  try { best = parseInt(localStorage.getItem(('lunar-best' + (new URLSearchParams(location.search).get('mode')==='plus'?'_plus':''))) || '0', 10) || 0; } catch (e) {}
 
   function saveBest() {
     if (score > best) {
       best = score; newBest = true;
-      try { localStorage.setItem('lunar-best', String(best)); } catch (e) {}
+      try { localStorage.setItem(('lunar-best' + (new URLSearchParams(location.search).get('mode')==='plus'?'_plus':'')), String(best)); } catch (e) {}
     }
   }
+
+  function gust() { return Math.sin(warnT*.85 + landings) * 24 + Math.sin(warnT*2.1 + 1) * 12; }
 
   function spawnLander() {
     lander = {
@@ -354,7 +366,7 @@
       vx: (Math.random() - 0.5) * 30,
       vy: 0,
       angle: (Math.random() - 0.5) * 0.35,
-      fuel: FUEL_MAX,
+      fuel: arcadePlus ? FUEL_MAX * .78 : FUEL_MAX,
       landed: false,
       thrusting: false
     };
@@ -469,6 +481,7 @@
       }
 
       lander.vy += GRAVITY * dt;
+      if (arcadePlus) lander.vx += gust() * dt;
       lander.x += lander.vx * dt;
       lander.y += lander.vy * dt;
 
@@ -642,7 +655,7 @@
     ctx.font = '700 10px Consolas, monospace';
     ctx.textAlign = 'center';
     ctx.fillStyle = 'rgba(90,255,140,' + (0.35 + 0.3 * pulse).toFixed(2) + ')';
-    ctx.fillText('LAND HERE', (pad.x1 + pad.x2) / 2, pad.y - 18);
+    ctx.fillText(arcadePlus ? ('WIND '+ (gust()<0?'←':'→')+' '+ Math.round(Math.abs(gust()))) : 'LAND HERE', (pad.x1 + pad.x2) / 2, pad.y - 18);
 
     // projected descent guide (dotted)
     if (state === 'flying' && lander.vy > 0) {
@@ -901,12 +914,14 @@
   spawnLander();
   requestAnimationFrame(frame);
 
+  window.__arcadeNativeUpgrade = {"id": 17, "name": "Crosswind Landing", "description": "approach with reduced fuel, a narrower pad and horizontal gusts; the pad beacon previews wind direction and strength."};
   // Report native gameplay state to the optional mission engine.
   window.__arcadeMissionSource = Object.assign({"id":17,"label":"Safe landings","goals":[1,2,4],"note":"Set down on landing pads without crashing."}, { read: () => { return (landings || 0); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Jigsaw Lite</title>
 <style>
@@ -261,6 +267,9 @@
     .seg button { padding: 5px 8px; }
   }
 </style>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 
@@ -1125,12 +1134,30 @@
 
   newGame();
 
+
+  var edges = document.createElement('button'), peek = document.createElement('button');
+  edges.type = peek.type = 'button'; edges.textContent = 'Group edges'; peek.textContent = 'Hide preview';
+  edges.onclick = function () {
+    if (S.active || S.won) return;
+    var border = S.pieces.filter(function(p) { return !p.placed && (p.c === 0 || p.r === 0 || p.c === S.cols - 1 || p.r === S.rows - 1); });
+    var maxX = Math.max(1, STAGE.clientWidth - S.pw - 18), maxY = Math.max(1, STAGE.clientHeight - S.ph - 18);
+    border.forEach(function(p, i) {
+      p.x = i % 2 ? maxX : 10; p.y = 12 + (maxY - 12) * (Math.floor(i / 2) / Math.max(1, Math.ceil(border.length / 2) - 1));
+      p.el.style.zIndex = String(++S.z); clampPiece(p);
+    });
+  };
+  peek.onclick = function () {
+    var hide = GHOST.style.visibility !== 'hidden'; GHOST.style.visibility = hide ? 'hidden' : ''; peek.textContent = hide ? 'Show preview' : 'Hide preview'; peek.setAttribute('aria-pressed', String(hide));
+  };
+  document.getElementById('hintBtn').after(edges, peek);
+
   // Report native gameplay state to the optional mission engine.
   window.__arcadeMissionSource = Object.assign({"id":80,"label":"Jigsaw assembled (%)","goals":[25,55,100],"note":"Snap pieces into the image. The percentage adapts to the selected grid.","seconds":420}, { read: () => { return (S.pieces.length ? S.placed / S.pieces.length * 100 : 0); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

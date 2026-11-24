@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
 <title>Missile Command</title>
 <style>
@@ -12,6 +18,9 @@
   canvas{display:block;background:#0a0f24;cursor:crosshair;touch-action:none;
     width:min(96vw,calc(92vh - 30px) * 1.3333);border:1px solid #1c2a4a;box-shadow:0 0 40px #0a1430}
 </style>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 <div id="wrap">
@@ -25,6 +34,7 @@
 <script>
 'use strict';
 const cv = document.getElementById('game'), ctx = cv.getContext('2d');
+const arcadePlus = (new URLSearchParams(location.search).get('mode') === 'plus');
 const W = cv.width, H = cv.height, GROUND_Y = H - 40;
 const elScore = document.getElementById('score'), elWave = document.getElementById('wave'), elMsg = document.getElementById('msg');
 
@@ -35,7 +45,7 @@ const BAT_AMMO = 10;
 let scene = 'title';           // title | playing | inter | gameover
 let score = 0, wave = 0, interT = 0, interBonus = 0;
 let hi = 0, newBest = false;
-try { hi = parseInt(localStorage.getItem('mcommand-hi') || '0', 10) || 0; } catch (e) {}
+try { hi = parseInt(localStorage.getItem(('mcommand-hi' + (new URLSearchParams(location.search).get('mode')==='plus'?'_plus':''))) || '0', 10) || 0; } catch (e) {}
 let cities = [], batteries = [], missiles = [], counters = [], explosions = [], particles = [];
 let spawnQueue = 0, spawnTimer = 0, spawnInterval = 1;
 let shake = 0;
@@ -90,8 +100,12 @@ function reset(){
 function startWave(){
   wave++;
   bgm.start();
-  batteries.forEach(b => { b.alive = true; b.ammo = BAT_AMMO; });
-  spawnQueue = 9 + wave * 4;
+  batteries.forEach(b => {
+    if (arcadePlus && wave > 1) b.ammo = b.alive ? Math.min(BAT_AMMO,b.ammo+4) : 5;
+    else b.ammo=BAT_AMMO;
+    b.alive = true;
+  });
+  spawnQueue = 9 + wave * 4 + (arcadePlus ? Math.min(9,wave) : 0);
   spawnInterval = Math.max(0.32, 1.5 - wave * 0.11);
   spawnTimer = 0.6;
   scene = 'playing';
@@ -105,6 +119,10 @@ function spawnMissile(){
   const tx = t.x + (Math.random() * 14 - 7), ty = (t === undefined ? GROUND_Y : t.y);
   const dx = tx - sx, dy = ty - sy, d = Math.hypot(dx, dy) || 1, sp = missileSpeed();
   missiles.push({x: sx, y: sy, sx, sy, vx: dx / d * sp, vy: dy / d * sp, tx, ty});
+  if (arcadePlus && wave>=2 && spawnQueue%3===0) {
+    const sx2=(sx+W*.22)%W, tx2 = Math.min(W-15,Math.max(15,tx+45)), dx2=tx2-sx2, norm=Math.hypot(dx2,dy) || 1;
+    missiles.push({x:sx2,y:sy,sx:sx2,sy,vx:dx2/norm*sp*.86,vy:dy/norm*sp*.86,tx:tx2,ty});
+  }
 }
 
 function fire(mx, my){
@@ -190,7 +208,7 @@ function update(dt){
         bgm.stop();
         if (score > hi) {
           hi = score; newBest = true;
-          try { localStorage.setItem('mcommand-hi', String(hi)); } catch (e) {}
+          try { localStorage.setItem(('mcommand-hi' + (new URLSearchParams(location.search).get('mode')==='plus'?'_plus':'')), String(hi)); } catch (e) {}
         }
       } else {
         interBonus = cities.filter(c => c.alive).length * 100 + batteries.reduce((s, b) => s + (b.alive ? b.ammo : 0), 0) * 5;
@@ -362,11 +380,13 @@ function loop(now){
 }
 requestAnimationFrame(loop);
 
+  window.__arcadeNativeUpgrade = {"id": 16, "name": "Tactical Stockpile", "description": "survive paired salvos and carry unused ammo into the next wave; use a limited partial resupply."};
   // Report native gameplay state to the optional mission engine.
   window.__arcadeMissionSource = Object.assign({"id":16,"label":"Waves survived","goals":[1,3,5],"note":"Protect at least one city and survive successive waves."}, { read: () => { return (Math.max(0, wave - (scene === 'inter' ? 0 : 1))); } });
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

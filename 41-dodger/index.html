@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Dodger</title>
 <style>
@@ -99,6 +105,11 @@
   #finalScore { color: #8fd3ff; font-size: 22px !important; font-weight: 700; }
   .hidden { display: none !important; }
 </style>
+
+<script>window.__arcadeNativeUpgrade = {"id": 41, "name": "Crosswind Debris", "description": "Falling rocks drift sideways and bounce off arena edges. Keep watching their approach, not just their spawn lane."}; const arcadeVariant = new URLSearchParams(location.search).get("mode") === "plus" || new URLSearchParams(location.search).get("plus") === "1";</script>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 <div id="wrap">
@@ -236,6 +247,7 @@
       w: w,
       h: w * (0.6 + Math.random() * 0.6),
       speed: 160 + Math.random() * 120 + elapsed * 8,
+      drift: arcadeVariant ? (Math.random() < .5 ? -1 : 1) * (45 + Math.min(elapsed * 1.4, 45)) : 0,
       color: COLORS[(Math.random() * COLORS.length) | 0],
       rot: Math.random() * Math.PI * 2,
       rotSpeed: (Math.random() - 0.5) * 3,
@@ -287,6 +299,10 @@
     for (var i = blocks.length - 1; i >= 0; i--) {
       var b = blocks[i];
       b.y += b.speed * dt;
+      if (b.drift) {
+        b.x += b.drift * dt;
+        if (b.x < 0 || b.x + b.w > W) { b.x = Math.max(0, Math.min(W-b.w,b.x)); b.drift *= -1; }
+      }
       b.rot += b.rotSpeed * dt;
       if (b.y > H + 80) { blocks.splice(i, 1); continue; }
       // near-miss whoosh
@@ -512,7 +528,8 @@
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

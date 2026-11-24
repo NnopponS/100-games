@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Word Scramble</title>
 <style>
@@ -212,6 +218,11 @@
     animation: pulse 0.9s infinite;
   }
 </style>
+
+<script>window.__arcadeNativeUpgrade = {"id": 61, "name": "Streak Sprints", "description": "Take a harder round with a single clue, and earn two extra seconds every third correct word in a row."}; const arcadeVariant = new URLSearchParams(location.search).get("mode") === "plus" || new URLSearchParams(location.search).get("plus") === "1";</script>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
   <div class="game">
@@ -327,13 +338,13 @@
   ];
 
   var GAME_TIME = 60;
-  var MAX_HINTS = 3;
+  var MAX_HINTS = arcadeVariant ? 1 : 3;
   var POINTS_PER_WORD = 10;
   var HINT_COST = 5;
   var SKIP_PENALTY = 2;
   var BEST_KEY = 'ws_best';
 
-  var score, timeLeft, solved, hintsLeft, current, timerId, usedIndices, playing, streak;
+  var score, timeLeft, solved, hintsLeft, current, timerId, usedIndices, playing, streak, wordLocked = false;
   var best = 0;
   try { best = parseInt(localStorage.getItem(BEST_KEY), 10) || 0; } catch (e) {}
 
@@ -379,7 +390,7 @@
     do { idx = Math.floor(Math.random() * WORDS.length); }
     while (usedIndices.indexOf(idx) !== -1);
     usedIndices.push(idx);
-    current = WORDS[idx];
+    current = WORDS[idx]; wordLocked = false;
     renderTiles();
     hintTextEl.textContent = 'Press Hint for a clue (-' + HINT_COST + ' pts)';
     guessEl.value = '';
@@ -415,11 +426,12 @@
   }
 
   function submit() {
-    if (!playing) return;
+    if (!playing || wordLocked) return;
     var guess = guessEl.value.trim().toLowerCase();
     if (!guess) return;
     if (guess === current.w) {
-      streak++;
+      wordLocked = true; streak++;
+      if (arcadeVariant && streak % 3 === 0) timeLeft += 2;
       var bonus = Math.min(10, (streak - 1) * 2);
       score += POINTS_PER_WORD + bonus;
       solved++;
@@ -518,7 +530,8 @@
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

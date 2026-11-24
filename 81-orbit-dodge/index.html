@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Orbit Dodge</title>
 <style>
@@ -84,6 +90,9 @@
   .btn:active{transform:scale(.97)}
   .hint{font-size:.78rem;color:#5f7099;font-weight:600}
 </style>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 <div class="wrap">
@@ -149,10 +158,11 @@
   let state = 'idle', ringIdx = 1, curR = RINGS[1], theta = -Math.PI/2, score = 0;
   let meteors = [], stars = [], sparks = [], trail = [], spawnT = 0;
   let combo = 0, comboT = 0, shake = 0, milestone = 0, planetRot = 0;
+  let shieldReady = true, shieldTime = 0;
   const bgStars = Array.from({length: 90}, () => ({ x: Math.random()*W, y: Math.random()*H, r: .4 + Math.random()*1.6, tw: Math.random()*6 }));
 
   function reset() {
-    ringIdx = 1; curR = RINGS[1]; theta = -Math.PI/2; score = 0;
+    ringIdx = 1; curR = RINGS[1]; theta = -Math.PI/2; score = 0; shieldReady = true; shieldTime = 0; updateShield();
     meteors = []; stars = []; sparks = []; trail = [];
     spawnT = .8; combo = 0; comboT = 0; shake = 0; milestone = 0;
     for (let i = 0; i < 3; i++) spawnStar(i);
@@ -194,6 +204,7 @@
 
   function update(dt) {
     planetRot += dt * .12;
+    if (shieldTime > 0) { shieldTime = Math.max(0, shieldTime - dt); if (!shieldTime) updateShield(); }
     const spdGain = 1 + Math.min(.8, score * .004);
     theta += (2.0 * spdGain) * dt;
     curR += (RINGS[ringIdx] - curR) * Math.min(1, dt * 13);
@@ -225,6 +236,7 @@
       if (Math.hypot(sx - px, sy - py) < 24) {
         combo = Math.min(8, combo + 1); comboT = 3.2;
         comboEl.textContent = 'x' + Math.max(1, combo);
+        if (combo % 3 === 0) { shieldReady = true; updateShield(); }
         addScore(15 * Math.max(1, combo));
         for (let k = 0; k < 10; k++) sparks.push({ x: px, y: py, vx: (Math.random()-.5)*180, vy: (Math.random()-.5)*180, t: .4, col: '#fde047' });
         stars.splice(i, 1);
@@ -238,6 +250,7 @@
       m.x += m.vx * dt; m.y += m.vy * dt; m.rot += m.vr * dt;
       const dShip = Math.hypot(sx - m.x, sy - m.y);
       if (dShip < m.r + 9) {
+        if (shieldTime > 0) { shieldTime = 0; meteors.splice(i, 1); updateShield(); tone(360, .15, 'triangle', .07, 660); continue; }
         die(sx, sy);
         return;
       }
@@ -415,12 +428,20 @@
   startBtn.onclick = () => { ovT.innerHTML = 'ORBIT<br>DODGE'; ovT.classList.remove('hot'); ovStats.style.display = 'none'; reset(); };
   requestAnimationFrame(loop);
 
+
+  const shieldButton = document.createElement('button'); shieldButton.type = 'button'; shieldButton.className = 'btn';
+  function updateShield() { shieldButton.textContent = shieldTime > 0 ? 'Shield active' : shieldReady ? 'Shield · X' : 'Charge: chain 3 stars'; shieldButton.disabled = !shieldReady || shieldTime > 0; }
+  function useShield() { if (state === 'play' && shieldReady && shieldTime <= 0) { shieldTime = 1.7; shieldReady = false; updateShield(); } }
+  shieldButton.onclick = useShield; scoreEl.parentElement.after(shieldButton); updateShield();
+  window.addEventListener('keydown', e => { if (!e.repeat && e.code === 'KeyX') useShield(); });
+
   // Report native gameplay state to the optional mission engine.
   window.__arcadeMissionSource = Object.assign({"id":81,"label":"Orbit points","goals":[80,180,350],"note":"Switch rings early enough to dodge obstacles and keep your chain alive."}, { read: () => { return (score); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

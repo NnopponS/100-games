@@ -2,12 +2,23 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Submarine</title>
 <style>
 html,body{margin:0;height:100%;overflow:hidden;background:#03182b}
 canvas{display:block;touch-action:none;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
 </style>
+
+<script>window.__arcadeNativeUpgrade = {"id": 54, "name": "Silent Running", "description": "Mines stay live, but releasing the dive control reduces torpedo homing. Alternate short dives and quiet climbs."}; const arcadeVariant = new URLSearchParams(location.search).get("mode") === "plus" || new URLSearchParams(location.search).get("plus") === "1";</script>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 <canvas id="game"></canvas>
@@ -72,7 +83,7 @@ function moveEnts(dt){
     if(m.x<-60){mines.splice(i,1);continue;}
     if(state==='play'){var dx=sub.x-m.x,dy=sub.y-m.y,rad=m.r+14;if(dx*dx+dy*dy<rad*rad)die('You hit a naval mine');}}
   for(i=torps.length-1;i>=0;i--){var tp=torps[i];tp.x-=tp.v*dt;
-    if(state==='play'){tp.y+=clamp(sub.y-tp.y,-70,70)*dt*0.5;
+    if(state==='play'){tp.y+=clamp(sub.y-tp.y,-70,70)*dt*(arcadeVariant ? (holding ? 1.2 : .07) : .5);
       if(Math.random()<dt*30)parts.push({k:'bub',x:tp.x+26,y:tp.y+rnd(-3,3),vx:rnd(-30,-10),vy:rnd(-30,0),r:rnd(1,2.5),life:0.7});}
     if(tp.x<-80){torps.splice(i,1);continue;}
     if(state==='play'){var cx=clamp(sub.x,tp.x-26,tp.x+22),ddx=sub.x-cx,ddy=sub.y-tp.y;if(ddx*ddx+ddy*ddy<289)die('Torpedoed!');}}
@@ -220,7 +231,8 @@ requestAnimationFrame(frame);
   window.__arcadeMissionSource = Object.assign({"id":54,"label":"Dive distance (m)","goals":[65,120,220],"note":"Dive beneath mines and release to rise over the terrain."}, { read: () => { return (meters()); } });
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

@@ -1,0 +1,49 @@
+{
+  "single": {
+    "wallSeconds": 120,
+    "workerCount": 1,
+    "peakObservedEligibleWorkers": 1,
+    "eligibleOverlapSeconds": 0,
+    "observedWorkerDurationsSeconds": {
+      "single": 120
+    },
+    "sumObservedWorkerSeconds": 120,
+    "acceptedTasks": 2,
+    "acceptedChecksByGame": {
+      "signal": 10,
+      "flux": 10
+    },
+    "artifactSha256": {
+      "flux.mjs": "9de7edb2e1288dbf19a831f924401490ced4ab40c92a37390c76b230c181361e",
+      "signal.mjs": "ae192a0c2d8c8e100bc369f65bf64f4494c8ef2ac888f04b04668a7b048cbad9"
+    },
+    "observedImplementationInterventions": 0,
+    "retries": 0,
+    "tokenCounts": null,
+    "computeCost": null
+  },
+  "parallel": {
+    "wallSeconds": 111,
+    "workerCount": 2,
+    "peakObservedEligibleWorkers": 2,
+    "eligibleOverlapSeconds": 71,
+    "observedWorkerDurationsSeconds": {
+      "signal": 84,
+      "flux": 98
+    },
+    "sumObservedWorkerSeconds": 182,
+    "acceptedTasks": 2,
+    "acceptedChecksByGame": {
+      "signal": 10,
+      "flux": 10
+    },
+    "artifactSha256": {
+      "flux.mjs": "bb8406bd79e6d87c22047eab1f265bcddd2b613fcdb3b43394ed223e735dfc69",
+      "signal.mjs": "449ffe725e3317994e543d751c05bdab16572f402e1137aab69fe6195bd98895"
+    },
+    "observedImplementationInterventions": 0,
+    "retries": 0,
+    "tokenCounts": null,
+    "computeCost": null
+  }
+}

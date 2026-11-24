@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Fireworks</title>
 <style>
@@ -82,6 +88,9 @@
   .micro { margin: 14px 0 0; font-size: 11px; letter-spacing: .1em; color: rgba(180,200,240,.4); }
   .micro b { color: rgba(220,235,255,.75); }
 </style>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 <canvas id="c"></canvas>
@@ -280,6 +289,7 @@
 
   function pickHue() { return Math.floor(Math.random() * 360); }
 
+  var patternPick = 0, lastManualPattern = -1;
   function launch(tx, ty) {
     var startX = (tx !== undefined) ? tx + (Math.random() - 0.5) * 40 : W * (0.2 + Math.random() * 0.6);
     var targetY = (ty !== undefined) ? Math.min(ty, H * 0.8) : H * (0.15 + Math.random() * 0.35);
@@ -289,6 +299,7 @@
       vy: -(9.5 + Math.random() * 2.5),
       targetY: targetY,
       hue: pickHue(),
+      pattern: tx === undefined ? -1 : patternPick,
       trail: []
     });
     sfxLaunch();
@@ -296,7 +307,7 @@
 
   function explode(r) {
     var count = 70 + Math.floor(Math.random() * 60);
-    var type = Math.random();
+    var type = r.pattern < 0 ? Math.random() : [0.22,0.55,0.8][r.pattern];
     var i, a, sp;
     for (i = 0; i < count; i++) {
       a = (i / count) * Math.PI * 2 + Math.random() * 0.15;
@@ -330,11 +341,13 @@
   function scoreBurst(r, count) {
     if (!game.playing) { sfxBoom(false); return; }
     var now = performance.now();
-    if (now - game.comboT < 2600) game.combo = Math.min(9, game.combo + 1);
+    if (now - game.comboT < 2600) game.combo = Math.min(10, game.combo + 1);
     else game.combo = 1;
     game.comboT = now;
     game.bestCombo = Math.max(game.bestCombo, game.combo);
     var pts = Math.round((count / 10) * 10 * game.combo);
+    if (r.pattern >= 0 && lastManualPattern >= 0 && lastManualPattern !== r.pattern && game.combo > 1) pts += 75;
+    if (r.pattern >= 0) lastManualPattern = r.pattern;
     game.score += pts;
     elScore.textContent = game.score;
     floating.push({ x: r.x, y: r.y, txt: '+' + pts, life: 55, hue: r.hue });
@@ -356,7 +369,7 @@
   function startShow() {
     game.playing = true;
     game.t = 0;
-    game.score = 0;
+    game.score = 0; lastManualPattern = -1;
     game.combo = 1; game.comboT = 0; game.bestCombo = 1;
     rockets.length = 0; particles.length = 0; flashes.length = 0; floating.length = 0;
     elScore.textContent = '0';
@@ -567,12 +580,19 @@
   resize();
   tick();
 
+
+  var patterns = document.createElement('select'); patterns.setAttribute('aria-label', 'Firework pattern');
+  ['Peony', 'Ring', 'Split'].forEach(function(name, i) { var opt = document.createElement('option'); opt.value = i; opt.textContent = name; patterns.append(opt); });
+  patterns.onchange = function() { patternPick = Number(patterns.value); };
+  document.getElementById('auto').after(patterns);
+
   // Report native gameplay state to the optional mission engine.
   window.__arcadeMissionSource = Object.assign({"id":76,"label":"Fireworks combo","goals":[3,6,10],"note":"Burst more rockets in a quick chain. Watch the combo bar."}, { read: () => { return (game.bestCombo); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

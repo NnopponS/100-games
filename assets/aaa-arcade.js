@@ -23,6 +23,7 @@
   let bgmIntensity = 0;
 
   function ensureAudio() {
+    if (window.ArcadeAudioLifecycle?.isActive() === false) return null;
     if (!actx) {
       const AC = window.AudioContext || window.webkitAudioContext;
       if (AC) {
@@ -132,7 +133,7 @@
 
   function updateBgm() {
     if (bgmTimer) { clearInterval(bgmTimer); bgmTimer = null; }
-    if (!pref.bgm) return;
+    if (!pref.bgm || window.ArcadeAudioLifecycle?.isActive() === false) return;
     bgmStep = 0;
     bgmTimer = setInterval(() => {
       if (paused || !pref.bgm) return;
@@ -191,6 +192,8 @@
       } catch {}
     }, 300);
   }
+
+  window.addEventListener('arcade100:audio-lifecycle', updateBgm);
 
   // --- 2. Pause Engine (Safe rAF Wrapper with Timestamp Compensation) ---
   let paused = false;

@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Shadow Guess</title>
 <style>
@@ -97,6 +103,9 @@
   .btn:active{transform:scale(.96)}
   .hint{font-size:.76rem;color:#6f6399;font-weight:600}
 </style>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 <div class="card">
@@ -183,7 +192,7 @@
   bestEl.textContent = best;
 
   let deck = [], idx = 0, score = 0, streak = 0, locked = true, playing = false;
-  let roundT = 0, roundMax = 6, rafId = 0, lastTick = 0;
+  let roundT = 0, roundMax = 6, rafId = 0, lastTick = 0, clues = 2, hinted = false, quizEpoch = 0;
   const shuffle = a => [...a].sort(() => Math.random() - .5);
 
   function buildDots() {
@@ -193,7 +202,7 @@
 
   function start() {
     deck = shuffle(ITEMS).slice(0, ROUNDS_N);
-    idx = 0; score = 0; streak = 0; playing = true;
+    idx = 0; score = 0; streak = 0; playing = true; clues = 2; quizEpoch++;
     scoreEl.textContent = '0'; streakEl.textContent = '0';
     buildDots();
     ov.classList.add('hidden');
@@ -203,10 +212,11 @@
 
   function render() {
     if (idx >= deck.length) { finish(); return; }
-    locked = false;
+    locked = false; hinted = false; showClues();
     stage.classList.remove('reveal');
     const item = deck[idx];
-    svgHost.innerHTML = `<svg viewBox="0 0 100 100">${item.svg}</svg>`;
+    const angle = idx < 4 ? 0 : (idx % 2 ? 18 : -18);
+    svgHost.innerHTML = `<svg viewBox="0 0 100 100"><g transform="rotate(${angle} 50 50)">${item.svg}</g></svg>`;
     const opts = shuffle([item, ...shuffle(ITEMS.filter(x => x.name !== item.name)).slice(0, 3)]);
     choicesEl.innerHTML = '';
     msgEl.textContent = "What's hiding in the spotlight?";
@@ -260,7 +270,8 @@
     scoreEl.textContent = score;
     streakEl.textContent = streak;
     if (score > best) { best = score; bestEl.textContent = best; localStorage.setItem('shadow_best', String(best)); }
-    setTimeout(() => { idx++; render(); }, 1250);
+    const previous = quizEpoch;
+    setTimeout(() => { if (quizEpoch === previous) { idx++; render(); } }, 1250);
   }
 
   function finish() {
@@ -280,12 +291,19 @@
   startBtn.onclick = () => { ovGrade.style.display = 'none'; ovStats.style.display = 'none'; start(); };
   buildDots();
 
+
+  const hintButton = document.createElement('button'); hintButton.type = 'button'; hintButton.className = 'res'; hintButton.title = 'Remove one incorrect choice'; hintButton.setAttribute('aria-label', 'Remove one incorrect choice');
+  function showClues() { hintButton.textContent = 'Hint · ' + clues; hintButton.disabled = clues <= 0 || hinted || !playing; }
+  hintButton.onclick = () => { if (!playing || locked || hinted || clues <= 0) return; const decoy = Array.from(choicesEl.children).find(b => b.textContent !== deck[idx].name && !b.disabled); if (!decoy) return; decoy.disabled = true; decoy.style.opacity = '.35'; hinted = true; clues--; showClues(); };
+  document.getElementById('resBtn').after(hintButton); showClues();
+
   // Report native gameplay state to the optional mission engine.
   window.__arcadeMissionSource = Object.assign({"id":83,"label":"Shadow streak","goals":[3,6,9],"note":"Identify silhouettes correctly in a row before the timer closes."}, { read: () => { return (streak); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

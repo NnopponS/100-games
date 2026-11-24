@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Planet Defender</title>
 <style>
@@ -69,6 +75,9 @@
   .btn:active{transform:scale(.96)}
   .hint{font-size:.75rem;color:#5f7a9e;font-weight:600}
 </style>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 <div class="wrap">
@@ -129,7 +138,7 @@
   bestEl.textContent = best;
 
   let state = 'idle', shieldAng = -Math.PI/2, targetAng = -Math.PI/2, meteors = [], sparks = [], score = 0, hp = 5, spawnT = 0, keys = {}, shake = 0, hitFlash = 0;
-  let combo = 0, comboT = 0;
+  let combo = 0, comboT = 0, pulseCharge = 6, deflections = 0;
   const stars = Array.from({length: 90}, () => ({ x: Math.random()*W, y: Math.random()*H, r: Math.random()*1.6 + .3, tw: Math.random()*6 }));
 
   // ---------- guarded Three.js planet ----------
@@ -208,6 +217,7 @@
   }
 
   function reset() {
+    pulseCharge = 6; deflections = 0; refreshPulse();
     shieldAng = targetAng = -Math.PI/2; meteors = []; sparks = []; score = 0; hp = 5; spawnT = .4; shake = 0; hitFlash = 0; combo = 0; comboT = 0;
     scoreEl.textContent = '0'; hpEl.textContent = '5'; comboEl.textContent = 'x1';
     state = 'play';
@@ -275,6 +285,7 @@
         const ma = Math.atan2(m.y - CY, m.x - CX);
         if (angDiff(ma, shieldAng) <= ARC_HALF) {
           combo = Math.min(5, combo + 1); comboT = 3;
+          deflections++; pulseCharge = Math.min(6, pulseCharge + 1); refreshPulse();
           const mult = combo;
           const pts = (m.armored ? 2 : 1) * mult;
           score += pts;
@@ -453,12 +464,27 @@
 
   requestAnimationFrame(loop);
 
+
+  const pulseButton = document.createElement('button'); pulseButton.type = 'button'; pulseButton.className = 'btn';
+  function refreshPulse() { const msg = pulseCharge >= 6 ? 'Pulse · X' : 'Pulse ' + pulseCharge + '/6'; if (pulseButton.textContent !== msg) pulseButton.textContent = msg; pulseButton.disabled = pulseCharge < 6; }
+  function pulse() {
+    if (state !== 'play' || pulseCharge < 6) return;
+    pulseCharge = 0; refreshPulse(); shake = 1.4; tone(360,.23,'triangle',.08,820);
+    for (let i=meteors.length-1;i>=0;i--) {
+      const m=meteors[i];
+      if (Math.hypot(m.x-CX,m.y-CY) < SHIELD_R+65) { boom(false); meteors.splice(i,1); }
+    }
+  }
+  pulseButton.onclick = pulse; scoreEl.parentElement.after(pulseButton); refreshPulse();
+  window.addEventListener('keydown',e=>{ if (!e.repeat && e.code === 'KeyX') pulse(); });
+
   // Report native gameplay state to the optional mission engine.
   window.__arcadeMissionSource = Object.assign({"id":98,"label":"Planet defense points","goals":[80,180,350],"note":"Move the shield toward approaching meteors. Build points without losing your planet."}, { read: () => { return (score); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Fishing Frenzy</title>
 <style>
@@ -16,6 +22,11 @@
   #end button{margin-top:24px;font-size:19px;padding:12px 42px;border:0;border-radius:999px;background:#ffb42c;color:#2a1800;font-weight:800;cursor:pointer;letter-spacing:.5px}
   #end button:hover{background:#ffca5f}
 </style>
+
+<script>window.__arcadeNativeUpgrade = {"id": 44, "name": "Deepwater Derby", "description": "Long casts reach a shorter bite window and can hook prize fish found only in deep water."}; const arcadeVariant = new URLSearchParams(location.search).get("mode") === "plus" || new URLSearchParams(location.search).get("plus") === "1";</script>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 <div id="wrap">
@@ -83,6 +94,10 @@ const ZONES=[
 ];
 const JUNK=[['Old Boot','boot'],['Tin Can','can'],['Driftwood','log']];
 function pickFish(d){
+  if (arcadeVariant && d >= .75 && Math.random() < .24) {
+    const kg = +rand(10,18).toFixed(1);
+    return {name:'Silver Marlin',col:'#9edcec',kg,pts:Math.round(kg*14)};
+  }
   if(Math.random()<0.09){const j=JUNK[(Math.random()*JUNK.length)|0];return{name:j[0],kind:j[1],kg:0,pts:2,junk:true}}
   const z=ZONES.find(z=>d<z.d)||ZONES[2],f=z.fish[(Math.random()*z.fish.length)|0];
   const kg=+rand(f[2],f[3]).toFixed(1);
@@ -196,7 +211,7 @@ function update(dt){
       b.x=lerp(b.x0,G.bob.x,p);b.y=lerp(b.y0,G.bob.y+30,p)+Math.sin(G.t*5)*4;
       if(G.t>=G.fakeAt){G.fakeAt=Infinity;G.fakeUntil=G.t+0.3;rings.push({x:G.bob.x,r:5,v:55,a:.45})}
       if(G.t>=G.biteAt){
-        G.state='bite';G.biteT=0.85;G.biteT0=G.t;sndBite();
+        G.state='bite';G.biteT=arcadeVariant&&G.lastD>=.75?.53:.85;G.biteT0=G.t;sndBite();
         for(let i=0;i<3;i++)rings.push({x:G.bob.x,r:8+i*12,v:95,a:.6});
       }
       break;}
@@ -415,7 +430,8 @@ requestAnimationFrame(frame);
   window.__arcadeMissionSource = Object.assign({"id":44,"label":"Fish landed","goals":[2,5,9],"note":"Reel fish in successfully. Bites that escape do not count."}, { read: () => { return (G.catches || 0); } });
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

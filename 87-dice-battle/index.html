@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
 <title>Dice Battle</title>
 <style>
@@ -459,6 +465,9 @@ header{
   .btn{padding:10px 8px}
 }
 </style>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 <div id="app">
@@ -1109,12 +1118,23 @@ updateUI();
 setTimeout(startRound, 420);
 
 
+
+  const advice = document.createElement('button'); advice.type = 'button'; advice.textContent = 'Suggest holds'; advice.className = 'btn bank';
+  advice.onclick = function () {
+    if (S.phase !== 'player' || S.busy || S.rerolls <= 0) { hint('Roll first, or finish this round to get hold advice.'); return; }
+    const suggested = chooseHolds(S.dice.p);
+    S.held = suggested.map(Boolean);
+    updateUI(); hint('Suggested dice held. Change any hold, then bank or reroll.');
+  };
+  $('btnReroll').after(advice);
+
   // Report native gameplay state to the optional mission engine.
   window.__arcadeMissionSource = Object.assign({"id":87,"label":"Dice rounds won","goals":[1,2,3],"note":"Build combinations and time when to bank instead of chasing a riskier hand.","seconds":300}, { read: () => { return (S.wins.p); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

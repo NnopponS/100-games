@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Endless Runner</title>
 <style>
@@ -49,6 +55,11 @@
   }
   @media (pointer: coarse) { .hint .kb { display: none; } }
 </style>
+
+<script>window.__arcadeNativeUpgrade = {"id": 42, "name": "Low Clearance", "description": "Low flying obstacles appear from the start and more often. Duck to pass beneath them."}; const arcadeVariant = new URLSearchParams(location.search).get("mode") === "plus" || new URLSearchParams(location.search).get("plus") === "1";</script>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 <div id="wrap">
@@ -209,7 +220,7 @@
   function spawnObstacle() {
     var r = Math.random();
     var type;
-    if (r < 0.18 && speed > 470) type = 'fly';
+    if (arcadeVariant ? r < 0.34 : r < 0.18 && speed > 470) type = 'fly';
     else if (r < 0.55) type = 'tall';
     else if (r < 0.85) type = 'small';
     else type = 'double';
@@ -218,7 +229,7 @@
     if (type === 'small') { ob.w = 26; ob.h = 30; ob.y = GROUND_Y; }
     else if (type === 'tall') { ob.w = 30; ob.h = 52; ob.y = GROUND_Y; }
     else if (type === 'double') { ob.w = 56; ob.h = 34; ob.y = GROUND_Y; }
-    else { ob.w = 36; ob.h = 24; ob.y = GROUND_Y - 52; ob.flyPhase = Math.random() * 6; }
+    else { ob.w = 36; ob.h = 24; ob.y = GROUND_Y - (arcadeVariant ? 45 : 52); ob.flyPhase = Math.random() * 6; }
     obstacles.push(ob);
   }
 
@@ -315,7 +326,7 @@
     for (var i = obstacles.length - 1; i >= 0; i--) {
       var ob = obstacles[i];
       ob.x -= speed * dt;
-      if (ob.type === 'fly') ob.y = GROUND_Y - 52 + Math.sin(tGlobal * 5 + ob.flyPhase) * 10;
+      if (ob.type === 'fly') ob.y = GROUND_Y - (arcadeVariant ? 44 : 52) + Math.sin(tGlobal * 5 + ob.flyPhase) * (arcadeVariant ? 6 : 10);
       if (ob.x + ob.w < -20) { obstacles.splice(i, 1); continue; }
       var obb = { x: ob.x + 3, y: ob.y, w: ob.w - 6, h: ob.h - 4 };
       if (rectsHit(pb, obb)) {
@@ -653,7 +664,8 @@
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

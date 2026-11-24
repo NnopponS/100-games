@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Kite Flyer</title>
 <style>
@@ -59,6 +65,9 @@
   .btn:active{transform:scale(.96)}
   .hint{font-size:.75rem;color:#6b93ab;font-weight:600}
 </style>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 <div class="wrap">
@@ -105,9 +114,11 @@
 
   let state = 'idle', kite = { x: 150, y: H/2 }, rings = [], birds = [], clouds = [], gusts = [], sparks = [];
   let score = 0, ringCount = 0, spawnT = 0, gustT = 4, keys = {}, dragPos = null, hitFlash = 0;
+  let towReady = true, towTime = 0;
   for (let i = 0; i < 6; i++) clouds.push({ x: Math.random()*W, y: 30 + Math.random()*220, s: 22 + Math.random()*32, v: .3 + Math.random()*.5 });
 
   function reset() {
+    towReady = true; towTime = 0; updateTow();
     kite = { x: 150, y: H * .55 };
     rings = []; birds = []; gusts = []; sparks = []; score = 0; ringCount = 0; spawnT = .5; gustT = 3; hitFlash = 0;
     scoreEl.textContent = '0'; ringsEl.textContent = '0';
@@ -139,14 +150,14 @@
       kite.x += (dx/m) * 265 * dt;
       kite.y += (dy/m) * 265 * dt;
     }
-    // ambient drift + gust push
-    kite.x -= 12 * dt;
+    // A taut line counters the gust while carrying the kite forward.
+    towTime = Math.max(0, towTime - dt);
+    kite.x += (towTime > 0 ? 155 : -12) * dt;
     let inGust = false;
     for (const g of gusts) {
       if (kite.x > g.x && kite.x < g.x + g.w && kite.y > g.y && kite.y < g.y + g.h) {
         inGust = true;
-        kite.y += g.vy * dt;
-        kite.x += 40 * dt;
+        if (!towTime) { kite.y += g.vy * dt; kite.x += 40 * dt; }
       }
     }
     if (!inGust) kite.y += Math.sin(last / 300) * 8 * dt;
@@ -193,7 +204,7 @@
       rg.x -= rg.spd * dt;
       if (Math.hypot(kite.x - rg.x, kite.y - rg.y) < rg.r + 15) {
         score += 25;
-        ringCount++;
+        ringCount++; towReady = true; updateTow();
         ringsEl.textContent = ringCount;
         ringChime(Math.min(8, ringCount));
         for (let k = 0; k < 14; k++) {
@@ -437,12 +448,20 @@
   draw(0);
   requestAnimationFrame(loop);
 
+
+  const towButton = document.createElement('button'); towButton.type = 'button'; towButton.className = 'btn';
+  function updateTow() { towButton.textContent = towReady ? 'Pull line · X' : 'Charge: fly a ring'; towButton.disabled = !towReady; }
+  function pullLine() { if (state === 'play' && towReady) { towReady = false; towTime = .48; updateTow(); tone(460,.1,'triangle',.05,700); } }
+  towButton.onclick = pullLine; ringsEl.parentElement.after(towButton); updateTow();
+  window.addEventListener('keydown', e => { if (!e.repeat && e.code === 'KeyX') pullLine(); });
+
   // Report native gameplay state to the optional mission engine.
   window.__arcadeMissionSource = Object.assign({"id":99,"label":"Kite rings reached","goals":[3,8,15],"note":"Thread rings through wind gusts while avoiding birds."}, { read: () => { return (ringCount); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

@@ -138,7 +138,7 @@ async function testMedal(context, origin) {
 }
 
 async function testMobile(browser, origin) {
-  const context = await browser.newContext({viewport:{width:390,height:844}, isMobile:true, hasTouch:true, reducedMotion:'reduce'});
+  const context = await browser.newContext({viewport:{width:390,height:844}, isMobile:true, hasTouch:true, reducedMotion:'reduce', colorScheme:'dark'});
   try {
     const page = await context.newPage();
     await page.goto(origin,{waitUntil:'domcontentloaded'});
@@ -153,10 +153,13 @@ async function testMobile(browser, origin) {
       'search should leave a relevant result');
     await page.locator('#allGrid a[data-game-id="2"]').tap();
     await page.locator('#playerOverlay[open]').waitFor();
-    const classic = page.locator('#classicModeBtn'), trial = page.locator('#trialModeBtn');
-    assert.equal(await classic.getAttribute('aria-pressed'),'true');
+    const classic = page.locator('#classicModeBtn'), trial = page.locator('#trialModeBtn'), plus = page.locator('#plusModeBtn');
     const frame = page.locator('#playerFrame'), game = page.frameLocator('#playerFrame');
-    assert.doesNotMatch(await frame.getAttribute('src'),/mode=trial/);
+    assert.equal(await plus.getAttribute('aria-pressed'),'true');
+    assert.match(await frame.getAttribute('src'),/mode=plus/);
+    await classic.tap();
+    assert.equal(await classic.getAttribute('aria-pressed'),'true');
+    assert.doesNotMatch(await frame.getAttribute('src'),/mode=(?:trial|plus)/);
     await trial.tap();
     assert.equal(await trial.getAttribute('aria-pressed'),'true');
     assert.match(await frame.getAttribute('src'),/mode=trial/);

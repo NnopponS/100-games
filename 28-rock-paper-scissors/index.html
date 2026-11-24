@@ -2,7 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Rock Paper Scissors — First to 5</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -218,6 +224,9 @@
   #matchRecord b { color: #ffd166; }
   .kbd { margin-top: 8px; font-size: .68rem; color: #4a5578; letter-spacing: .2em; text-transform: uppercase; }
 </style>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
   <h1>ROCK &middot; PAPER &middot; SCISSORS</h1>
@@ -271,7 +280,9 @@
     scissors: '<svg viewBox="0 0 64 64" fill="none"><g fill="currentColor"><rect x="24" y="4" width="8" height="26" rx="4" transform="rotate(-14 28 17)"/><rect x="36" y="4" width="8" height="26" rx="4" transform="rotate(14 40 17)"/><path d="M16 30 Q16 24 24 24 L40 24 Q50 24 50 34 L50 46 Q50 58 38 58 L28 58 Q16 58 16 46 Z"/><circle cx="20" cy="27" r="4.6"/><circle cx="14" cy="34" r="4"/></g><path d="M23 40 H45 M23 47 H42" stroke="rgba(0,0,0,0.25)" stroke-width="2.2" stroke-linecap="round"/></svg>'
   };
   var BEATS = { rock: 'scissors', paper: 'rock', scissors: 'paper' };
-  var WIN_SCORE = 5;
+const arcadePlus = (new URLSearchParams(location.search).get('mode') === 'plus');
+  var WIN_SCORE = arcadePlus ? 8 : 5;
+  var recentChoices=[];
 
   var playerScoreEl = document.getElementById('playerScore');
   var aiScoreEl     = document.getElementById('aiScore');
@@ -294,7 +305,7 @@
   var gameOver = false;
   var timers = [];
   var record = { w: 0, l: 0 };
-  try { Object.assign(record, JSON.parse(localStorage.getItem('rps_record') || '{}')); } catch (e) {}
+  try { Object.assign(record, JSON.parse(localStorage.getItem(('rps_record' + (new URLSearchParams(location.search).get('mode')==='plus'?'_plus':''))) || '{}')); } catch (e) {}
 
   // ---------- Procedural SFX ----------
   var SFX = (function () {
@@ -403,6 +414,11 @@
 
     var options = ['rock', 'paper', 'scissors'];
     var aiChoice = options[Math.floor(Math.random() * 3)];
+    if(arcadePlus && recentChoices.length>=2 && Math.random()<.76){
+      var lead=options.slice().sort((a,b)=>recentChoices.filter(x=>x===b).length-recentChoices.filter(x=>x===a).length)[0];
+      aiChoice=options.find(x=>BEATS[x]===lead);
+    }
+    recentChoices.push(playerChoice); if(recentChoices.length>6)recentChoices.shift();
 
     playerIcon.innerHTML = ICONS[playerChoice];
     aiIcon.innerHTML = ICONS[aiChoice];
@@ -438,7 +454,7 @@
     gameOver = true;
     var won = playerScore >= WIN_SCORE;
     if (won) { record.w++; SFX.matchWin(); } else { record.l++; SFX.matchLose(); }
-    localStorage.setItem('rps_record', JSON.stringify(record));
+    localStorage.setItem(('rps_record' + (new URLSearchParams(location.search).get('mode')==='plus'?'_plus':'')), JSON.stringify(record));
     renderRecord();
     setResult(won ? 'YOU WIN THE MATCH ' + playerScore + '–' + aiScore + '!'
                   : 'AI TAKES THE MATCH ' + aiScore + '–' + playerScore + '.',
@@ -449,6 +465,7 @@
   }
 
   function restart() {
+    recentChoices=[];
     clearTimers();
     playerScore = 0;
     aiScore = 0;
@@ -490,12 +507,14 @@
   resetHands();
   renderRecord();
 
+  window.__arcadeNativeUpgrade = {"id": 28, "name": "Pattern Duel", "description": "the AI notices repeated choices and tends to counter your most frequent move across the last six rounds. First to eight."};
   // Report native gameplay state to the optional mission engine.
   window.__arcadeMissionSource = Object.assign({"id":28,"label":"Round wins","goals":[2,4,5],"note":"Win rounds against the AI. Ties award no progress."}, { read: () => { return (playerScore || 0); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

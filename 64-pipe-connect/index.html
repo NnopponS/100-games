@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Pipe Connect</title>
 <style>
@@ -60,6 +66,11 @@ button.active{background:linear-gradient(180deg,#1d6f95,#155a7d);border-color:#4
 @keyframes blink{50%{opacity:.6}}
 .hidden{display:none!important}
 </style>
+
+<script>window.__arcadeNativeUpgrade = {"id": 64, "name": "Braided Circuit", "description": "Generated layouts have extra connected loops, so more junctions and alternate routes must be rotated into place."}; const arcadeVariant = new URLSearchParams(location.search).get("mode") === "plus" || new URLSearchParams(location.search).get("plus") === "1";</script>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 <h1>PIPE CONNECT</h1>
@@ -158,6 +169,17 @@ function generate(){
     cells[idx(e[2],e[3])].base[(e[4]+2)%4]=true;
     inTree[idx(e[2],e[3])]=true;inCount++;
     pushEdges(e[2],e[3]);
+  }
+  if (arcadeVariant) {
+    var branches=[];
+    for (let r=0;r<size;r++) for (let c=0;c<size;c++) for (let d=1;d<=2;d++) {
+      let nr=r+DIRS[d][0],nc=c+DIRS[d][1];
+      if(nr<size&&nc<size&&!cells[idx(r,c)].base[d]) branches.push([r,c,nr,nc,d]);
+    }
+    for (let k=0;k<Math.floor(size*1.4)&&branches.length;k++) {
+      const [r,c,nr,nc,d]=branches.splice(Math.floor(Math.random()*branches.length),1)[0];
+      cells[idx(r,c)].base[d]=true; cells[idx(nr,nc)].base[(d+2)%4]=true;
+    }
   }
 }
 
@@ -312,7 +334,8 @@ newGame(7);
   window.__arcadeMissionSource = Object.assign({"id":64,"label":"Tiles powered (%)","goals":[35,65,100],"note":"Rotate pipes so more tiles connect to the power source. The goal adapts to board size.","seconds":240}, { read: () => { const __arcadeNumber = id => parseFloat(document.getElementById(id)?.textContent?.match(/-?\d+(?:\.\d+)?/)?.[0] || '0'); return (100 * __arcadeNumber('litN') / (size * size)); } });
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

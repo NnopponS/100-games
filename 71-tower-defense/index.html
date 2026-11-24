@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Tower Defense Lite</title>
 <style>
@@ -161,6 +167,9 @@
     .tinfo{width:150px;font-size:10.5px}
   }
 </style>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 <div class="app">
@@ -659,6 +668,7 @@
     });
   }
 
+  let siegeWaves = false;
   function startWave() {
     if (G.mode !== 'prep') return;
     const bonus = Math.floor(G.cool) * 2;
@@ -673,6 +683,10 @@
       const g = groups[i];
       const start = g.at || 0;
       for (let k = 0; k < g.n; k++) events.push({ t: start + k * g.gap, type: g.t });
+    }
+    if (siegeWaves && G.wave % 4 === 0 && events.length) {
+      const lastEvent = events.reduce((last, event) => event.t > last.t ? event : last);
+      events.push({t: lastEvent.t + 0.7, type: lastEvent.type}, {t: lastEvent.t + 1.4, type: lastEvent.type});
     }
     events.sort(function (a, b) { return a.t - b.t; });
     G.queue = events;
@@ -787,8 +801,9 @@
         if (!e.alive) continue;
         const dx = e.x - t.x, dy = e.y - t.y;
         const rr = s.range + e.r * 0.6;
-        if (dx * dx + dy * dy <= rr * rr && e.dist > best) {
-          best = e.dist;
+        const priority = t.type === "arrow" ? e.dist + (e.hp < s.dmg ? s.range * 0.58 : 0) : t.type === "frost" ? e.dist + (e.slow <= 0 ? s.range * 0.55 : 0) : e.dist;
+        if (dx * dx + dy * dy <= rr * rr && priority > best) {
+          best = priority;
           target = e;
         }
       }
@@ -1591,12 +1606,20 @@
 
   boot();
 
+
+  const siegeButton = document.createElement('button');
+  siegeButton.type = 'button'; siegeButton.className = 'act'; siegeButton.textContent = 'Siege off'; siegeButton.setAttribute('aria-pressed', 'false');
+  siegeButton.title = 'Add two reinforcements every fourth wave';
+  siegeButton.onclick = () => { siegeWaves = !siegeWaves; siegeButton.textContent = siegeWaves ? 'Siege on' : 'Siege off'; siegeButton.setAttribute('aria-pressed', String(siegeWaves)); };
+  document.getElementById('speedBtn').after(siegeButton);
+
   // Report native gameplay state to the optional mission engine.
   window.__arcadeMissionSource = Object.assign({"id":71,"label":"Waves cleared","goals":[2,4,7],"note":"Complete waves, not just deploy them. Upgrade where the path loops.","seconds":550}, { read: () => { return (G ? G.wave - (G.mode === 'wave' || G.mode === 'over' ? 1 : 0) : 0); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

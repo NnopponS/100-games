@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>Checkers vs AI</title>
 <style>
@@ -150,6 +156,11 @@ window.__gsfx = (function(){
   return api;
 })();
 </script>
+
+<script>window.__arcadeNativeUpgrade = {"id": 37, "name": "Reverse Captures", "description": "Uncrowned pieces jump backward as well as forward, so multi-capture chains have more routes."}; const arcadeVariant = new URLSearchParams(location.search).get("mode") === "plus" || new URLSearchParams(location.search).get("plus") === "1";</script>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
   <div class="app">
@@ -200,7 +211,7 @@ function cloneBoard(bd){ return bd.map(row => row.slice()); }
 function pieceCaptures(bd, r, c){
   const v = bd[r][c], out = [];
   const foe = isRed(v) ? isBlk : isRed;
-  for (const [dr,dc] of dirsFor(v)){
+  for (const [dr,dc] of (arcadeVariant ? KING_DIRS : dirsFor(v))){
     const r1=r+dr, c1=c+dc, r2=r+2*dr, c2=c+2*dc;
     if (inB(r2,c2) && bd[r2][c2]===EMPTY && foe(bd[r1][c1])){
       out.push({to:[r2,c2], cap:[r1,c1]});
@@ -467,7 +478,8 @@ newGame();
   window.__arcadeMissionSource = Object.assign({"id":37,"label":"CPU pieces captured","goals":[3,7,11],"note":"Capture the AI’s pieces; jumping and chained captures accelerate progress.","seconds":420}, { read: () => { return (12 - board.flat().filter(isBlk).length); } });
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

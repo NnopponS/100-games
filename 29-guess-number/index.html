@@ -2,7 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Guess the Number</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -170,6 +176,9 @@ window.__gsfx = (function(){
   return api;
 })();
 </script>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 <h1>Guess the Number</h1>
@@ -192,6 +201,7 @@ window.__gsfx = (function(){
   'use strict';
 
   var MAX_TRIES = 10;
+const arcadePlus = (new URLSearchParams(location.search).get('mode') === 'plus');
   var RANGE_MIN = 1, RANGE_MAX = 100;
 
   var target, triesLeft, guesses, gameOver;
@@ -205,14 +215,15 @@ window.__gsfx = (function(){
   var tempFill = document.getElementById('tempFill');
   var bestEl = document.getElementById('best');
   var best = 0;
-  try { best = +localStorage.getItem('gn_best') || 0; } catch (e) {}
+  try { best = +localStorage.getItem(('gn_best' + (new URLSearchParams(location.search).get('mode')==='plus'?'_plus':''))) || 0; } catch (e) {}
   function showBest() {
     bestEl.innerHTML = best ? 'FEWEST GUESSES: <b style="color:#ffd166">' + best + '</b>' : '';
   }
 
   function newGame() {
     target = Math.floor(Math.random() * (RANGE_MAX - RANGE_MIN + 1)) + RANGE_MIN;
-    triesLeft = MAX_TRIES;
+    triesLeft = arcadePlus ? 10 : MAX_TRIES;
+    if(scanner)scanner.disabled=false;
     guesses = [];
     gameOver = false;
     input.disabled = false;
@@ -220,7 +231,7 @@ window.__gsfx = (function(){
     input.value = '';
     historyEl.innerHTML = '';
     tempFill.style.width = '0%';
-    hintEl.innerHTML = 'Make your first guess!';
+    hintEl.innerHTML = arcadePlus ? 'No direction arrows. Compare warmth or use your one scan.' : 'Make your first guess!';
     restartBtn.classList.remove('visible');
     updateTries();
     showBest();
@@ -269,7 +280,7 @@ window.__gsfx = (function(){
       var extra = '';
       if (!best || n < best) {
         best = n;
-        try { localStorage.setItem('gn_best', best); } catch (e) {}
+        try { localStorage.setItem(('gn_best' + (new URLSearchParams(location.search).get('mode')==='plus'?'_plus':'')), best); } catch (e) {}
         extra = ' NEW BEST!';
         showBest();
       }
@@ -319,7 +330,7 @@ window.__gsfx = (function(){
     } else {
       var dir = guess < target ? 'Go higher' : 'Go lower';
       hintEl.innerHTML = tier.label + trendFor(distance) + '!' +
-        '<span class="dir">' + dir + ' &mdash; ' + triesLeft +
+        '<span class="dir">' + (arcadePlus ? 'Direction hidden' : dir) + ' &mdash; ' + triesLeft +
         (triesLeft === 1 ? ' guess' : ' guesses') + ' left.</span>';
     }
 
@@ -327,6 +338,18 @@ window.__gsfx = (function(){
     input.focus();
   }
 
+  var scanner=null;
+  if(arcadePlus){
+    scanner=document.createElement('button');scanner.type='button';scanner.textContent='Scan neighborhood';
+    scanner.style.cssText='padding:6px 9px;border-radius:7px;min-height:36px;margin:5px';
+    guessBtn.insertAdjacentElement('afterend',scanner);
+    scanner.onclick=()=>{
+      if(gameOver||!guesses.length)return;
+      const bucket=Math.floor((target-1)/20)*20+1;
+      hintEl.textContent='Scan: the number is in '+bucket+'–'+(bucket+19)+'.';
+      scanner.disabled=true;
+    };
+  }
   guessBtn.addEventListener('click', submitGuess);
   restartBtn.addEventListener('click', newGame);
   input.addEventListener('keydown', function (e) {
@@ -335,12 +358,14 @@ window.__gsfx = (function(){
 
   newGame();
 
+  window.__arcadeNativeUpgrade = {"id": 29, "name": "Blind Search", "description": "higher/lower hints are removed; use relative warmer/colder feedback and a one-use neighborhood scanner. Ten guesses."};
   // Report native gameplay state to the optional mission engine.
   window.__arcadeMissionSource = Object.assign({"id":29,"label":"Guesses to find the number","goals":[8,6,4],"note":"Use hotter/colder and higher/lower clues to find the exact number.","kind":"lower"}, { read: () => { return (gameOver && guesses.at(-1)?.distance === 0 ? guesses.length : Infinity); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

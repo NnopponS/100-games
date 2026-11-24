@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
 <title>Archery</title>
 <style>
@@ -10,6 +16,11 @@
   .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
   canvas{width:100%;display:block;border-radius:12px;box-shadow:0 18px 60px rgba(0,0,0,.5);touch-action:none;cursor:crosshair}
 </style>
+
+<script>window.__arcadeNativeUpgrade = {"id": 46, "name": "Gust Field", "description": "An alternating sideways gust bends arrows mid-flight. Time the release and aim into the wind."}; const arcadeVariant = new URLSearchParams(location.search).get("mode") === "plus" || new URLSearchParams(location.search).get("plus") === "1";</script>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 <div id="wrap"><canvas id="c" width="960" height="540"></canvas><div id="aaa-score" class="sr">0</div></div>
@@ -132,7 +143,7 @@ function update(dt){
 
   if(phase === 'fly' && arrow){
     arrow.vy += GRAV * dt;
-    arrow.vx += windAcc * dt;
+    arrow.vx += (windAcc + (arcadeVariant ? Math.sin(now * .0055) * 290 : 0)) * dt;
     arrow.vy += Math.sin(now * 0.006 + wind * 1.7) * Math.abs(wind) * 4 * dt;
     const px = arrow.x, py = arrow.y;
     arrow.x += arrow.vx * dt;
@@ -429,7 +440,8 @@ requestAnimationFrame(frame);
   window.__arcadeMissionSource = Object.assign({"id":46,"label":"Archery points","goals":[20,42,65],"note":"Adjust for wind and dial in power. Better target rings award more points."}, { read: () => { return (total || 0); } });
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

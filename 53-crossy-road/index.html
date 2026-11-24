@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Crossy Road</title>
 <style>
@@ -21,6 +27,11 @@
   .card button{margin-top:14px;font-size:17px;font-weight:800;padding:11px 28px;border:0;border-radius:10px;background:linear-gradient(160deg,#6ad45c,#3f9a34);color:#0d2410;cursor:pointer;box-shadow:0 8px 22px rgba(90,200,80,.3),inset 0 1px 0 rgba(255,255,255,.3);transition:transform .12s,filter .12s;}
   .card button:hover{filter:brightness(1.1);transform:translateY(-1px);}
 </style>
+
+<script>window.__arcadeNativeUpgrade = {"id": 53, "name": "River Route", "description": "A separate fixed route adds more water crossings, broken up by reliable grass rest lanes."}; const arcadeVariant = new URLSearchParams(location.search).get("mode") === "plus" || new URLSearchParams(location.search).get("plus") === "1";</script>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 <canvas id="c"></canvas>
@@ -74,11 +85,12 @@ function hash01(a,b){
 // Deterministic lane layout per row index
 function laneInfo(i){
   if(i < 2) return {type:'grass'};
-  const r = rng(i*7919 + 13);
+  if (arcadeVariant && i % 8 === 0) return {type:'grass'};
+  const r = rng(i*7919 + (arcadeVariant ? 934929 : 13));
   const roll = r();
   const diff = Math.min(1, i/80);
   if(roll < 0.30) return {type:'grass'};
-  if(roll < 0.72){
+  if(roll < (arcadeVariant ? .58 : .72)){
     return {type:'road', dir:r()<0.5?1:-1, speed:2.2 + r()*2.6 + diff*2.4,
             len:r()<0.6?1.2:2.2, gap:Math.max(2.6, 3.5 + r()*3.5 - diff*1.4), phase:r()*10};
   }
@@ -86,7 +98,7 @@ function laneInfo(i){
           len:2.2 + r()*1.6, gap:Math.max(3.0, 4 + r()*3 - diff*1.2), phase:r()*10};
 }
 function isBlocked(i,c){
-  if(i < 2 || laneInfo(i).type !== 'grass') return false;
+  if(i < 2 || (arcadeVariant && i%8===0) || laneInfo(i).type !== 'grass') return false;
   return hash01(i*97+11, c*57+5) < 0.30;
 }
 
@@ -419,7 +431,8 @@ requestAnimationFrame(function frame(t){
   window.__arcadeMissionSource = Object.assign({"id":53,"label":"Rows crossed","goals":[12,25,45],"note":"Keep moving forward and time your crossings."}, { read: () => { return (score); } });
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

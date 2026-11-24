@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Etch A Sketch</title>
 <style>
@@ -151,6 +157,9 @@
     border: 1px solid rgba(255,255,255,.2);
   }
 </style>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 <div class="toy" id="toy">
@@ -370,7 +379,7 @@
   });
   document.getElementById('clearBtn').addEventListener('click', clearScreen);
 
-  var whirAcc = 0, __arcadeDrawn = 0;
+  var whirAcc = 0, __arcadeDrawn = 0, penDown = true;
   var last = performance.now();
   function frame(now) {
     var dt = Math.min(0.05, (now - last) / 1000);
@@ -395,17 +404,14 @@
         nx = Math.max(2, Math.min(W - 2, nx));
         ny = Math.max(2, Math.min(H - 2, ny));
         if (nx !== x || ny !== y) {
-          actx.beginPath();
-          actx.moveTo(x, y);
-          actx.lineTo(nx, ny);
-          actx.stroke();
+          if (penDown) { actx.beginPath(); actx.moveTo(x, y); actx.lineTo(nx, ny); actx.stroke(); }
           rotL += (nx - x) * 0.06;
           rotR += (ny - y) * 0.06;
           knobL.style.transform = 'rotate(' + rotL + 'rad)';
           knobR.style.transform = 'rotate(' + rotR + 'rad)';
           var moved = Math.hypot(nx - x, ny - y);
           whirAcc += moved;
-          __arcadeDrawn += moved;
+          if (penDown) __arcadeDrawn += moved;
           if (whirAcc > 7) { whirAcc = 0; Sfx.whir(moved / dt); }
           x = nx; y = ny;
         }
@@ -430,12 +436,21 @@
   }
   requestAnimationFrame(frame);
 
+
+  var penButton = document.createElement('button'); penButton.type = 'button';
+  penButton.className = document.getElementById('clearBtn').className;
+  function pressPen() { penDown = !penDown; penButton.textContent = penDown ? 'Lift pen' : 'Lower pen'; penButton.setAttribute('aria-pressed', String(!penDown)); }
+  penButton.textContent = 'Lift pen'; penButton.setAttribute('aria-pressed', 'false');
+  penButton.onclick = pressPen; document.getElementById('clearBtn').before(penButton);
+  window.addEventListener('keydown', function(e) { if (!e.repeat && e.code === 'KeyL') pressPen(); });
+
   // Report native gameplay state to the optional mission engine.
   window.__arcadeMissionSource = Object.assign({"id":69,"label":"Length drawn (px)","goals":[150,450,900],"note":"Turn the two knobs to trace a continuous design. Only the drawn line counts.","seconds":180}, { read: () => { return (__arcadeDrawn); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

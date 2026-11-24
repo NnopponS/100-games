@@ -2,7 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Sudoku</title>
 <style>
   :root {
@@ -176,6 +182,9 @@ window.__gsfx = (function(){
   return api;
 })();
 </script>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 <div id="app">
@@ -425,7 +434,11 @@ window.__gsfx = (function(){
     }, 1000);
   }
 
+const arcadePlus = (new URLSearchParams(location.search).get('mode') === 'plus');
+  let auditTokens=2;
+  const auditButton=document.getElementById('checkBtn');
   function newGame() {
+    auditTokens=2; if(arcadePlus){auditButton.disabled=false;auditButton.textContent='Audit (2)';}
     const target = parseInt(document.getElementById("diff").value, 10);
     msg("Generating...", "");
     overlayEl.classList.remove("show");
@@ -462,7 +475,14 @@ window.__gsfx = (function(){
     board[selected] = v;
     notes[selected].clear();
     const wrongNow = v !== solution[selected];
-    if (wrongNow) mistakes++;
+    if (wrongNow) {
+      mistakes++;
+      if(arcadePlus && mistakes>=3){
+        finished=true;clearInterval(timerId);auditButton.disabled=true;render();
+        msg('Three strikes. Restart for a new board.','err'); if(window.__gsfx)__gsfx.bad();return;
+      }
+      if(arcadePlus)msg((3-mistakes)+' strikes left.','err');
+    }
     if (window.__gsfx) {
       if (wrongNow) __gsfx.bad();
       else { __gsfx.good(); if (peersConflict(selected) === false && board.filter((x, i) => i !== selected && x === v).length === 8) __gsfx.ding(); }
@@ -486,12 +506,12 @@ window.__gsfx = (function(){
     finished = true;
     const diffKey = document.getElementById("diff").value;
     let bests = {};
-    try { bests = JSON.parse(localStorage.getItem("sd_best") || "{}"); } catch (e) {}
+    try { bests = JSON.parse(localStorage.getItem(('sd_best' + (new URLSearchParams(location.search).get('mode')==='plus'?'_plus':''))) || "{}"); } catch (e) {}
     let rec = "";
     if (!bests[diffKey] || seconds < bests[diffKey]) {
       bests[diffKey] = seconds;
       rec = "  ·  NEW BEST!";
-      try { localStorage.setItem("sd_best", JSON.stringify(bests)); } catch (e) {}
+      try { localStorage.setItem(('sd_best' + (new URLSearchParams(location.search).get('mode')==='plus'?'_plus':'')), JSON.stringify(bests)); } catch (e) {}
     }
     winStatsEl.textContent =
       "Time " + fmt(seconds) + "  ·  Mistakes " + mistakes + "  ·  " +
@@ -502,7 +522,10 @@ window.__gsfx = (function(){
   }
 
   function checkBoard() {
-    if (finished) return;
+    if (finished || (arcadePlus && !auditTokens)) return;
+    if(arcadePlus){
+      auditTokens--;auditButton.disabled=!auditTokens;auditButton.textContent='Audit ('+auditTokens+')';
+    }
     let wrong = 0, empty = 0;
     cells.forEach(c => c.classList.remove("flash", "hint"));
     for (let i = 0; i < 81; i++) {
@@ -547,12 +570,14 @@ window.__gsfx = (function(){
 
   newGame();
 
+  window.__arcadeNativeUpgrade = {"id": 33, "name": "Three Strikes Sudoku", "description": "three incorrect entries end the board; checking spends one of two audit tokens. Candidate notes still work."};
   // Report native gameplay state to the optional mission engine.
   window.__arcadeMissionSource = Object.assign({"id":33,"label":"Blank cells solved %","goals":[30,65,100],"note":"Fill the original blanks correctly. Clue cells and wrong guesses do not count.","seconds":420}, { read: () => { return (board && givens ? Math.floor(100 * board.filter((v,i) => !givens.has(i) && v === solution[i]).length / (81 - givens.size)) : 0); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

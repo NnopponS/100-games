@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Ice Breaker</title>
 <style>
@@ -87,6 +93,9 @@
   .btn.ghost:hover { background: rgba(140,215,255,.16); }
   .btn.ghost:active { transform: translateY(2px); box-shadow: none; }
 </style>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 <canvas id="game"></canvas>
@@ -627,7 +636,9 @@
     return b;
   }
 
+  var lastCrack = null, refreezes = 1, freezeButton;
   function loadLevel(idx) {
+    lastCrack = null; refreezes = 1; updateFreeze();
     G.level = clamp(idx, 0, LEVELS.length - 1);
     var def = LEVELS[G.level];
 
@@ -855,11 +866,12 @@
     }
     if (b.type === "target" || b.type === "spike") return;
     if (b.crackT > 0) return;
-    b.crackT = 0.17;
+    b.crackT = .52; lastCrack = b; updateFreeze();
     sfx.crack();
   }
 
   function shatterBlock(b) {
+    if (lastCrack === b) { lastCrack = null; updateFreeze(); }
     b.alive = false;
     b.crackT = 0;
     sfx.shatter();
@@ -1979,12 +1991,21 @@
   showMenu();
   requestAnimationFrame(loop);
 
+
+  freezeButton = document.createElement('button'); freezeButton.type = 'button'; freezeButton.textContent = 'Refreeze (1) · Z';
+  freezeButton.style.cssText = 'position:fixed;top:12px;left:12px;z-index:4;padding:.5rem .65rem';
+  function updateFreeze() { if (freezeButton) { freezeButton.disabled = !lastCrack || !lastCrack.alive || !refreezes; freezeButton.textContent = refreezes ? 'Refreeze (1) · Z' : 'Refreeze used'; } }
+  function refreeze() { if (G.state !== "play" || !lastCrack || !lastCrack.alive || !refreezes) return; lastCrack.crackT = 0; refreezes--; lastCrack = null; freezeButton.textContent = 'Refreeze used'; updateFreeze(); }
+  freezeButton.onclick = refreeze; canvas.after(freezeButton); updateFreeze();
+  window.addEventListener('keydown', function(e) { if (!e.repeat && e.code === 'KeyZ') refreeze(); });
+
   // Report native gameplay state to the optional mission engine.
   window.__arcadeMissionSource = Object.assign({"id":90,"label":"Ice Breaker points","goals":[200,600,1300],"note":"Collect gems, then plan which ice blocks to break on the way to the exit.","seconds":300}, { read: () => { return (G.score); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

@@ -2,7 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Battleship vs AI</title>
 <style>
   :root {
@@ -251,6 +257,9 @@ window.__gsfx = (function(){
   return api;
 })();
 </script>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
   <div id="bg3d"><div class="w1"></div><div class="w2"></div></div>
@@ -305,6 +314,7 @@ const FLEET = [
 
 // ---- State ----
 // cell values: 0 = water, shipId (1..5) = ship present
+const arcadePlus = (new URLSearchParams(location.search).get('mode') === 'plus');
 let playerBoard, enemyBoard;          // 10x10 arrays of ints
 let playerShots, enemyShots;          // 10x10 arrays: null | 'hit' | 'miss'
 let playerShips, enemyShips;          // [{name,len,cells:[[r,c]],hits,placed,sunk}]
@@ -314,11 +324,17 @@ let placeIndex = 0;                   // next ship to place (index into FLEET)
 let playerTurn = true;
 let lastShot = null;                  // {board:'player'|'enemy', r, c}
 let aiHunt = [];                      // candidate cells for target mode
-let gameOver = false;
+let gameOver = false, scanning=false, scanUsed=false;
 
 const $ = id => document.getElementById(id);
 const playerGridEl = $("player-grid");
 const enemyGridEl = $("enemy-grid");
+let sonarButton=null;
+if (arcadePlus) {
+  sonarButton=document.createElement('button');sonarButton.type='button';sonarButton.textContent='Sonar ×1';sonarButton.hidden=true;
+  $("btn-restart").insertAdjacentElement('afterend',sonarButton);
+  sonarButton.onclick=()=>{if(phase==='battle'&&playerTurn&&!scanUsed){scanning=!scanning;sonarButton.setAttribute('aria-pressed',String(scanning));setStatus(scanning?'Choose a 3×3 scan center on the enemy map.':'Select a target.','info');}};
+}
 const statusEl = $("status");
 
 function emptyBoard() { return Array.from({length: SIZE}, () => Array(SIZE).fill(0)); }
@@ -333,6 +349,7 @@ function newShips() {
 
 // ---- Setup ----
 function initGame() {
+  scanning=false;scanUsed=false;if(sonarButton){sonarButton.hidden=true;sonarButton.disabled=false;sonarButton.setAttribute('aria-pressed','false');}
   playerBoard = emptyBoard();
   enemyBoard = emptyBoard();
   playerShots = emptyShots();
@@ -535,6 +552,7 @@ $("btn-start").addEventListener("click", () => {
   $("btn-random").style.display = "none";
   $("btn-start").style.display = "none";
   $("btn-restart").style.display = "";
+  if(sonarButton)sonarButton.hidden=false;
   setStatus("Your turn — fire at Enemy Waters!", "info");
   if (window.__gsfx) __gsfx.ding();
   render();
@@ -555,6 +573,14 @@ function findShip(ships, board, r, c) {
 }
 
 function playerFire(r, c) {
+  if(arcadePlus && scanning && !scanUsed){
+    let pieces=0;
+    for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
+      if(enemyBoard[r+dy]?.[c+dx]&&!playerShots[r+dy]?.[c+dx])pieces++;
+    }
+    scanUsed=true;scanning=false;sonarButton.disabled=true;sonarButton.setAttribute('aria-pressed','false');
+    setStatus('Sonar: '+pieces+' unhit hull '+(pieces===1?'section':'sections')+' in that area. Fire when ready.','good');if(window.__gsfx)__gsfx.sonar();return;
+  }
   const ship = findShip(enemyShips, enemyBoard, r, c);
   playerShots[r][c] = ship ? "hit" : "miss";
   lastShot = { grid: enemyGridEl, r, c };
@@ -575,6 +601,7 @@ function playerFire(r, c) {
     if (window.__gsfx) __gsfx.splash();
   }
   render();
+  if (arcadePlus && ship) return;
   playerTurn = false;
   setTimeout(aiFire, 600);
 }
@@ -634,7 +661,7 @@ function endGame(won) {
   if (window.__gsfx) { won ? __gsfx.win() : __gsfx.lose(); }
   if (won) {
     let w = 0;
-    try { w = (+localStorage.getItem("bs_wins") || 0) + 1; localStorage.setItem("bs_wins", w); } catch (e) {}
+    try { w = (+localStorage.getItem(('bs_wins' + (new URLSearchParams(location.search).get('mode')==='plus'?'_plus':''))) || 0) + 1; localStorage.setItem(('bs_wins' + (new URLSearchParams(location.search).get('mode')==='plus'?'_plus':'')), w); } catch (e) {}
     $("wins").textContent = "Wins: " + w;
   }
   const t = $("overlay-title"), s = $("overlay-sub");
@@ -651,11 +678,13 @@ $("btn-overlay-restart").addEventListener("click", initGame);
 
 initGame();
 
+  window.__arcadeNativeUpgrade = {"id": 34, "name": "Sonar Tactics", "description": "use one non-damaging 3×3 scan per match; successful shots keep your firing turn, changing the attack strategy."};
   // Report native gameplay state to the optional mission engine.
   window.__arcadeMissionSource = Object.assign({"id":34,"label":"Enemy ships sunk","goals":[1,3,5],"note":"Sink distinct enemy ships; hits and misses do not count on their own.","seconds":420}, { read: () => { return (enemyShips?.filter(s => s.sunk).length || 0); } });
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

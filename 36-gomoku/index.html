@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Gomoku — Five in a Row</title>
 <style>
@@ -129,6 +135,11 @@ window.__gsfx = (function(){
   return api;
 })();
 </script>
+
+<script>window.__arcadeNativeUpgrade = {"id": 36, "name": "Fork Hunter", "description": "The AI searches for double threats before choosing its move."}; const arcadeVariant = new URLSearchParams(location.search).get("mode") === "plus" || new URLSearchParams(location.search).get("plus") === "1";</script>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 <div class="wrap">
@@ -379,6 +390,11 @@ window.__gsfx = (function(){
       var defend = cellScore(cell.r, cell.c, BLACK);
       // prioritize winning, then blocking opponent wins, then building
       var score = attack * 1.0 + defend * 1.15 + Math.random() * 2;
+      if (arcadeVariant) {
+        var aThreats = DIRS.filter(function(d){return lineScore(cell.r,cell.c,d[0],d[1],WHITE)>=8000;}).length;
+        var dThreats = DIRS.filter(function(d){return lineScore(cell.r,cell.c,d[0],d[1],BLACK)>=8000;}).length;
+        score += (aThreats > 1 ? 90000 : 0) + (dThreats > 1 ? 125000 : 0) + (attack >= 1000000 ? 4000000 : 0);
+      }
       if (score > bestScore) { bestScore = score; best = cell; }
     }
     return best;
@@ -477,7 +493,8 @@ window.__gsfx = (function(){
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

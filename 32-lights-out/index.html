@@ -2,7 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Lights Out</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -196,6 +202,9 @@ window.__gsfx = (function(){
   return api;
 })();
 </script>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 
@@ -225,13 +234,14 @@ window.__gsfx = (function(){
   var winOverlay = document.getElementById('win-overlay');
   var finalMovesEl = document.getElementById('final-moves');
 
+const arcadePlus = (new URLSearchParams(location.search).get('mode') === 'plus');
   var lights = [];  // 25 booleans, row-major
   var cells = [];
   var moves = 0;
   var gameOver = false;
   var level = 1, bestMoves = 0;
-  try { level = +localStorage.getItem('lo_level') || 1; } catch (e) {}
-  try { bestMoves = +localStorage.getItem('lo_best') || 0; } catch (e) {}
+  try { level = +localStorage.getItem(('lo_level' + (new URLSearchParams(location.search).get('mode')==='plus'?'_plus':''))) || 1; } catch (e) {}
+  try { bestMoves = +localStorage.getItem(('lo_best' + (new URLSearchParams(location.search).get('mode')==='plus'?'_plus':''))) || 0; } catch (e) {}
   document.getElementById('level-n').textContent = level;
 
   function idx(r, c) { return r * SIZE + c; }
@@ -244,6 +254,10 @@ window.__gsfx = (function(){
 
   function press(r, c) {
     toggleAt(r, c);
+    if(arcadePlus){
+      toggleAt(r-1,c-1);toggleAt(r-1,c+1);toggleAt(r+1,c-1);toggleAt(r+1,c+1);
+      return;
+    }
     toggleAt(r - 1, c);
     toggleAt(r + 1, c);
     toggleAt(r, c - 1);
@@ -263,6 +277,11 @@ window.__gsfx = (function(){
     return true;
   }
 
+  if(arcadePlus){
+    const explanation=document.createElement('p');explanation.style.cssText='text-align:center;font-size:.84rem;margin:6px';
+    explanation.textContent='X-Switch: cells toggle along diagonals.';
+    board.insertAdjacentElement('beforebegin',explanation);
+  }
   function newGame() {
     lights = [];
     for (var i = 0; i < SIZE * SIZE; i++) lights.push(false);
@@ -299,11 +318,11 @@ window.__gsfx = (function(){
       var rec = '';
       if (!bestMoves || moves < bestMoves) {
         bestMoves = moves;
-        try { localStorage.setItem('lo_best', bestMoves); } catch (e) {}
+        try { localStorage.setItem(('lo_best' + (new URLSearchParams(location.search).get('mode')==='plus'?'_plus':'')), bestMoves); } catch (e) {}
         rec = ' NEW BEST!';
       }
       level++;
-      try { localStorage.setItem('lo_level', level); } catch (e) {}
+      try { localStorage.setItem(('lo_level' + (new URLSearchParams(location.search).get('mode')==='plus'?'_plus':'')), level); } catch (e) {}
       document.getElementById('level-n').textContent = level;
       finalMovesEl.textContent = String(moves);
       document.getElementById('win-card').querySelector('p').innerHTML =
@@ -332,13 +351,15 @@ window.__gsfx = (function(){
 
   newGame();
 
+  window.__arcadeNativeUpgrade = {"id": 32, "name": "X-Switch", "description": "touching a light toggles diagonals instead of orthogonal neighbors. Generator uses the same rule, so puzzles stay solvable."};
   // Report native gameplay state to the optional mission engine.
   window.__arcadeMissionSource = Object.assign({"id":32,"label":"Switches to solve","goals":[24,17,12],"note":"Switch every tile off. Finishing in fewer moves earns a higher medal.","kind":"lower","seconds":420}, { read: () => { return (gameOver ? moves : Infinity); } });
 })();
 </script>
 
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

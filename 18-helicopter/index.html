@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Helicopter Cave Flyer</title>
 <style>
@@ -17,6 +23,9 @@
     -webkit-user-select: none;
   }
 </style>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 <canvas id="game"></canvas>
@@ -56,7 +65,7 @@ var particles = [];
 var caveCenter = 0, caveGap = 0, wobbleT = 0;
 var deadTimer = 0, shake = 0;
 
-try { best = parseInt(localStorage.getItem('heli_best') || '0', 10) || 0; } catch (e) { best = 0; }
+try { best = parseInt(localStorage.getItem(('heli_best' + (new URLSearchParams(location.search).get('mode')==='plus'?'_plus':''))) || '0', 10) || 0; } catch (e) { best = 0; }
 
 // ---------- Audio ----------
 var ACX = null;
@@ -183,11 +192,14 @@ function reset() {
   for (var x = -10; x < W + COL_W * 4; x += COL_W) genColumn();
 }
 
+const arcadePlus = (new URLSearchParams(location.search).get('mode') === 'plus');
 function genColumn() {
   wobbleT += 0.07;
   var drift = Math.sin(wobbleT * 0.9) * 3.2 + Math.sin(wobbleT * 2.7) * 1.4;
   caveCenter += drift + (Math.random() - 0.5) * 6;
-  var targetGap = Math.max(H * 0.16, Math.min(H * 0.42, 300) - scrollPx * 0.012);
+  var squeeze = arcadePlus ? (1 + Math.sin(wobbleT*.43))*H*.037 : 0;
+  if (arcadePlus) caveCenter += Math.cos(wobbleT*.68)*1.8;
+  var targetGap = Math.max(H * 0.16, Math.min(H * 0.42, 300) - scrollPx * 0.012 - squeeze);
   caveGap += (targetGap - caveGap) * 0.05;
   var pad = 30;
   var lo = pad + caveGap / 2, hi = H - pad - caveGap / 2;
@@ -255,7 +267,7 @@ function die() {
   }
   if (score > best) {
     best = score;
-    try { localStorage.setItem('heli_best', String(best)); } catch (e) {}
+    try { localStorage.setItem(('heli_best' + (new URLSearchParams(location.search).get('mode')==='plus'?'_plus':'')), String(best)); } catch (e) {}
   }
 }
 
@@ -501,11 +513,13 @@ function frame(now) {
 reset();
 requestAnimationFrame(frame);
 
+  window.__arcadeNativeUpgrade = {"id": 18, "name": "Pulse Caves", "description": "cave clearance tightens and opens periodically, making reading the route and conserving altitude more important."};
   // Report native gameplay state to the optional mission engine.
   window.__arcadeMissionSource = Object.assign({"id":18,"label":"Tunnel distance","goals":[15,40,80],"note":"Survive increasingly narrow terrain. Distance counts during the flight."}, { read: () => { return (score || 0); } });
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

@@ -2,12 +2,23 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Ski Slope</title>
 <style>
   html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #dfeaf4; }
   canvas { display: block; touch-action: none; cursor: pointer; }
 </style>
+
+<script>window.__arcadeNativeUpgrade = {"id": 43, "name": "Ice Slalom", "description": "Icy skis hold their speed longer, and alternating gusts push you sideways."}; const arcadeVariant = new URLSearchParams(location.search).get("mode") === "plus" || new URLSearchParams(location.search).get("plus") === "1";</script>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 <canvas id="game"></canvas>
@@ -133,7 +144,8 @@ function update(dt) {
   if (pointer.down) steer += clamp((pointer.x - player.x) / 90, -1, 1);
   steer = clamp(steer, -1, 1);
 
-  player.vx = clamp((player.vx + steer * 2400 * dt) * Math.exp(-5 * dt), -440, 440);
+  const gust = arcadeVariant ? Math.sin(dist / 32) * 410 : 0;
+  player.vx = clamp((player.vx + (steer * 2400 + gust) * dt) * Math.exp(-(arcadeVariant ? 3.05 : 5) * dt), -440, 440);
   player.x = clamp(player.x + player.vx * dt, 16, W - 16);
   if (player.x === 16 || player.x === W - 16) player.vx = 0;
   player.angle += ((player.vx / 440) * 0.5 - player.angle) * Math.min(1, dt * 10);
@@ -396,7 +408,8 @@ requestAnimationFrame(frame);
   window.__arcadeMissionSource = Object.assign({"id":43,"label":"Ski distance","goals":[55,125,230],"note":"Steer through the downhill course without crashing."}, { read: () => { return (Math.floor(dist || 0)); } });
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

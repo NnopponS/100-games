@@ -2,7 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Blackjack</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -205,6 +211,9 @@ window.__gsfx = (function(){
   return api;
 })();
 </script>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
   <h1>BLACKJACK</h1>
@@ -247,16 +256,17 @@ window.__gsfx = (function(){
 (function () {
   'use strict';
 
+const arcadePlus = (new URLSearchParams(location.search).get('mode') === 'plus');
   var START_BALANCE = 1000;
-  var DECKS = 4;
-  var RESHUFFLE_AT = 20;
+  var DECKS = arcadePlus ? 1 : 4;
+  var RESHUFFLE_AT = arcadePlus ? 12 : 20;
   var SUITS = ['\u2660', '\u2665', '\u2666', '\u2663'];
   var RANKS = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
 
   var shoe = [];
   var balance = START_BALANCE;
-  try { balance = +localStorage.getItem('bj_bank') || START_BALANCE; } catch (e) {}
-  function saveBank() { try { localStorage.setItem('bj_bank', balance); } catch (e) {} }
+  try { balance = +localStorage.getItem((arcadePlus ? 'bj_practice_bank' : 'bj_bank')) || START_BALANCE; } catch (e) {}
+  function saveBank() { try { localStorage.setItem((arcadePlus ? 'bj_practice_bank' : 'bj_bank'), balance); } catch (e) {} }
   var bet = 0;
   var player = [];
   var dealer = [];
@@ -342,7 +352,7 @@ window.__gsfx = (function(){
 
     $('balance').textContent = balance;
     $('bet').textContent = bet;
-    $('shoeInfo').textContent = 'Cards left in shoe: ' + shoe.length;
+    $('shoeInfo').textContent = (arcadePlus ? 'Practice · one deck · dealer hits soft 17 · ' : '') + 'Cards left: ' + shoe.length;
 
     var betting = (state === 'bet' || state === 'done');
     var playing = (state === 'play');
@@ -391,7 +401,10 @@ window.__gsfx = (function(){
   }
 
   function dealerPlay() {
-    if (handValue(dealer) < 17) {
+    const value = handValue(dealer);
+    const bestAsHard = dealer.reduce((sum,c)=>sum+(c.rank==='A'?1:c.v),0);
+    const soft17 = value===17 && bestAsHard===7 && dealer.some(c=>c.rank==='A');
+    if (value < 17 || (arcadePlus && soft17)) {
       dealer.push(drawCard());
       if (window.__gsfx) __gsfx.flip();
       render();
@@ -499,12 +512,14 @@ window.__gsfx = (function(){
   setMessage('Place your bet, then DEAL.');
   render();
 
+  window.__arcadeNativeUpgrade = {"id": 30, "name": "Single-Deck Practice", "description": "a separate virtual-chip balance, earlier reshuffles and dealer draws on soft 17. No real-money play."};
   // Report native gameplay state to the optional mission engine.
   window.__arcadeMissionSource = Object.assign({"id":30,"label":"Winning hand value","goals":[17,19,21],"note":"Win a completed hand with a higher total but never over 21. Simulated cards only; chip balance does not count.","seconds":420}, { read: () => { return (state === 'done' && player.length && dealer.length && (isBlackjack(player) ? !isBlackjack(dealer) : (!isBlackjack(dealer) && handValue(player) <= 21 && (handValue(dealer) > 21 || handValue(player) > handValue(dealer)))) ? handValue(player) : 0); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

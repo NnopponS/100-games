@@ -2,7 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Typing Racer</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -225,6 +231,9 @@
   .pb { margin-top: 12px; font-size: .76rem; color: #7d8aa8; letter-spacing: .12em; }
   .pb b { color: #ffd166; }
 </style>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
   <div class="card" id="card">
@@ -319,6 +328,7 @@
   var restartBtn = document.getElementById('restartBtn');
   var pbEl = document.getElementById('pb');
 
+const arcadePlus = (new URLSearchParams(location.search).get('mode') === 'plus');
   var target = '';
   var spans = [];
   var started = false;
@@ -329,7 +339,7 @@
   var correctKeystrokes = 0;
   var streak = 0, bestStreak = 0;
   var milestones = {};
-  var bestWpm = +(localStorage.getItem('tr_best') || 0);
+  var bestWpm = +(localStorage.getItem(('tr_best' + (new URLSearchParams(location.search).get('mode')==='plus'?'_plus':''))) || 0);
 
   // ---------- Procedural SFX ----------
   var SFX = (function () {
@@ -419,13 +429,26 @@
     accEl.textContent = acc + '%';
     timeEl.textContent = secs.toFixed(1) + 's';
     streakEl.textContent = streak;
+    if(ghost) ghost.style.left=(Math.min(.89,(secs*42*5/60)/Math.max(1,target.length)*.88)*100)+'%';
     for (var m of [25, 40, 60, 80, 100]) {
       if (wpm >= m && !milestones[m]) { milestones[m] = true; SFX.milestone(); }
     }
   }
 
+  var ghost = null;
+  if (arcadePlus) {
+    ghost=document.createElement('div');ghost.textContent='▸ 42 WPM';ghost.setAttribute('aria-label','42 words per minute pace guide');
+    ghost.style.cssText='position:absolute;top:4px;white-space:nowrap;color:#ffc86f;font-weight:750;font-size:11px;pointer-events:none;';
+    if(getComputedStyle(carEl.parentElement).position==='static') carEl.parentElement.style.position='relative';
+    carEl.parentElement.appendChild(ghost);
+    input.setAttribute('autocapitalize','off');
+    input.setAttribute('spellcheck','false');
+    input.addEventListener('paste',e=>e.preventDefault());
+  }
   function updateCar() {
-    var pct = target.length ? Math.min(input.value.length / target.length, 1) : 0;
+    var count=input.value.length;
+    if(arcadePlus){count=0; while(count<input.value.length && input.value[count]===target[count])count++;}
+    var pct = target.length ? Math.min(count / target.length, 1) : 0;
     carEl.style.left = (pct * 88) + '%';
   }
 
@@ -476,7 +499,7 @@
     var nr = document.getElementById('newrec');
     if (wpm > bestWpm && acc >= 85) {
       bestWpm = wpm;
-      localStorage.setItem('tr_best', bestWpm);
+      localStorage.setItem(('tr_best' + (new URLSearchParams(location.search).get('mode')==='plus'?'_plus':'')), bestWpm);
       nr.textContent = 'NEW PERSONAL BEST!';
       SFX.record();
       renderPb();
@@ -508,6 +531,7 @@
     timeEl.textContent = '0.0s';
     streakEl.textContent = '0';
     carEl.style.left = '0%';
+    if(ghost) ghost.style.left='0%';
     carEl.classList.remove('go');
     hintEl.classList.remove('hidden');
     resultsEl.classList.remove('show');
@@ -560,12 +584,14 @@
   target = pickSentence();
   renderSentence();
 
+  window.__arcadeNativeUpgrade = {"id": 27, "name": "Ghost Sprint", "description": "race a pace car set to 42 WPM, with forward progress based only on the uninterrupted correct prefix. Pasting is disabled in this mode."};
   // Report native gameplay state to the optional mission engine.
   window.__arcadeMissionSource = Object.assign({"id":27,"label":"Clean finish (WPM)","goals":[25,40,60],"note":"Finish the text at 90% accuracy or better before your speed qualifies."}, { read: () => { return (finished && keystrokes && correctKeystrokes / keystrokes >= 0.9 ? +(document.getElementById('finalWpm')?.textContent || 0) : 0); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>

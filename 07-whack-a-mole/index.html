@@ -2,7 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<!-- daylight:early -->
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f9ff">
+<script src="../assets/audio-lifecycle.js?v=daylight1"></script>
+<script src="../assets/stage-light.js?v=daylight1"></script>
+<!-- /daylight:early -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Whack-a-Mole</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -182,7 +188,23 @@
   }
   .box button:hover { transform: scale(1.05); }
   .box button:active { transform: translateY(2px); }
+  .mole:not(.up) { visibility:hidden; opacity:0; pointer-events:none }
+  .mole.up[data-type="armor"]::after { content:"2 HITS"; position:absolute; left:0; right:0; bottom:12%; background:#43147d; color:white; font:bold 10px/1.4 system-ui; text-align:center; border-radius:6px; }
+  .mole.up[data-type="armor"][data-cracked]::after {content:"1 HIT";background:#865219}
+  body {color-scheme:light;background:#edf7e7;color:#14271d;overflow-y:auto}
+  h1 span,#time,.hud .label {color:#2e6f43}
+  .hud .stat {background:#fff;border:1px solid #bfd9bf;box-shadow:none}
+  .miss-dot {background:#e1e9df;border-color:#a7bca8}
+  #grid {grid-template-columns:repeat(3,min(27vw,19dvh,134px));}
+  @media(orientation:portrait) and (max-width:650px) {
+    body {justify-content:flex-start;padding:clamp(48px,10dvh,96px) 12px 18px}
+    #grid {grid-template-columns:repeat(3,min(28vw,21dvh,145px));gap:2vw}
+  }
+  @media(prefers-reduced-motion:reduce) {.mole,.miss-dot,.bonk {transition:none;animation:none}}
 </style>
+<!-- daylight:late -->
+<link rel="stylesheet" href="../assets/stage-light.css?v=daylight1">
+<!-- /daylight:late -->
 </head>
 <body>
 
@@ -237,16 +259,19 @@
   var overBest = document.getElementById('overBest');
   var startBest = document.getElementById('startBest');
 
-  var GAME_LEN = 30;
+const arcadePlus = (new URLSearchParams(location.search).get('mode') === 'plus');
+  var GAME_LEN = arcadePlus ? 40 : 30;
   var MAX_MISS = 3;
 
   var score = 0, timeLeft = GAME_LEN, misses = 0, hits = 0, peeks = 0;
   var playing = false;
   var peekTimer = null, clockTimer = null, hideTimer = null;
-  var activeMole = null, activeType = 'normal';
+  var activeMole = null, activeType = 'normal', previousHole = -1, armor = 0;
+
+  if (arcadePlus) startOverlay.querySelector('p').textContent='Tap helmets twice. Hit gold, leave bombs, and bonk before the garden closes.';
 
   var best = 0;
-  try { best = parseInt(localStorage.getItem('whack_best') || '0', 10) || 0; } catch (e) {}
+  try { best = parseInt(localStorage.getItem(('whack_best' + (new URLSearchParams(location.search).get('mode')==='plus'?'_plus':''))) || '0', 10) || 0; } catch (e) {}
   bestEl.textContent = best;
   startBest.textContent = best > 0 ? 'Best score: ' + best : '';
 
@@ -389,12 +414,16 @@
     if (!playing) return;
     hideMole();
     var idx = Math.floor(Math.random() * holes.length);
+    if (arcadePlus && idx === previousHole) idx = (idx+1)%holes.length;
+    previousHole = idx;
     var roll = Math.random();
-    activeType = roll < 0.12 ? 'gold' : roll < 0.26 ? 'bomb' : 'normal';
+    activeType = roll < 0.12 ? 'gold' : roll < 0.26 ? 'bomb' : arcadePlus && roll < .49 ? 'armor' : 'normal';
+    armor = activeType === 'armor' ? 2 : 0;
     activeMole = moles[idx];
     var mole = activeMole;
     mole.innerHTML = moleSvgFor(activeType);
     mole.dataset.type = activeType;
+    mole.classList.remove('bonked'); mole.removeAttribute('data-cracked');
     mole.classList.add('up');
     peeks++;
     sfx.pop();
@@ -407,7 +436,7 @@
         sfx.miss();
       }
       hideMole();
-    }, Math.max(650, peekInterval() * 0.9));
+    }, Math.min(peekInterval() - 24, Math.max(300, peekInterval() * (activeType === 'armor' ? .95 : .86))));
     peekTimer = setTimeout(spawnMole, peekInterval());
   }
 
@@ -424,6 +453,7 @@
     if (!mole || !mole.classList.contains('up')) return;
     e.preventDefault();
     var type = mole.dataset.type;
+    if (type === 'armor' && --armor > 0) { mole.setAttribute('data-cracked',''); sfx.bonk(); return; }
     var bonk = document.createElement('div');
     bonk.className = 'bonk';
     bonk.innerHTML = STAR_SVG;
@@ -434,7 +464,7 @@
       sfx.bomb();
       flashMole(mole, '#ff5f7a');
     } else {
-      var pts = type === 'gold' ? 3 : 1;
+      var pts = type === 'gold' ? 3 : type === 'armor' ? 2 : 1;
       score += pts;
       hits++;
       if (type === 'gold') sfx.gold(); else sfx.bonk();
@@ -455,6 +485,8 @@
   grid.addEventListener('pointerdown', onHoleDown);
 
   function startGame() {
+    if (playing) return;
+    previousHole = -1;
     ac();
     score = 0; timeLeft = GAME_LEN; misses = 0; hits = 0; peeks = 0;
     scoreEl.textContent = '0';
@@ -482,7 +514,7 @@
     clearInterval(clockTimer);
     clearTimeout(hideTimer);
     bgm.stop();
-    try { localStorage.setItem('whack_best', String(best)); } catch (e) {}
+    try { localStorage.setItem(('whack_best' + (new URLSearchParams(location.search).get('mode')==='plus'?'_plus':'')), String(best)); } catch (e) {}
     overStats.textContent = 'Score: ' + score + ' — ' + hits + ' moles bonked.';
     var isBest = score >= best && score > 0;
     overBest.innerHTML = isBest ? '<span class="newbest">NEW BEST!</span>' : 'Best: ' + best;
@@ -500,13 +532,15 @@
     }
   });
 
+  window.__arcadeNativeUpgrade = {"id": 7, "name": "Garden Rush", "description": "inactive moles are fully hidden, portrait uses the screen, and tough helmet moles require two taps alongside gold and bombs."};
   // Report native gameplay state to the optional mission engine.
   window.__arcadeMissionSource = Object.assign({"id":7,"label":"Moles hit","goals":[8,16,26],"note":"Tag real moles before time runs out. Empty holes do not count."}, { read: () => { return (hits || 0); } });
 })();
 </script>
 
 
-<script src="../assets/aaa-arcade.js?v=3" defer></script>
-<script src="../assets/missions.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=daylight1" defer></script>
+<script src="../assets/features.js?v=daylight1" defer></script>
+<script src="../assets/missions.js?v=daylight1" defer></script>
 </body>
 </html>
