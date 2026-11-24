@@ -175,6 +175,8 @@
       if (!armed || !event.isTrusted || event.composedPath().includes(root.host) || dialog.open) return;
       if (event.type === 'keydown' && (event.repeat || ['Escape','Tab','Shift','Alt','Control','Meta','F2'].includes(event.key))) return;
       if (window.AAA?.isPaused()) return;
+      baseline = score();
+      resetCandidate = baseline;
       active = true; armed = false; inputSeen = true;
       elapsedAnchor = performance.now();
       render();
@@ -231,7 +233,7 @@
     };
     button.addEventListener('click', open);
     // Enter/Space on a focused game button can lead to a trusted click rather than pointerdown.
-    for (const type of ['pointerdown','keydown','click']) window.addEventListener(type, playInput, true);
+    for (const type of ['pointerdown','keydown','beforeinput','input','click']) window.addEventListener(type, playInput, true);
     document.addEventListener('visibilitychange', () => {
       if (document.hidden && active) persist();
       elapsedAnchor = performance.now();

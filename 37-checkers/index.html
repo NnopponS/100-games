@@ -358,7 +358,8 @@ function onCellClick(r, c){
   const opts = forced ? caps : pieceSimpleMoves(board, r, c);
   if (!opts.length){ selected = null; selMoves = []; render(); return; }
 
-  selected = [r,c]; selMoves = opts;
+  selected = [r,c];
+  selMoves = opts.map(move => ({...move, from:[r,c]}));
   setStatus(opts[0].cap ? "Choose a capture" : "Choose a highlighted square");
   sfx('tap');
   render();
@@ -374,7 +375,7 @@ function doPlayerStep(step){
     const more = pieceCaptures(board, step.to[0], step.to[1]);
     if (more.length){
       selected = [step.to[0], step.to[1]];
-      selMoves = more;
+      selMoves = more.map(move => ({...move, from:step.to}));
       locked = true;
       setStatus("Capture again!");
       render();

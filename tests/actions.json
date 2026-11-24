@@ -473,7 +473,7 @@
         "click": "#startBtn"
       },
       {
-        "click": "#arena .target"
+        "click": "#arena"
       }
     ]
   },
