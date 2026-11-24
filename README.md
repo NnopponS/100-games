@@ -30,11 +30,12 @@ Games are separate static entry points. Shared modules own the portal, Daylight 
 ```sh
 python3 -m http.server 8080
 # Visit http://localhost:8080
-npm install --no-save --no-package-lock playwright@1.62.1
+npm install --no-save --no-package-lock playwright@1.62.1 acorn@8.16.0 eslint-scope@9.1.2
 npx playwright install --with-deps --only-shell chromium
 node tests/native-modes.cjs
 node tests/laser.cjs
 node tests/audio-lifecycle.cjs
+node tests/native-scope.cjs
 node tests/browser-smoke.cjs
 node tests/daylight-browser.cjs
 ```

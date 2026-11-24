@@ -45,7 +45,8 @@ jobs:
           sha256sum -c preregister-sha256.txt
           node scoring/run.mjs single
           node scoring/run.mjs multi
-      - run: npm install --no-save --no-package-lock playwright@1.62.1
+      - run: npm install --no-save --no-package-lock playwright@1.62.1 acorn@8.16.0 eslint-scope@9.1.2
+      - run: node tests/native-scope.cjs
       - run: npx playwright install --with-deps --only-shell chromium
       - run: node tests/browser-smoke.cjs
       - name: Verify Daylight stage, phone flow and audio teardown

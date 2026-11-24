@@ -240,6 +240,7 @@
 
   try {
     state.best = Math.max(0, parseInt(localStorage.getItem('rocketEscape.best') || '0', 10) || 0);
+  } catch (e) { state.best = 0; }
 
   /* ---- procedural audio ---- */
   var actx = null;
@@ -281,7 +282,6 @@
   var sfxBoom = function () { noise(0.6, 0.22, 500); tone(90, 0.5, 'triangle', 0.09, 0, 40); };
   var sfxMile = function () { tone(880, 0.08, 'sine', 0.04); tone(1320, 0.1, 'sine', 0.035, 0.07); };
   var sfxOver = function () { tone(300, 0.4, 'sine', 0.05, 0, 140); tone(210, 0.5, 'sine', 0.045, 0.25, 105); };
-  } catch (e) { state.best = 0; }
 
   /* ------------------------------------------------------------------ */
   /* layout / background                                                 */

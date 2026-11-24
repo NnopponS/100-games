@@ -35,16 +35,17 @@ The first [gated release](https://github.com/NnopponS/100-games/actions/runs/454
 
 ## Layout findings before release
 
-The first Daylight portrait sweep exposed six real horizontal overflows at a 390px viewport: Hangman (+134px), Wordle (+6px), Target Shooter (+16px), Farm Clicker (+3px), Jigsaw (+79px), and Laser Reflect (+109px). Corrections changed the underlying layouts: separate scene/keyboard rows, flexible keyboard keys, compact HUD grids, narrower shop panels, wrapped puzzle controls and a responsive laser stage. A second [browser run](https://github.com/NnopponS/100-games/actions/runs/45452697458) passed all 100 routes, native fullscreen and the Checkers fallback; its independent packaging check still caught that a generic index count included this report. Packaging now requires each of the 100 numbered game routes and separately checks evidence and images.
+The first Daylight portrait sweep exposed six real horizontal overflows at a 390px viewport: Hangman (+134px), Wordle (+6px), Target Shooter (+16px), Farm Clicker (+3px), Jigsaw (+79px), and Laser Reflect (+109px). Corrections changed the underlying layouts: separate scene/keyboard rows, flexible keyboard keys, compact HUD grids, narrower shop panels, wrapped puzzle controls and a responsive laser stage. A second [browser run](https://github.com/NnopponS/100-games/actions/runs/45452697458) passed all 100 routes, native fullscreen and the Checkers fallback; its independent packaging check still caught that a generic index count included this report. Packaging now requires each of the 100 numbered game routes and separately checks evidence and images. One other repeat exposed an older Rocket Escape bug: a periodic thrust callback referenced an audio helper scoped inside a storage try-block. The helper now has the correct scope and a 100-title lexical binding check covers dormant callbacks, which launch testing alone can miss.
 
 ## Reproduce
 
 ```sh
-npm install --no-save --no-package-lock playwright@1.62.1
+npm install --no-save --no-package-lock playwright@1.62.1 acorn@8.16.0 eslint-scope@9.1.2
 npx playwright install --with-deps --only-shell chromium
 node tests/native-modes.cjs
 node tests/laser.cjs
 node tests/audio-lifecycle.cjs
+node tests/native-scope.cjs
 node tests/browser-smoke.cjs
 ARCADE_PLAYTEST_REPORT=/tmp/arcade-playtest-evidence.json node tests/daylight-browser.cjs
 ```
