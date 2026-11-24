@@ -1,23 +1,87 @@
-name: Verify arcade
+name: Verify and deploy arcade
+
 on:
   push:
+    branches:
+      - main
+      - 'arcade-release/**'
   pull_request:
+    branches: [main]
+  workflow_dispatch:
+
 permissions:
   contents: read
+
 concurrency:
-  group: arcade-verification-${{ github.ref }}
+  group: arcade-release-${{ github.ref }}
   cancel-in-progress: true
+
 jobs:
   smoke:
+    name: Verify all 100 games
     runs-on: ubuntu-latest
     timeout-minutes: 12
+    outputs:
+      artifact_name: ${{ steps.identity.outputs.artifact_name }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: '24'
       - run: node tests/native-modes.cjs
       - run: node tests/laser.cjs
       - run: npm install --no-save --no-package-lock playwright@1.62.1
-      - run: npx playwright install --with-deps chromium
+      - run: npx playwright install --with-deps --only-shell chromium
       - run: node tests/browser-smoke.cjs
+      - name: Prepare the verified static release
+        run: |
+          set -euo pipefail
+          mkdir -p publish
+          cp -a .nojekyll index.html assets docs publish/
+          cp -a [0-9]*/ publish/
+          test "$(find publish -mindepth 2 -maxdepth 2 -name index.html | wc -l)" -eq 100
+          printf '%s\n' "$GITHUB_SHA" > publish/arcade-release.txt
+      - id: identity
+        name: Name this attempt’s Pages artifact
+        run: printf "artifact_name=github-pages-%s-%s\n" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" >> "$GITHUB_OUTPUT"
+      - name: Upload the verified Pages artifact
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: publish
+          name: ${{ steps.identity.outputs.artifact_name }}
+
+  deploy:
+    name: Publish verified arcade
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.publish.outputs.page_url }}
+    steps:
+      - name: Wait for this attempt's artifact to become available
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTIFACT_NAME: ${{ needs.smoke.outputs.artifact_name }}
+        run: |
+          set -euo pipefail
+          test -n "$ARTIFACT_NAME"
+          for attempt in {1..20}; do
+            if gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/artifacts" --paginate \
+              --jq '.artifacts[] | select(.expired == false) | .name' | grep -Fqx "$ARTIFACT_NAME"; then
+              exit 0
+            fi
+            sleep 3
+          done
+          echo "The verified artifact for this attempt did not become visible." >&2
+          exit 1
+      - id: publish
+        uses: actions/deploy-pages@v4
+        with:
+          artifact_name: ${{ needs.smoke.outputs.artifact_name }}

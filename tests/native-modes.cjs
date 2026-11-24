@@ -3,13 +3,14 @@ const path = require('node:path');
 const vm = require('node:vm');
 const assert = require('node:assert/strict');
 
-function freshGame(dir, api) {
+function freshGame(dir, api, scriptIndex = 0) {
   const html = fs.readFileSync(path.join(__dirname, '..', dir, 'index.html'), 'utf8');
-  const code = html.match(/<script>\s*([\s\S]*?)<\/script>/)[1];
+  const code = [...html.matchAll(/<script>\s*([\s\S]*?)<\/script>/g)][scriptIndex][1];
   const handlers = new Map();
   const items = new Map(), storage = new Map();
   let timeouts = [];
-  const ctx = new Proxy({}, { get(obj, key) {
+  let ellipseCalls = 0;
+  const ctx = new Proxy({ellipse(...args){ assert(args.length >= 7); ellipseCalls++; }}, { get(obj, key) {
     return obj[key] || (key === 'createRadialGradient' || key === 'createLinearGradient' ? () => ({addColorStop(){}}) : () => {});
   }});
   function el(id) {
@@ -44,13 +45,13 @@ function freshGame(dir, api) {
   };
   sandbox.window = sandbox;
   const end = code.lastIndexOf('})();');
-  assert(end !== -1);
-  vm.runInNewContext(code.slice(0,end) + ';window.nativeTest=' + api + ';' + code.slice(end), sandbox, {filename:dir});
+  const bridge = ';window.nativeTest=' + api + ';';
+  vm.runInNewContext(end < 0 ? code + bridge : code.slice(0,end) + bridge + code.slice(end), sandbox, {filename:dir});
   function input(modeID, value) {
     document.getElementById(modeID).value=value;
     handlers.get(modeID+':change')();
   }
-  return {api:sandbox.nativeTest, storage, input, handlers, document, drain(){
+  return {api:sandbox.nativeTest, storage, input, handlers, document, ellipseCalls(){return ellipseCalls;}, drain(){
     const batch=timeouts; timeouts=[]; batch.forEach(f=>f&&f());
   }};
 }
@@ -161,4 +162,32 @@ function freshGame(dir, api) {
   assert.equal(serial(),classic,'undo only in practice');
   assert.equal(g.api.state().best,460);
 }
-console.log('Snake edge/barrier/bonus and score isolation, Breakout armor/catch/shield/layout, 2048 daily budget/determinism/undo/reset and score isolation passed');
+
+{
+  const g=freshGame('37-checkers', `{
+    state:()=>({board, turn, selected, locked}),
+    chain:()=>{board = newBoard().map(row=>row.map(()=>0)); board[5][0]=RED;
+      board[4][1]=BLK; board[2][3]=BLK; board[0][7]=BLK; turn='red'; selected=null; locked=false;}
+  }`, 1);
+  const click = (r,c) => g.handlers.get('board:click')({target:{closest:() => ({dataset:{r,c}})}});
+  click(5,0); click(4,1);
+  assert.equal(g.api.state().board[5][0],0);
+  assert.equal(g.api.state().board[4][1],'r');
+  assert.equal(g.api.state().turn,'blk');
+  g.drain();g.drain();
+  assert.equal(g.api.state().turn,'red');
+  g.api.chain();
+  click(5,0);click(3,2);
+  assert.equal(g.api.state().board[4][1],0);
+  assert.equal(g.api.state().locked,true);
+  click(1,4);
+  assert.equal(g.api.state().board[2][3],0);
+  assert.equal(g.api.state().board[1][4],'r');
+}
+
+{
+  const g=freshGame('42-endless-runner', `{frame}`);
+  g.api.frame(1016);
+  assert.equal(g.ellipseCalls(),18);
+}
+console.log('Snake edge/barrier/bonus and score isolation, Breakout armor/catch/shield/layout, 2048 daily budget/determinism/undo/reset and score isolation, Checkers move and multiple captures, Runner cloud render passed');

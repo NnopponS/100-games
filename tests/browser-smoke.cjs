@@ -39,8 +39,11 @@ function control(page, selector) {
   return page.locator(':is(' + selector + '):visible').first();
 }
 async function position(node, at = [.5,.5]) {
-  await node.scrollIntoViewIfNeeded({timeout:2500});
-  const b = await node.boundingBox();
+  // A genuine click does not require an animated button to stop moving. Scroll it
+  // immediately and sample its current location (Cookie Clicker pulses on hover).
+  await node.waitFor({state:'visible',timeout:3500});
+  await node.evaluate(el => el.scrollIntoView({block:'center',inline:'nearest',behavior:'instant'}));
+  const b = await node.boundingBox({timeout:2500});
   assert(b, 'control has no visible area');
   return { x:b.x+b.width*at[0], y:b.y+b.height*at[1] };
 }

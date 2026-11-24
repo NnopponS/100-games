@@ -28,4 +28,4 @@ node tests/native-modes.cjs
 
 The shared HUD and optional missions are in `assets/aaa-arcade.js` and `assets/missions.js`. The game pages provide read-only mission adapters that read their own game state. LocalStorage is the only persistence layer; no leaderboard service or accounts are required. Some games retain their original optional CDN-backed 3D decoration.
 
-To run the browser suite, install Playwright, install its Chromium browser, and execute `node tests/browser-smoke.cjs`. The Verify arcade workflow runs this suite on pushes and pull requests.
+To run the browser suite, install Playwright, install its Chromium browser, and execute `node tests/browser-smoke.cjs`. The **Verify and deploy arcade** workflow runs native regressions and exercises all 100 games in Chromium before a production Pages upload. It automatically checks pull requests to `main` and intentional staging branches under `arcade-release/`; routine workspace branches do not start a Pages deployment.
