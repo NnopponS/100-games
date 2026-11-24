@@ -574,10 +574,14 @@
 
   reset();
   requestAnimationFrame(loop);
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":12,"label":"Invader waves cleared","goals":[1,2,4],"note":"Clear every enemy in a wave to advance the challenge."}, { read: () => { return (Math.max(0, (wave || 1) - 1)); } });
 })();
 </script>
 
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

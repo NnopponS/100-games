@@ -395,9 +395,13 @@ window.__gsfx = (function(){
 
   buildTiles();
   newGame();
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":31,"label":"Slide moves to solve","goals":[120,75,45],"note":"Finish the sliding puzzle, then try a more efficient route.","kind":"lower","seconds":420}, { read: () => { return (solved ? moves : Infinity); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

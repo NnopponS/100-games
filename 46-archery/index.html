@@ -424,8 +424,12 @@ function frame(t){
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":46,"label":"Archery points","goals":[20,42,65],"note":"Adjust for wind and dial in power. Better target rings award more points."}, { read: () => { return (total || 0); } });
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

@@ -1268,8 +1268,12 @@ function frame(ts) {
 
 setDiffKey('normal');
 requestAnimationFrame(frame);
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":59,"label":"Dance combo","goals":[8,16,30],"note":"Chain your best note judgments. The selected chart changes the challenge.","seconds":200}, { read: () => { return (maxCombo); } });
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

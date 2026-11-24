@@ -429,9 +429,13 @@
 
   resize();
   loop();
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":70,"label":"Materials sharing the board","goals":[2,3,4],"note":"Keep several materials present at once. Short-lived reactions may remove some.","seconds":180}, { read: () => { return (grid ? new Set(grid).size - (grid.includes(EMPTY) ? 1 : 0) : 0); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

@@ -358,8 +358,12 @@ function drawBall(x, y, r) {
 document.getElementById('restart').addEventListener('click', reset);
 reset();
 requestAnimationFrame(draw);
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":48,"label":"Penalty goals","goals":[2,4,5],"note":"Beat the goalkeeper in different zones; saves alone cannot earn goal medals."}, { read: () => { return (myScore || 0); } });
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

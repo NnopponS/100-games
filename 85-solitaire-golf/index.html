@@ -898,9 +898,13 @@
 
   /* ---------------- Boot ---------------- */
   newGame();
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":85,"label":"Tableau cards cleared","goals":[10,20,35],"note":"Clear cards adjacent in rank to the waste pile. Preserve stock for difficult columns.","seconds":300}, { read: () => { return (TOTAL_TABLEAU - cardsLeft()); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

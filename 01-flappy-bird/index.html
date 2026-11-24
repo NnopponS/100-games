@@ -601,9 +601,13 @@
     requestAnimationFrame(loop);
   }
   loop();
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":1,"label":"Pipes cleared","goals":[5,12,24],"note":"Thread the gaps. Only pipes actually passed count."}, { read: () => { return (score || 0); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

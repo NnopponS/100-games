@@ -541,6 +541,8 @@
   });
 
   init();
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":21,"label":"CPU difficulty defeated","goals":[1,2,3],"note":"Win at Casual, Arcade, or Pro difficulty for increasingly rare medals.","seconds":420}, { read: () => { return (gameOver && endTitle.classList.contains('win') ? diff + 1 : 0); } });
 })();
 
 // ---------- 3D ambient backdrop (progressive enhancement) ----------
@@ -605,9 +607,11 @@
     } catch (e) {}
   }
   if (document.readyState === 'loading') addEventListener('DOMContentLoaded', go); else go();
+
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

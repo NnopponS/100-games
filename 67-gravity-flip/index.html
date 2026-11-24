@@ -583,9 +583,13 @@
     requestAnimationFrame(loop);
   }
   requestAnimationFrame(loop);
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":67,"label":"Gravity-run distance","goals":[230,520,950],"note":"Flip to the opposite surface before each obstacle."}, { read: () => { return (Math.floor(distance)); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

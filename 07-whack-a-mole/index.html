@@ -380,7 +380,7 @@
 
   function hideMole() {
     if (activeMole) {
-      activeMole.mole.classList.remove('up');
+      activeMole.classList.remove('up');
       activeMole = null;
     }
   }
@@ -391,8 +391,8 @@
     var idx = Math.floor(Math.random() * holes.length);
     var roll = Math.random();
     activeType = roll < 0.12 ? 'gold' : roll < 0.26 ? 'bomb' : 'normal';
-    activeMole = holes[idx];
-    var mole = activeMole.mole;
+    activeMole = moles[idx];
+    var mole = activeMole;
     mole.innerHTML = moleSvgFor(activeType);
     mole.dataset.type = activeType;
     mole.classList.add('up');
@@ -442,7 +442,7 @@
     }
     mole.classList.add('bonked');
     mole.classList.remove('up');
-    if (activeMole && activeMole.mole === mole) activeMole = null;
+    if (activeMole === mole) activeMole = null;
     scoreEl.textContent = score;
     if (score > best) { best = score; bestEl.textContent = best; }
   }
@@ -499,10 +499,14 @@
       e.preventDefault();
     }
   });
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":7,"label":"Moles hit","goals":[8,16,26],"note":"Tag real moles before time runs out. Empty holes do not count."}, { read: () => { return (hits || 0); } });
 })();
 </script>
 
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

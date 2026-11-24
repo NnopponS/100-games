@@ -650,8 +650,12 @@ $("btn-restart").addEventListener("click", initGame);
 $("btn-overlay-restart").addEventListener("click", initGame);
 
 initGame();
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":34,"label":"Enemy ships sunk","goals":[1,3,5],"note":"Sink distinct enemy ships; hits and misses do not count on their own.","seconds":420}, { read: () => { return (enemyShips?.filter(s => s.sunk).length || 0); } });
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

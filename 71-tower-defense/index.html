@@ -1590,9 +1590,13 @@
   }
 
   boot();
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":71,"label":"Waves cleared","goals":[2,4,7],"note":"Complete waves, not just deploy them. Upgrade where the path loops.","seconds":550}, { read: () => { return (G ? G.wave - (G.mode === 'wave' || G.mode === 'over' ? 1 : 0) : 0); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

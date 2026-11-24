@@ -343,9 +343,13 @@
   startBtn.onclick = () => { ovStats.style.display = 'none'; reset(); };
   draw(0);
   requestAnimationFrame(loop);
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":94,"label":"Ghost Catch points","goals":[50,120,240],"note":"Keep the beam on the ghosts as they move. Chain catches before time runs out.","seconds":55}, { read: () => { return (score); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

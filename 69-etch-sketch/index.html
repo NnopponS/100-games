@@ -305,6 +305,7 @@
   }
 
   function clearScreen() {
+    __arcadeDrawn = 0;
     if (clearing) return;
     clearing = true;
     Sfx.clear();
@@ -369,7 +370,7 @@
   });
   document.getElementById('clearBtn').addEventListener('click', clearScreen);
 
-  var whirAcc = 0;
+  var whirAcc = 0, __arcadeDrawn = 0;
   var last = performance.now();
   function frame(now) {
     var dt = Math.min(0.05, (now - last) / 1000);
@@ -404,6 +405,7 @@
           knobR.style.transform = 'rotate(' + rotR + 'rad)';
           var moved = Math.hypot(nx - x, ny - y);
           whirAcc += moved;
+          __arcadeDrawn += moved;
           if (whirAcc > 7) { whirAcc = 0; Sfx.whir(moved / dt); }
           x = nx; y = ny;
         }
@@ -427,9 +429,13 @@
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":69,"label":"Length drawn (px)","goals":[150,450,900],"note":"Turn the two knobs to trace a continuous design. Only the drawn line counts.","seconds":180}, { read: () => { return (__arcadeDrawn); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

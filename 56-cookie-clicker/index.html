@@ -554,8 +554,12 @@ scheduleGolden();
 setInterval(() => save(true), 5000);
 setInterval(tick, 100);
 tick();
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":56,"label":"New cookies baked","goals":[30,100,250],"delta":true,"note":"Bake fresh cookies after starting the mission. Spend on producers for more per second."}, { read: () => { return (state.totalBaked); } });
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

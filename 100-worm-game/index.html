@@ -374,9 +374,13 @@
   });
   startBtn.onclick = () => { ovT.classList.remove('hot'); ovStats.style.display = 'none'; reset(); };
   requestAnimationFrame(loop);
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":100,"label":"Worm length gained","goals":[4,9,16],"note":"Eat safely and avoid crossing your growing trail."}, { read: () => { return (Math.max(0, worm.length - 4)); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

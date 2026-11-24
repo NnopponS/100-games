@@ -448,9 +448,13 @@
 
   buildDOM();
   newGame();
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":65,"label":"Board flooded (%)","goals":[45,75,100],"note":"Grow the region from the upper-left by selecting colors wisely.","seconds":180}, { read: () => { const __arcadeNumber = id => parseFloat(document.getElementById(id)?.textContent?.match(/-?\d+(?:\.\d+)?/)?.[0] || '0'); return (__arcadeNumber('coverage')); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

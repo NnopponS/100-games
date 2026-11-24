@@ -559,9 +559,13 @@
   renderPb();
   target = pickSentence();
   renderSentence();
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":27,"label":"Clean finish (WPM)","goals":[25,40,60],"note":"Finish the text at 90% accuracy or better before your speed qualifies."}, { read: () => { return (finished && keystrokes && correctKeystrokes / keystrokes >= 0.9 ? +(document.getElementById('finalWpm')?.textContent || 0) : 0); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

@@ -215,8 +215,12 @@ cv.addEventListener('contextmenu',function(e){e.preventDefault();});
 var last=performance.now();
 function frame(now){var dt=Math.min(0.033,(now-last)/1000);last=now;T+=dt;update(dt);draw();requestAnimationFrame(frame);}
 requestAnimationFrame(frame);
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":54,"label":"Dive distance (m)","goals":[65,120,220],"note":"Dive beneath mines and release to rise over the terrain."}, { read: () => { return (meters()); } });
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

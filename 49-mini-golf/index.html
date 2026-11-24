@@ -459,8 +459,12 @@ function frame(t){
 ctx.roundRect=ctx.roundRect||function(x,y,w,h,r){this.moveTo(x+r,y);this.arcTo(x+w,y,x+w,y+h,r);this.arcTo(x+w,y+h,x,y+h,r);this.arcTo(x,y+h,x,y,r);this.arcTo(x,y,x+w,y,r);};
 loadHole(0);
 requestAnimationFrame(frame);
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":49,"label":"Holes under control","goals":[2,5,8],"note":"Sink each hole in no more than one stroke over par. Skipped holes do not qualify.","seconds":420}, { read: () => { return (scores.filter((s,i) => Number.isFinite(s) && s <= HOLES[i].par + 1).length); } });
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

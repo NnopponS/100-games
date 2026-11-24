@@ -373,6 +373,8 @@
 
   renderDots();
   updateHud();
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":24,"label":"Five-tap average (ms)","goals":[470,360,280],"note":"Wait for green on all five rounds. An early tap invalidates the medal attempt.","kind":"lower"}, { read: () => { return (state === 'done' && results.length === TOTAL && results.every(r => !r.fail) ? Math.round(results.reduce((total, r) => total + r.ms, 0) / TOTAL) : Infinity); } });
 })();
 
 // ---------- 3D energy orb (progressive enhancement) ----------
@@ -446,9 +448,11 @@
     } catch (e) {}
   }
   if (document.readyState === 'loading') addEventListener('DOMContentLoaded', go); else go();
+
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

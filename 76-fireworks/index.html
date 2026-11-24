@@ -566,9 +566,13 @@
   window.addEventListener('resize', resize);
   resize();
   tick();
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":76,"label":"Fireworks combo","goals":[3,6,10],"note":"Burst more rockets in a quick chain. Watch the combo bar."}, { read: () => { return (game.bestCombo); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

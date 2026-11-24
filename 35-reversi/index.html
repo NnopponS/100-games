@@ -361,9 +361,13 @@ window.__gsfx = (function(){
   }
 
   reset();
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":35,"label":"Winning disc margin","goals":[2,8,16],"note":"Finish with more discs than the CPU; secure corners to widen your lead.","seconds":420}, { read: () => { return (gameOver ? Math.max(0, counts()[0] - counts()[1]) : 0); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

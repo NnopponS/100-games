@@ -479,9 +479,13 @@
       })(t0);
     } catch (e) {}
   });
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":63,"label":"Unique squares visited","goals":[10,18,25],"note":"Extend a legal knight's tour. Use the five-by-five board for a 25-square goal.","seconds":240}, { read: () => { const __arcadeNumber = id => parseFloat(document.getElementById(id)?.textContent?.match(/-?\d+(?:\.\d+)?/)?.[0] || '0'); return (__arcadeNumber('count')); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

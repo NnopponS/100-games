@@ -546,9 +546,13 @@ window.__gsfx = (function(){
   });
 
   newGame();
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":33,"label":"Blank cells solved %","goals":[30,65,100],"note":"Fill the original blanks correctly. Clue cells and wrong guesses do not count.","seconds":420}, { read: () => { return (board && givens ? Math.floor(100 * board.filter((v,i) => !givens.has(i) && v === solution[i]).length / (81 - givens.size)) : 0); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

@@ -341,10 +341,14 @@
       pads[kmap[e.code]].dispatchEvent(new PointerEvent('pointerdown'));
     }
   });
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":11,"label":"Sequences copied","goals":[3,6,9],"note":"Repeat whole sequences. Merely reaching a round does not count."}, { read: () => { return (Math.max(0, seq.length - (statusEl.className === 'good' ? 0 : 1))); } });
 })();
 </script>
 
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

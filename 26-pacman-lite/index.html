@@ -957,9 +957,13 @@
   highEl.textContent = highScore;
   ovBtn.dataset.action = 'restart';
   requestAnimationFrame(frame);
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":26,"label":"Mazes cleared","goals":[1,2,4],"note":"Clear all pellets before advancing. Ghost points alone do not count."}, { read: () => { return (Math.max(0, level - 1)); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

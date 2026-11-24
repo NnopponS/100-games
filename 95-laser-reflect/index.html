@@ -123,7 +123,7 @@
       walls:[[2,2],[2,3]],
       mirrors:[{r:1,c:4,t:'/'},{r:4,c:4,t:'/'}] },
     { emitter:{r:0,c:1,dir:1}, target:{r:5,c:5},
-      walls:[[3,1],[2,3]],
+      walls:[[3,2],[2,3]],
       mirrors:[{r:4,c:1,t:'/'},{r:4,c:4,t:'\\'},{r:1,c:4,t:'/'},{r:1,c:5,t:'/'}] },
     { emitter:{r:5,c:0,dir:0}, target:{r:0,c:5},
       walls:[[4,2],[1,2],[3,4]],
@@ -378,9 +378,13 @@
     draw(now / 1000);
     requestAnimationFrame(loop);
   })(last);
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":95,"label":"Laser chambers solved","goals":[1,3,6],"note":"Turn mirrors to route the laser into each chamber's crystal.","seconds":360}, { read: () => { return (solved); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

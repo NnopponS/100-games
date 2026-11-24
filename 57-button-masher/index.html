@@ -402,9 +402,13 @@
     reset();
     this.blur();
   });
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":57,"label":"Taps in one 10s run","goals":[35,65,95],"note":"The game gives you 10 seconds after the countdown. Use its normal tap target."}, { read: () => { return (count); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

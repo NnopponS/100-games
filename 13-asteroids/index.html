@@ -579,10 +579,14 @@
 
   reset();
   requestAnimationFrame(loop);
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":13,"label":"Asteroid points","goals":[300,700,1300],"note":"Break rocks into smaller targets and clear the field without losing your ship."}, { read: () => { return (score || 0); } });
 })();
 </script>
 
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

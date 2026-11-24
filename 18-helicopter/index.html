@@ -500,8 +500,12 @@ function frame(now) {
 
 reset();
 requestAnimationFrame(frame);
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":18,"label":"Tunnel distance","goals":[15,40,80],"note":"Survive increasingly narrow terrain. Distance counts during the flight."}, { read: () => { return (score || 0); } });
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

@@ -243,9 +243,13 @@
     if (Math.abs(dx) > 45) answer(dx > 0);
     swipeX = null;
   });
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":96,"label":"Color-match streak","goals":[4,8,15],"note":"Compare the ink with the written word. Correct consecutive answers build a streak.","seconds":50}, { read: () => { return (maxStreak); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

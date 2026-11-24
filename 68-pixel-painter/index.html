@@ -526,9 +526,13 @@
   setColor(PALETTE[5]);
   setTool("paint");
   draw();
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":68,"label":"Distinct colors on canvas","goals":[3,6,10],"note":"Build a multicolor piece. Repainting with the same color does not increase the count.","seconds":240,"changed":true}, { read: () => { return (new Set(cells.flat().filter(Boolean)).size); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

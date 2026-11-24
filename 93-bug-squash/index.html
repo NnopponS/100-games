@@ -422,9 +422,13 @@
   startBtn.onclick = () => { ovT.classList.remove('hot'); ovStats.style.display = 'none'; reset(); };
   draw(0);
   requestAnimationFrame(loop);
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":93,"label":"Bugs stopped","goals":[8,18,35],"note":"Clear bugs before they reach the picnic; prioritize the quickest ones."}, { read: () => { return (kills); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

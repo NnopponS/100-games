@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Snake</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -103,12 +103,17 @@
   }
   #overlay button:hover { transform: translateY(-2px); }
   #overlay button:active { transform: translateY(2px); box-shadow: 0 0 22px rgba(74,222,128,.45); }
+  #modeBar { display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:8px; margin:0 0 10px; }
+  #modeBar select { min-height:38px; padding:6px 10px; border-radius:8px; color:#172a20; background:#eaf9ef; border:1px solid #85b79a; font:inherit; font-size:.85rem; }
+  #modeStatus { font-size:.78rem; text-align:center; min-height:1.2em; }
+  body { overflow-y:auto; }
   #hint { margin-top: 12px; font-size: 0.8rem; color: #525b72; letter-spacing: 0.06em; text-align: center; }
 </style>
 </head>
 <body>
   <h1>SNAKE</h1>
   <div id="scoreboard">SCORE <span id="score">0</span> &nbsp;·&nbsp; BEST <span id="best" class="best">0</span></div>
+  <div id="modeBar"><label for="snakeMode">Mode</label><select id="snakeMode"><option value="classic">Classic</option><option value="wrap">Wraparound</option><option value="maze">Maze Rush</option></select><span id="modeStatus"></span></div>
   <div id="wrap">
     <canvas id="game" width="400" height="400"></canvas>
     <div id="overlay" class="hidden">
@@ -140,8 +145,21 @@
   var snake, dir, nextDir, food, score, best = 0, running = false, timer = null;
   var tick = TICK0, particles = [], eatPulse = 0, deadFlash = 0, animT = 0, lastTail = null;
 
-  try { best = parseInt(localStorage.getItem('snake_best'), 10) || 0; } catch (e) {}
-  bestEl.textContent = best;
+  var modeSelect = document.getElementById('snakeMode'), modeStatus = document.getElementById('modeStatus');
+  var mode = 'classic', eaten = 0, gold = null, walls = [], endBanner = null;
+  function bestKey() { return mode === 'classic' ? 'snake_best' : 'snake_best_' + mode; }
+  function loadBest() {
+    best = 0;
+    try { best = parseInt(localStorage.getItem(bestKey()), 10) || 0; } catch (e) {}
+    bestEl.textContent = best;
+  }
+  function readMode() {
+    mode = modeSelect.value;
+    modeStatus.textContent = mode === 'wrap' ? 'Edges wrap · Golden apples expire'
+      : mode === 'maze' ? 'Avoid barriers · Golden apples expire' : 'Walls are solid · Original rules';
+    loadBest();
+  }
+  readMode();
 
   // ---------- AAA audio ----------
   var ACX = null;
@@ -208,7 +226,15 @@
     dir = {x: 1, y: 0};
     nextDir = dir;
     score = 0;
-    tick = TICK0;
+    tick = mode === 'maze' ? 110 : TICK0;
+    eaten = 0;
+    gold = null;
+    walls = mode === 'maze' ? [
+      ...Array.from({length:6}, function(_,i) { return { x:5, y:i+4 }; }),
+      ...Array.from({length:6}, function(_,i) { return { x:14, y:i+10 }; }),
+      ...Array.from({length:4}, function(_,i) { return { x:i+8, y:4 }; }),
+      ...Array.from({length:4}, function(_,i) { return { x:i+8, y:15 }; })
+    ] : [];
     particles = [];
     eatPulse = 0;
     deadFlash = 0;
@@ -217,13 +243,19 @@
     placeFood();
   }
 
-  function placeFood() {
-    while (true) {
-      var f = {x: Math.floor(Math.random() * GRID), y: Math.floor(Math.random() * GRID)};
-      var onSnake = snake.some(function (s) { return s.x === f.x && s.y === f.y; });
-      if (!onSnake) { food = f; return; }
+  function same(p, q) { return p && q && p.x === q.x && p.y === q.y; }
+
+  function freeCell(exclude) {
+    var used = new Set(snake.concat(walls).map(function(p) { return p.y * GRID + p.x; }));
+    if (exclude) used.add(exclude.y * GRID + exclude.x);
+    var free = [];
+    for (var y = 0; y < GRID; y++) for (var x = 0; x < GRID; x++) {
+      if (!used.has(y * GRID + x)) free.push({x:x, y:y});
     }
+    return free.length ? free[Math.floor(Math.random() * free.length)] : null;
   }
+
+  function placeFood() { food = freeCell(gold); }
 
   function burst(cx, cy) {
     for (var i = 0; i < 14; i++) {
@@ -236,27 +268,45 @@
     dir = nextDir;
     var head = {x: snake[0].x + dir.x, y: snake[0].y + dir.y};
 
+    if (mode === 'wrap') {
+      head.x = (head.x + GRID) % GRID;
+      head.y = (head.y + GRID) % GRID;
+    }
+    if (gold && --gold.steps < 0) gold = null;
+    var norm = same(head, food), bonus = same(head, gold);
+    var bodyToCheck = norm || bonus ? snake : snake.slice(0, -1);
     if (head.x < 0 || head.x >= GRID || head.y < 0 || head.y >= GRID ||
-        snake.some(function (s) { return s.x === head.x && s.y === head.y; })) {
-      gameOver();
+        walls.some(function(s) { return same(s, head); }) ||
+        bodyToCheck.some(function (s) { return same(s, head); })) {
+      gameOver(false);
       return;
     }
 
     snake.unshift(head);
-    if (head.x === food.x && head.y === food.y) {
-      score += 10;
+    if (norm || bonus) {
+      score += bonus ? 30 : 10;
       scoreEl.textContent = score;
       eatPulse = 1;
       sfx.eat();
-      burst(food.x * CELL + CELL / 2, food.y * CELL + CELL / 2);
-      // speed ramp: faster every 30 pts
-      var nt = Math.max(TICK_MIN, TICK0 - Math.floor(score / 30) * 7);
+      burst(head.x * CELL + CELL / 2, head.y * CELL + CELL / 2);
+      if (bonus) gold = null;
+      if (norm) eaten++;
+      // Ramp by apples, not bonus points, so optional pickups don't steepen the speed curve.
+      var nt = Math.max(TICK_MIN, (mode === 'maze' ? 110 : TICK0) - Math.floor(eaten / 3) * 7);
       if (nt !== tick) {
         tick = nt;
         clearInterval(timer);
         timer = setInterval(step, tick);
       }
-      placeFood();
+      if (norm) {
+        placeFood();
+        if (!food && gold) { gold = null; placeFood(); }
+        if (!food) { gameOver(true); return; }
+        if (mode !== 'classic' && eaten % 4 === 0 && !gold) {
+          gold = freeCell(food);
+          if (gold) gold.steps = Math.round(5200 / tick);
+        }
+      }
     } else {
       lastTail = snake.pop();
     }
@@ -297,7 +347,30 @@
     }
     ctx.globalAlpha = 1;
 
+    if (walls.length) {
+      walls.forEach(function(w) {
+        ctx.fillStyle = '#bba4ed';
+        rr(w.x * CELL + 2, w.y * CELL + 2, CELL - 4, CELL - 4, 3);
+        ctx.fill();
+        ctx.fillStyle = '#382a5f';
+        ctx.fillRect(w.x * CELL + 5, w.y * CELL + 9, CELL - 10, 2);
+      });
+    }
+    if (gold) {
+      var gx = gold.x * CELL + CELL / 2, gy = gold.y * CELL + CELL / 2;
+      ctx.save();
+      ctx.translate(gx,gy);
+      ctx.fillStyle = '#ffe184';
+      ctx.strokeStyle = '#fff1bf';
+      ctx.shadowColor = '#ffbf43';
+      ctx.shadowBlur = gold.steps < 10 ? 4 : 14;
+      ctx.beginPath();
+      ctx.moveTo(0,-8); ctx.lineTo(7,0); ctx.lineTo(0,8); ctx.lineTo(-7,0); ctx.closePath();
+      ctx.fill(); ctx.stroke(); ctx.restore();
+    }
+
     // food: hand-drawn apple with pulse
+    if (food) {
     eatPulse = Math.max(0, eatPulse - 0.05);
     var fx = food.x * CELL + CELL / 2, fy = food.y * CELL + CELL / 2;
     var pulse = 1 + Math.sin(animT) * 0.08 + eatPulse * 0.4;
@@ -325,6 +398,8 @@
     ctx.ellipse(4.5, -7, 3.4, 1.8, -0.5, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
+
+    }
 
     // snake: glowing gradient body
     for (var i = snake.length - 1; i >= 0; i--) {
@@ -372,6 +447,8 @@
   }
 
   function start() {
+    clearTimeout(endBanner);
+    if (document.activeElement === restartBtn) restartBtn.blur();
     ac();
     if (timer) clearInterval(timer);
     reset();
@@ -383,27 +460,29 @@
     timer = setInterval(step, tick);
   }
 
-  function gameOver() {
+  function gameOver(cleared) {
     running = false;
     clearInterval(timer);
     timer = null;
     sfx.die();
     bgm.stop();
     deadFlash = 1;
-    if (score > best) {
+    var newBest = score > best;
+    if (newBest) {
       best = score;
       bestEl.textContent = best;
-      try { localStorage.setItem('snake_best', best); } catch (e) {}
+      try { localStorage.setItem(bestKey(), best); } catch (e) {}
     }
-    overlayTitle.textContent = 'Game Over';
+    overlayTitle.textContent = cleared ? 'Board Cleared!' : 'Game Over';
     overlayTitle.className = '';
-    overlayText.textContent = 'Score: ' + score + (score >= best && score > 0 ? '  —  New best!' : '');
+    overlayText.textContent = 'Score: ' + score + (newBest ? ' · New best!' : '');
     restartBtn.textContent = 'RETRY';
     draw();
-    setTimeout(function () { overlay.classList.remove('hidden'); }, 350);
+    endBanner = setTimeout(function () { overlay.classList.remove('hidden'); }, 250);
   }
 
   document.addEventListener('keydown', function (e) {
+    if (e.target.closest && e.target.closest('select, button, input')) return;
     var key = e.key;
     if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].indexOf(key) !== -1) {
       e.preventDefault();
@@ -449,17 +528,26 @@
 
   restartBtn.addEventListener('click', start);
 
-  // attract screen
-  reset();
-  draw();
-  overlayTitle.textContent = 'Snake';
-  overlayTitle.className = 'title';
-  overlayText.textContent = 'Eat the apples. Don\'t bite yourself.';
-  restartBtn.textContent = 'PLAY';
-  overlay.classList.remove('hidden');
+  function intro() {
+    clearInterval(timer); clearTimeout(endBanner);
+    bgm.stop(); running = false;
+    reset(); draw();
+    overlayTitle.textContent = mode === 'wrap' ? 'Wraparound' : mode === 'maze' ? 'Maze Rush' : 'Snake';
+    overlayTitle.className = 'title';
+    overlayText.textContent = mode === 'wrap' ? 'Slip through opposite edges and chase golden apples.'
+      : mode === 'maze' ? 'Route around barriers and grab gold for triple points.' : 'Eat the apples. Don’t bite yourself.';
+    restartBtn.textContent = 'PLAY';
+    overlay.classList.remove('hidden');
+  }
+  modeSelect.addEventListener('change', function() { readMode(); intro(); });
+  intro();
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":2,"label":"Apples eaten","goals":[4,10,20],"note":"Grow your snake without touching a wall or its tail."}, { read: () => { return (eaten); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

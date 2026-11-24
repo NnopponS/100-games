@@ -313,9 +313,13 @@
   buildDom();
   board = Array.from({ length: ROWS }, () => Array.from({ length: COLS }, rndVal));
   render();
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":97,"label":"Number groups cleared","goals":[4,9,16],"note":"Combine tiles to match the changing target sum.","seconds":105}, { read: () => { return (clears); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

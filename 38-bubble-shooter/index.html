@@ -311,9 +311,13 @@ document.getElementById('restart').addEventListener('click', init);
 window.addEventListener('keydown', e => { if (e.key === 'r' || e.key === 'R') init(); });
 
 init();
-(function loop() { step(); draw(); requestAnimationFrame(loop); })();
+(function loop() { step(); draw(); requestAnimationFrame(loop); 
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":38,"label":"Popping points","goals":[100,300,700],"note":"Match three or more bubbles or detach clusters for bonus points."}, { read: () => { return (score || 0); } });
+})();
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

@@ -399,9 +399,13 @@
   });
   reset();
   requestAnimationFrame(loop);
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":50,"label":"Official game score","goals":[85,125,175],"note":"Finish ten frames. The final score includes strike and spare bonuses.","seconds":420}, { read: () => { return (gameOver ? (computeScores().at(-1)?.score || 0) : 0); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

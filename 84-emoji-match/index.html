@@ -774,9 +774,13 @@ h1 em{font-style:normal;background:linear-gradient(95deg,#a78bfa,#22d3ee 62%,#34
   el.best3.textContent = String(state.best);
   el.hits.textContent = '0/' + TOTAL_ROUNDS;
   show('start');
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":84,"label":"Glyphs matched","goals":[4,7,10],"note":"Pick the matching glyph as each new round appears.","seconds":180}, { read: () => { return (state.hits); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

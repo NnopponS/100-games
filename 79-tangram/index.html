@@ -314,9 +314,13 @@
   window.addEventListener('keydown', e => { if (e.code === 'KeyR') rotateSelected(); });
   loadPuzzle(0);
   draw();
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":79,"label":"Tangram pieces snapped","goals":[3,5,7],"note":"Rotate and fit pieces into their exact positions.","seconds":360}, { read: () => { return (pieces.filter(p => p.snapped).length); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

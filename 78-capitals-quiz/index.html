@@ -414,8 +414,12 @@ window.addEventListener('keydown', function (e) {
   if ((e.key === ' ' || e.key === 'Enter') && quizScreen.style.display === 'none') { e.preventDefault(); startGame(); }
   if ((e.key === 'r' || e.key === 'R') && endScreenEl.style.display !== 'none') startGame();
 });
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":78,"label":"Capitals answered correctly","goals":[5,9,13],"note":"Choose capitals before each question timer ends.","seconds":200}, { read: () => { return (correctCount); } });
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

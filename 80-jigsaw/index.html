@@ -1124,9 +1124,13 @@
   }
 
   newGame();
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":80,"label":"Jigsaw assembled (%)","goals":[25,55,100],"note":"Snap pieces into the image. The percentage adapts to the selected grid.","seconds":420}, { read: () => { return (S.pieces.length ? S.placed / S.pieces.length * 100 : 0); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

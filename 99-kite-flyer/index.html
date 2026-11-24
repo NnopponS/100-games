@@ -436,9 +436,13 @@
   startBtn.onclick = () => { ovT.classList.remove('hot'); ovStats.style.display = 'none'; reset(); };
   draw(0);
   requestAnimationFrame(loop);
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":99,"label":"Kite rings reached","goals":[3,8,15],"note":"Thread rings through wind gusts while avoiding birds."}, { read: () => { return (ringCount); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

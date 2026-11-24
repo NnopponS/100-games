@@ -747,8 +747,12 @@ document.getElementById('restart').addEventListener('click', newGame);
 document.getElementById('overlayRestart').addEventListener('click', newGame);
 
 newGame();
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":23,"label":"Guesses to solve","goals":[6,4,3],"note":"Solve the word within fewer attempts. Invalid words and failed rounds do not count.","kind":"lower"}, { read: () => { return (over && guesses.at(-1) === answer ? guesses.length : Infinity); } });
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

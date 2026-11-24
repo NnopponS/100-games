@@ -440,9 +440,13 @@
   ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => c.addEventListener(ev, releaseFlip));
 
   requestAnimationFrame(loop);
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":72,"label":"Pinball points","goals":[300,900,1600],"note":"Keep the ball alive and build points from bumpers and targets."}, { read: () => { return (score); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

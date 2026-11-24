@@ -541,8 +541,12 @@ document.getElementById('diff').addEventListener('click', function (e) {
 document.querySelectorAll('#diff button').forEach(b => b.classList.toggle('sel', +b.dataset.d === diff));
 
 newGame();
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":22,"label":"Words solved in a streak","goals":[1,3,5],"note":"Solve successive words without running out of guesses; only your existing current streak can continue."}, { read: () => { return (gameOver ? stats.streak : 0); } });
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

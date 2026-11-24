@@ -1,0 +1,1080 @@
+[
+  null,
+  {
+    "id": 1,
+    "steps": [
+      {
+        "press": "Space"
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "steps": [
+      {
+        "click": "#restartBtn"
+      },
+      {
+        "press": "ArrowUp"
+      }
+    ]
+  },
+  {
+    "id": 3,
+    "steps": [
+      {
+        "click": "#restartBtn"
+      },
+      {
+        "press": "Space"
+      }
+    ]
+  },
+  {
+    "id": 4,
+    "steps": [
+      {
+        "click": "#restartBtn"
+      },
+      {
+        "press": "ArrowUp"
+      }
+    ]
+  },
+  {
+    "id": 5,
+    "steps": [
+      {
+        "press": "ArrowLeft"
+      },
+      {
+        "press": "Space"
+      }
+    ]
+  },
+  {
+    "id": 6,
+    "steps": [
+      {
+        "click": "#board .card:nth-child(1)"
+      },
+      {
+        "click": "#board .card:nth-child(2)"
+      }
+    ]
+  },
+  {
+    "id": 7,
+    "steps": [
+      {
+        "click": "#startBtn"
+      }
+    ]
+  },
+  {
+    "id": 8,
+    "steps": [
+      {
+        "click": "#board .cell[data-r=\"4\"][data-c=\"4\"]"
+      }
+    ]
+  },
+  {
+    "id": 9,
+    "steps": [
+      {
+        "press": "ArrowLeft"
+      },
+      {
+        "press": "ArrowDown"
+      }
+    ]
+  },
+  {
+    "id": 10,
+    "steps": [
+      {
+        "click": "#board .cell[data-i=\"4\"]"
+      }
+    ]
+  },
+  {
+    "id": 11,
+    "steps": [
+      {
+        "click": "#startBtn"
+      }
+    ]
+  },
+  {
+    "id": 12,
+    "steps": [
+      {
+        "click": "#startBtn"
+      },
+      {
+        "press": "Space"
+      }
+    ]
+  },
+  {
+    "id": 13,
+    "steps": [
+      {
+        "click": "#startBtn"
+      },
+      {
+        "press": "Space"
+      }
+    ]
+  },
+  {
+    "id": 14,
+    "steps": [
+      {
+        "click": "#startBtn"
+      },
+      {
+        "press": "ArrowUp"
+      }
+    ]
+  },
+  {
+    "id": 15,
+    "steps": [
+      {
+        "click": "#startBtn"
+      },
+      {
+        "press": "ArrowRight"
+      }
+    ]
+  },
+  {
+    "id": 16,
+    "steps": [
+      {
+        "click": "#game"
+      },
+      {
+        "click": "#game",
+        "at": [
+          0.55,
+          0.3
+        ]
+      }
+    ]
+  },
+  {
+    "id": 17,
+    "steps": [
+      {
+        "press": "Enter"
+      },
+      {
+        "press": "ArrowUp"
+      }
+    ]
+  },
+  {
+    "id": 18,
+    "steps": [
+      {
+        "press": "Space"
+      }
+    ]
+  },
+  {
+    "id": 19,
+    "steps": [
+      {
+        "press": "Space"
+      },
+      {
+        "press": "Space"
+      }
+    ]
+  },
+  {
+    "id": 20,
+    "steps": [
+      {
+        "press": "d"
+      }
+    ]
+  },
+  {
+    "id": 21,
+    "steps": [
+      {
+        "click": "#board .cell[data-col=\"3\"]:nth-child(4)"
+      }
+    ]
+  },
+  {
+    "id": 22,
+    "steps": [
+      {
+        "press": "a"
+      }
+    ]
+  },
+  {
+    "id": 23,
+    "steps": [
+      {
+        "press": "s"
+      },
+      {
+        "press": "l"
+      },
+      {
+        "press": "a"
+      },
+      {
+        "press": "t"
+      },
+      {
+        "press": "e"
+      },
+      {
+        "press": "Enter"
+      }
+    ]
+  },
+  {
+    "id": 24,
+    "steps": [
+      {
+        "click": "#pad"
+      }
+    ]
+  },
+  {
+    "id": 25,
+    "steps": [
+      {
+        "press": "ArrowRight"
+      },
+      {
+        "press": "ArrowDown"
+      }
+    ]
+  },
+  {
+    "id": 26,
+    "steps": [
+      {
+        "click": "#ovBtn"
+      },
+      {
+        "press": "ArrowLeft"
+      }
+    ]
+  },
+  {
+    "id": 27,
+    "steps": [
+      {
+        "fill": "#typer",
+        "value": "A"
+      }
+    ]
+  },
+  {
+    "id": 28,
+    "steps": [
+      {
+        "click": ".choice[data-choice=\"rock\"]"
+      }
+    ]
+  },
+  {
+    "id": 29,
+    "steps": [
+      {
+        "fill": "#guessInput",
+        "value": "50"
+      },
+      {
+        "click": "#guessBtn"
+      }
+    ]
+  },
+  {
+    "id": 30,
+    "steps": [
+      {
+        "click": "[data-chip=\"10\"]"
+      },
+      {
+        "click": "#dealBtn"
+      }
+    ]
+  },
+  {
+    "id": 31,
+    "steps": [
+      {
+        "click": "#hintBtn"
+      },
+      {
+        "click": "#board .tile.hint"
+      }
+    ]
+  },
+  {
+    "id": 32,
+    "steps": [
+      {
+        "click": "#board .cell:nth-child(13)"
+      }
+    ]
+  },
+  {
+    "id": 33,
+    "steps": [
+      {
+        "click": "#notesBtn"
+      },
+      {
+        "click": "#board .cell:nth-child(41)"
+      },
+      {
+        "press": "4"
+      }
+    ]
+  },
+  {
+    "id": 34,
+    "steps": [
+      {
+        "click": "#btn-random"
+      },
+      {
+        "click": "#btn-start"
+      },
+      {
+        "click": "#enemy-grid .cell:nth-child(1)"
+      }
+    ]
+  },
+  {
+    "id": 35,
+    "steps": [
+      {
+        "click": "#board .cell.hint"
+      }
+    ]
+  },
+  {
+    "id": 36,
+    "steps": [
+      {
+        "click": "#board"
+      }
+    ]
+  },
+  {
+    "id": 37,
+    "steps": [
+      {
+        "click": "#board .cell[data-r=\"5\"][data-c=\"0\"]"
+      },
+      {
+        "click": "#board .cell[data-r=\"4\"][data-c=\"1\"]"
+      }
+    ]
+  },
+  {
+    "id": 38,
+    "steps": [
+      {
+        "click": "#game",
+        "at": [
+          0.52,
+          0.32
+        ]
+      }
+    ]
+  },
+  {
+    "id": 39,
+    "steps": [
+      {
+        "click": "#game",
+        "at": [
+          0.48,
+          0.7
+        ]
+      }
+    ]
+  },
+  {
+    "id": 40,
+    "steps": [
+      {
+        "click": "#btn"
+      },
+      {
+        "click": "#game",
+        "at": [
+          0.55,
+          0.82
+        ]
+      }
+    ]
+  },
+  {
+    "id": 41,
+    "steps": [
+      {
+        "click": "#btn"
+      },
+      {
+        "press": "ArrowLeft"
+      }
+    ]
+  },
+  {
+    "id": 42,
+    "steps": [
+      {
+        "press": "Space"
+      },
+      {
+        "press": "Space"
+      }
+    ]
+  },
+  {
+    "id": 43,
+    "steps": [
+      {
+        "press": "Space"
+      },
+      {
+        "press": "ArrowLeft"
+      }
+    ]
+  },
+  {
+    "id": 44,
+    "steps": [
+      {
+        "press": "Space"
+      }
+    ]
+  },
+  {
+    "id": 45,
+    "steps": [
+      {
+        "click": "#startBtn"
+      },
+      {
+        "click": "#arena .target"
+      }
+    ]
+  },
+  {
+    "id": 46,
+    "steps": [
+      {
+        "click": "#c",
+        "at": [
+          0.78,
+          0.49
+        ]
+      }
+    ]
+  },
+  {
+    "id": 47,
+    "steps": [
+      {
+        "drag": "#cv",
+        "from": [
+          0.35,
+          0.68
+        ],
+        "to": [
+          0.17,
+          0.88
+        ]
+      }
+    ]
+  },
+  {
+    "id": 48,
+    "steps": [
+      {
+        "click": "#c",
+        "at": [
+          0.32,
+          0.25
+        ]
+      }
+    ]
+  },
+  {
+    "id": 49,
+    "steps": [
+      {
+        "drag": "#cv",
+        "from": [
+          0.14583333333333334,
+          0.5
+        ],
+        "to": [
+          0.04,
+          0.58
+        ]
+      }
+    ]
+  },
+  {
+    "id": 50,
+    "steps": [
+      {
+        "click": "#rollBtn"
+      }
+    ]
+  },
+  {
+    "id": 51,
+    "steps": [
+      {
+        "click": "#board",
+        "at": [
+          0.46,
+          0.45
+        ]
+      }
+    ]
+  },
+  {
+    "id": 52,
+    "steps": [
+      {
+        "click": "#startBtn"
+      },
+      {
+        "press": "ArrowLeft"
+      }
+    ]
+  },
+  {
+    "id": 53,
+    "steps": [
+      {
+        "press": "ArrowUp"
+      }
+    ]
+  },
+  {
+    "id": 54,
+    "steps": [
+      {
+        "press": "Space"
+      }
+    ]
+  },
+  {
+    "id": 55,
+    "steps": [
+      {
+        "click": "#startBtn"
+      }
+    ]
+  },
+  {
+    "id": 56,
+    "steps": [
+      {
+        "click": "#bigCookie"
+      }
+    ]
+  },
+  {
+    "id": 57,
+    "steps": [
+      {
+        "press": "Space"
+      },
+      {
+        "press": "Space"
+      }
+    ]
+  },
+  {
+    "id": 58,
+    "steps": [
+      {
+        "click": "#btnStart"
+      },
+      {
+        "press": "Space"
+      }
+    ]
+  },
+  {
+    "id": 59,
+    "steps": [
+      {
+        "click": "#btnStart"
+      },
+      {
+        "press": "ArrowLeft"
+      }
+    ]
+  },
+  {
+    "id": 60,
+    "steps": [
+      {
+        "click": "#ov-btn"
+      },
+      {
+        "click": ".ans"
+      }
+    ]
+  },
+  {
+    "id": 61,
+    "steps": [
+      {
+        "fill": "#guess",
+        "value": "apple"
+      },
+      {
+        "click": "#submitBtn"
+      }
+    ]
+  },
+  {
+    "id": 62,
+    "steps": [
+      {
+        "click": ".choice"
+      }
+    ]
+  },
+  {
+    "id": 63,
+    "steps": [
+      {
+        "click": ".sq"
+      }
+    ]
+  },
+  {
+    "id": 64,
+    "steps": [
+      {
+        "click": ".tile.src"
+      }
+    ]
+  },
+  {
+    "id": 65,
+    "steps": [
+      {
+        "click": ".swatch"
+      }
+    ]
+  },
+  {
+    "id": 66,
+    "steps": [
+      {
+        "click": ".cell:not(.blocked)"
+      }
+    ]
+  },
+  {
+    "id": 67,
+    "steps": [
+      {
+        "press": "Space"
+      }
+    ]
+  },
+  {
+    "id": 68,
+    "steps": [
+      {
+        "click": "#canvas",
+        "at": [
+          0.36,
+          0.39
+        ]
+      }
+    ]
+  },
+  {
+    "id": 69,
+    "steps": [
+      {
+        "drag": "#ui",
+        "from": [
+          0.45,
+          0.45
+        ],
+        "to": [
+          0.6,
+          0.55
+        ]
+      },
+      {
+        "press": "ArrowRight"
+      }
+    ]
+  },
+  {
+    "id": 70,
+    "steps": [
+      {
+        "drag": "#c",
+        "from": [
+          0.25,
+          0.35
+        ],
+        "to": [
+          0.45,
+          0.38
+        ]
+      }
+    ]
+  },
+  {
+    "id": 71,
+    "steps": [
+      {
+        "click": "button.card[data-type=\"arrow\"], button.card[data-type=\"basic\"], button.card"
+      },
+      {
+        "click": "#waveBtn"
+      }
+    ]
+  },
+  {
+    "id": 72,
+    "steps": [
+      {
+        "press": "Space"
+      }
+    ]
+  },
+  {
+    "id": 73,
+    "steps": [
+      {
+        "click": "#throwBtn"
+      }
+    ]
+  },
+  {
+    "id": 74,
+    "steps": [
+      {
+        "drag": "#game",
+        "from": [
+          0.32,
+          0.55
+        ],
+        "to": [
+          0.19,
+          0.55
+        ]
+      }
+    ]
+  },
+  {
+    "id": 75,
+    "steps": [
+      {
+        "click": "#c",
+        "at": [
+          0.54,
+          0.46
+        ]
+      }
+    ]
+  },
+  {
+    "id": 76,
+    "steps": [
+      {
+        "click": "#startBtn"
+      },
+      {
+        "click": "#c",
+        "at": [
+          0.5,
+          0.45
+        ]
+      }
+    ]
+  },
+  {
+    "id": 77,
+    "steps": [
+      {
+        "click": ".plot.empty"
+      }
+    ]
+  },
+  {
+    "id": 78,
+    "steps": [
+      {
+        "click": "#startBtn"
+      },
+      {
+        "click": "button.btn"
+      }
+    ]
+  },
+  {
+    "id": 79,
+    "steps": [
+      {
+        "click": "#nextBtn"
+      }
+    ]
+  },
+  {
+    "id": 80,
+    "steps": [
+      {
+        "click": "#hintBtn"
+      }
+    ]
+  },
+  {
+    "id": 81,
+    "steps": [
+      {
+        "click": "#startBtn"
+      },
+      {
+        "press": "ArrowLeft"
+      }
+    ]
+  },
+  {
+    "id": 82,
+    "steps": [
+      {
+        "click": "#startBtn"
+      },
+      {
+        "press": "ArrowUp"
+      }
+    ]
+  },
+  {
+    "id": 83,
+    "steps": [
+      {
+        "click": "#startBtn"
+      }
+    ]
+  },
+  {
+    "id": 84,
+    "steps": [
+      {
+        "click": "#playBtn"
+      },
+      {
+        "click": ".cell"
+      }
+    ]
+  },
+  {
+    "id": 85,
+    "steps": [
+      {
+        "click": "#stock"
+      }
+    ]
+  },
+  {
+    "id": 86,
+    "steps": [
+      {
+        "click": "#spinBtn"
+      }
+    ]
+  },
+  {
+    "id": 87,
+    "steps": [
+      {
+        "click": "#btnBank"
+      }
+    ]
+  },
+  {
+    "id": 88,
+    "steps": [
+      {
+        "click": "button[data-action=\"start\"]"
+      },
+      {
+        "press": "ArrowUp"
+      }
+    ]
+  },
+  {
+    "id": 89,
+    "steps": [
+      {
+        "click": "#game",
+        "at": [
+          0.5,
+          0.44
+        ]
+      }
+    ]
+  },
+  {
+    "id": 90,
+    "steps": [
+      {
+        "click": "button[data-act=\"play\"]"
+      },
+      {
+        "click": "#game",
+        "at": [
+          0.4,
+          0.4
+        ]
+      }
+    ]
+  },
+  {
+    "id": 91,
+    "steps": [
+      {
+        "click": "#startBtn"
+      },
+      {
+        "press": "Space"
+      }
+    ]
+  },
+  {
+    "id": 92,
+    "steps": [
+      {
+        "click": "#startBtn"
+      },
+      {
+        "press": "ArrowRight"
+      }
+    ]
+  },
+  {
+    "id": 93,
+    "steps": [
+      {
+        "click": "#startBtn"
+      },
+      {
+        "click": "#c",
+        "at": [
+          0.5,
+          0.4
+        ]
+      }
+    ]
+  },
+  {
+    "id": 94,
+    "steps": [
+      {
+        "click": "#startBtn"
+      },
+      {
+        "click": "#c",
+        "at": [
+          0.52,
+          0.31
+        ]
+      }
+    ]
+  },
+  {
+    "id": 95,
+    "steps": [
+      {
+        "click": "#startBtn"
+      },
+      {
+        "click": "#c",
+        "at": [
+          0.49,
+          0.48
+        ]
+      }
+    ]
+  },
+  {
+    "id": 96,
+    "steps": [
+      {
+        "click": "#startBtn"
+      },
+      {
+        "click": "#yesBtn"
+      }
+    ]
+  },
+  {
+    "id": 97,
+    "steps": [
+      {
+        "click": "#startBtn"
+      },
+      {
+        "click": ".cell"
+      }
+    ]
+  },
+  {
+    "id": 98,
+    "steps": [
+      {
+        "click": "#startBtn"
+      },
+      {
+        "press": "ArrowLeft"
+      }
+    ]
+  },
+  {
+    "id": 99,
+    "steps": [
+      {
+        "click": "#startBtn"
+      },
+      {
+        "press": "ArrowLeft"
+      }
+    ]
+  },
+  {
+    "id": 100,
+    "steps": [
+      {
+        "click": "#startBtn"
+      },
+      {
+        "press": "ArrowUp"
+      }
+    ]
+  }
+]

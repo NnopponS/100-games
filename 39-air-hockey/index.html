@@ -406,9 +406,13 @@ function frame(t) {
 resize();
 restart();
 requestAnimationFrame(frame);
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":39,"label":"Goals past the CPU","goals":[2,4,7],"note":"Find gaps in the CPU’s defense; score seven for a gold-medal match."}, { read: () => { return (score?.you || 0); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

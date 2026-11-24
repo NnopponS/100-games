@@ -508,8 +508,12 @@ sizeSel.addEventListener('change', setup);
 
 setup();
 requestAnimationFrame(draw);
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":25,"label":"Maze side on escape","goals":[10,15,25],"note":"Choose a larger maze for a harder route. A medal requires reaching its exit.","seconds":420}, { read: () => { return (won ? N : 0); } });
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

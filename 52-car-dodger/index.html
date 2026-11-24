@@ -369,9 +369,13 @@
 
   reset();
   requestAnimationFrame(loop);
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":52,"label":"Road distance (m)","goals":[150,350,700],"note":"Change lanes to weave through faster traffic."}, { read: () => { return (Math.floor(dist)); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

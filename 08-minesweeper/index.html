@@ -483,10 +483,14 @@
   });
 
   newGame();
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":8,"label":"Safe field revealed","goals":[35,75,100],"note":"Uncover safe squares. Flags and detonated mines do not count.","seconds":420}, { read: () => { return (Math.floor(100 * grid.flat().filter(c => c.open && !c.mine).length / (R*C - M))); } });
 })();
 </script>
 
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

@@ -331,10 +331,14 @@ window.__gsfx = (function(){
   document.getElementById('win-restart').addEventListener('click', newGame);
 
   newGame();
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":32,"label":"Switches to solve","goals":[24,17,12],"note":"Switch every tile off. Finishing in fewer moves earns a higher medal.","kind":"lower","seconds":420}, { read: () => { return (gameOver ? moves : Infinity); } });
 })();
 </script>
 
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

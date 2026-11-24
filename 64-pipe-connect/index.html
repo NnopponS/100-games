@@ -307,8 +307,12 @@ document.getElementById('again').addEventListener('click',function(){newGame(siz
 window.addEventListener('pointerdown',function once(){Sfx.unlock();window.removeEventListener('pointerdown',once)});
 
 newGame(7);
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":64,"label":"Tiles powered (%)","goals":[35,65,100],"note":"Rotate pipes so more tiles connect to the power source. The goal adapts to board size.","seconds":240}, { read: () => { const __arcadeNumber = id => parseFloat(document.getElementById(id)?.textContent?.match(/-?\d+(?:\.\d+)?/)?.[0] || '0'); return (100 * __arcadeNumber('litN') / (size * size)); } });
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

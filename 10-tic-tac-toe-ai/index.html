@@ -418,10 +418,14 @@
 
   sX.textContent = scores.x; sD.textContent = scores.d; sO.textContent = scores.o;
   reset();
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":10,"label":"Round result","goals":[1,2,3],"note":"Draw for bronze, win on Easy for silver, or win on Medium for gold. Hard AI can be held to a draw."}, { read: () => { return (over ? (winner(state)?.who === 'X' ? (diff === 'easy' ? 2 : 3) : (state.every(Boolean) && !winner(state) ? 1 : 0)) : 0); } });
 })();
 </script>
 
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

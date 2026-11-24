@@ -414,9 +414,13 @@
   c.addEventListener('pointerdown', e => { e.preventDefault(); cycle(); });
   startBtn.onclick = () => { ovT.innerHTML = 'ORBIT<br>DODGE'; ovT.classList.remove('hot'); ovStats.style.display = 'none'; reset(); };
   requestAnimationFrame(loop);
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":81,"label":"Orbit points","goals":[80,180,350],"note":"Switch rings early enough to dodge obstacles and keep your chain alive."}, { read: () => { return (score); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

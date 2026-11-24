@@ -512,9 +512,13 @@
   });
 
   startGame();
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":61,"label":"Words unscrambled","goals":[3,6,10],"note":"Unscramble words. Skipping and requesting a hint don't count as solving.","seconds":105}, { read: () => { return (solved); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

@@ -506,9 +506,13 @@
 
   reset();
   requestAnimationFrame(loop);
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":41,"label":"Seconds dodged","goals":[12,25,45],"note":"Stay alive in the arena. The timer measures your actual dodge run, not time spent on the page."}, { read: () => { return (running ? (parseFloat(timeEl.textContent) || 0) : (parseFloat(finalScore.textContent.match(/[0-9.]+/)?.[0]) || 0)); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

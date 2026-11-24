@@ -357,9 +357,13 @@
   document.getElementById('resetBtn').onclick = () => { score = 0; scoreEl.textContent = '0'; loadLevel(0); };
   loadLevel(0);
   requestAnimationFrame(loop);
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":75,"label":"Switching points","goals":[200,500,1000],"note":"Route trains to matching stations and avoid collisions.","seconds":300}, { read: () => { return (score); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

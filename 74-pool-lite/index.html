@@ -655,8 +655,12 @@ function loop() {
 
 rack();
 loop();
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":74,"label":"Object balls pocketed","goals":[3,8,15],"note":"Pocket object balls. Scratching the cue ball doesn't count.","seconds":420}, { read: () => { return (balls.filter(b => b.n !== 0 && b.pocketed).length); } });
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

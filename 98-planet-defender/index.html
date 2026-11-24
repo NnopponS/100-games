@@ -452,9 +452,13 @@
   setTimeout(try3d, 1200);
 
   requestAnimationFrame(loop);
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":98,"label":"Planet defense points","goals":[80,180,350],"note":"Move the shield toward approaching meteors. Build points without losing your planet."}, { read: () => { return (score); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

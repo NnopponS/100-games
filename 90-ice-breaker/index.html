@@ -1978,9 +1978,13 @@
   G.banner = null;
   showMenu();
   requestAnimationFrame(loop);
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":90,"label":"Ice Breaker points","goals":[200,600,1300],"note":"Collect gems, then plan which ice blocks to break on the way to the exit.","seconds":300}, { read: () => { return (G.score); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

@@ -1,29 +1,31 @@
-# 100-games
+# Arcade 100
 
-**100 zero-dependency, single-file HTML5 arcade games with a unified web portal.**
+**100 games, one bright arcade. No install or sign-in.**
 
-[**Play Live on GitHub Pages →**](https://nnoppons.github.io/100-games/)
+[Open the arcade →](https://nnoppons.github.io/100-games/)
 
----
+## Pick a game
 
-## Overview
+Search by name, browse by genre, save favorites, or resume from your recent games. The **Daily Challenge** rotates on a UTC calendar and keeps a separate medal record on your device.
 
-`100-games` is a collection of 100 standalone browser games engineered without external game engines, bundlers, or runtime dependencies. Each game lives in its own self-contained HTML5 file (`game-001` through `game-100`) using native `<canvas>`, `requestAnimationFrame`, and procedural WebAudio synthesis, indexed by a fast, searchable arcade launcher (`index.html`).
+All 100 games offer **Classic** and **Medal Trial**. Choose Classic for original play, or enter Medal Trial for a fresh run with a time budget and three game-specific medal targets. Switch modes in the arcade player or via **Modes** on a standalone game page. The mission measures actual play, from safe squares uncovered in Minesweeper to connected pipes, darts checkout progress, and objects pocketed in Pool. The trial doesn't overwrite the game's own score or save.
 
-## Architecture Highlights
+### New signature modes
 
-- **Zero External Dependencies:** Every game runs directly from a single `.html` file with inline rendering, physics, collision detection, and state management.
-- **60 FPS Canvas Loop:** Deterministic delta-time stepping, keyboard + touch/mouse input handling, and responsive viewport scaling.
-- **Instant Portal Launcher:** Filter by genre, search by title, and launch any game in-place or in a dedicated tab.
+- **Snake:** solid-wall Classic, edge-wrapping Wraparound, and Maze Rush with barriers. Variant runs add golden apples and separate records.
+- **Breakout:** Brick Lab adds armored formations, clearer level progression, paddle widening, and a one-use ball shield. Classic stays separate.
+- **2048:** Daily Sprint uses the same seeded layout sequence on the same UTC date and has a 120-move limit. Practice offers three undos without touching ranked records.
 
-## Running Locally
+## Run locally
 
-No build step is required. Serve the root directory with any static HTTP server:
+No build step. Every game still runs at its original numbered directory.
 
-```bash
-npx serve .
-# or
-python -m http.server 8080
+```sh
+python3 -m http.server 8080
+# Open http://localhost:8080
+node tests/native-modes.cjs
 ```
 
-Then open `http://localhost:8080`.
+The shared HUD and optional missions are in `assets/aaa-arcade.js` and `assets/missions.js`. The game pages provide read-only mission adapters that read their own game state. LocalStorage is the only persistence layer; no leaderboard service or accounts are required. Some games retain their original optional CDN-backed 3D decoration.
+
+To run the browser suite, install Playwright, install its Chromium browser, and execute `node tests/browser-smoke.cjs`. The Verify arcade workflow runs this suite on pushes and pull requests.

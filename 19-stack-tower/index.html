@@ -351,9 +351,13 @@ function frame(now){
 }
 reset();
 requestAnimationFrame(frame);
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":19,"label":"Perfect drops in a row","goals":[2,4,7],"note":"Drop blocks flush with the tower; off-center drops break the streak."}, { read: () => { return (perfStreak || 0); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

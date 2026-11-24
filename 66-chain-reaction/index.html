@@ -385,9 +385,13 @@ document.addEventListener('keydown',function(e){
   if(e.key==='r'||e.key==='R') retryLevel();
 });
 newLevel(1);
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":66,"label":"Biggest chain","goals":[4,8,14],"note":"Create a single cascade by placing near cells ready to burst."}, { read: () => { return (bestChain); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

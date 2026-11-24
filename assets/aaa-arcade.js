@@ -6,12 +6,12 @@
   window.__AAA_ARCADE_INIT__ = true;
 
   const isFramed = (() => { try { return window.self !== window.top; } catch { return true; } })();
-  const isTypingGame = /\/(22-hangman|23-wordle-clone|27-typing-racer|61-word-scramble)\b/i.test(location.pathname);
+  const isTypingGame = /\/(22-hangman|23-wordle-clone|27-typing-racer|61-word-scramble|77-farm-clicker)\b/i.test(location.pathname);
 
   const pref = {
     sfx: localStorage.getItem('aaa_sfx') !== '0',
     bgm: localStorage.getItem('aaa_bgm') === '1',
-    fx:  localStorage.getItem('aaa_fx')  !== '0',
+    fx:  localStorage.getItem('aaa_fx') === '1' || (localStorage.getItem('aaa_fx') !== '0' && !window.matchMedia('(prefers-reduced-motion: reduce)').matches),
     min: localStorage.getItem('aaa_min') === '1'
   };
 
@@ -194,6 +194,7 @@
 
   // --- 2. Pause Engine (Safe rAF Wrapper with Timestamp Compensation) ---
   let paused = false;
+  let quietPause = false;
   let pauseStart = 0;
   let pausedAccum = 0;
   const origRAF = window.requestAnimationFrame.bind(window);
@@ -207,9 +208,10 @@
     return origRAF(ts => cb(Math.max(0, ts - pausedAccum)));
   };
 
-  function setPaused(next) {
+  function setPaused(next, quiet = false) {
     if (paused === next) return;
     paused = next;
+    quietPause = next && quiet;
     if (paused) {
       pauseStart = performance.now();
     } else {
@@ -252,25 +254,27 @@
       .hud {
         position: fixed; top: 8px; right: 10px; z-index: 99999;
         display: flex; align-items: center; gap: 3px;
-        background: linear-gradient(180deg, rgba(22,26,44,0.92), rgba(10,13,24,0.9));
+        background: linear-gradient(180deg, rgba(255,255,255,.96), rgba(242,248,255,.94));
         backdrop-filter: blur(12px);
-        border: 1px solid rgba(255,255,255,0.14);
+        border: 1px solid #c7d7eb;
         padding: 4px; border-radius: 999px;
-        box-shadow: 0 8px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08);
+        box-shadow: 0 8px 24px #14345528, inset 0 1px 0 #fff;
         font-family: system-ui, -apple-system, sans-serif;
       }
       .hud.min .extra { display: none; }
       button, a {
-        border: none; background: rgba(255,255,255,0.06); color: #cbd5e1;
+        border: none; background: #e6eef9; color: #203957;
         height: 28px; min-width: 28px; padding: 0 7px; border-radius: 999px;
         font-size: 11px; font-weight: 800; cursor: pointer;
         display: inline-flex; align-items: center; justify-content: center; gap: 3px;
         text-decoration: none; transition: background .15s, color .15s, transform .15s;
         font-family: inherit; -webkit-tap-highlight-color: transparent; touch-action: manipulation;
       }
-      button:hover, a:hover { background: rgba(255,255,255,0.18); color: #fff; }
+      button:hover, a:hover { background: #dceaff; color: #142a49; }
+      button:focus-visible,a:focus-visible { outline:3px solid #2563eb;outline-offset:2px }
+      @media (prefers-reduced-motion: reduce) { button,a { transition:none } }
       button:active { transform: scale(0.94); }
-      button.on { background: rgba(108, 92, 231, 0.5); color: #fff; box-shadow: inset 0 0 0 1px rgba(167,139,250,0.55); }
+      button.on { background: #dce9ff; color: #163975; box-shadow: inset 0 0 0 1px #aac3ed; }
       svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
       #btnSfx svg, #btnBgm svg, #btnFx svg, #btnPause svg, #btnRestart svg, #btnHome svg { fill: none; }
       #btnPause svg rect, #btnPause svg path[fill], #btnMin svg circle { fill: currentColor; stroke: none; }
@@ -284,20 +288,20 @@
       }
       .pause-curtain.open { display: flex; }
       .pause-card {
-        background: linear-gradient(180deg, #1d2239, #141828); border: 1px solid rgba(167,139,250,0.32);
+        background: #f7fbff; border: 1px solid #d5e0ed;
         border-radius: 22px; padding: 28px 34px; text-align: center;
         box-shadow: 0 24px 70px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.08);
         display: flex; flex-direction: column; gap: 12px; min-width: 280px;
       }
-      .pause-card h2 { margin: 0; font-size: 1.45rem; letter-spacing: 0.16em; color: #c4b5fd; font-weight: 900; }
-      .pause-card p { margin: 0 0 4px; color: #94a3b8; font-size: 0.8rem; }
+      .pause-card h2 { margin: 0; font-size: 1.45rem; letter-spacing: 0.16em; color: #1d3c68; font-weight: 900; }
+      .pause-card p { margin: 0 0 4px; color: #405774; font-size: 0.8rem; }
       .pbtn {
         height: 44px; justify-content: center; font-size: 0.95rem;
         background: linear-gradient(135deg, #6c5ce7, #a855f7); color: #fff;
         box-shadow: 0 8px 22px rgba(108,92,231,0.45);
       }
       .pbtn svg { width: 14px; height: 14px; fill: currentColor; stroke: none; }
-      .sbtn { height: 40px; justify-content: center; font-size: 0.88rem; background: rgba(255,255,255,0.08); }
+      .sbtn { height: 40px; justify-content: center; font-size: 0.88rem; background: #e6eef9; }
     </style>
     <canvas id="fxCanvas"></canvas>
     <div class="hud" id="hudBar">
@@ -528,7 +532,7 @@
     btnFx.classList.toggle('on', pref.fx);
     btnPause.classList.toggle('on', paused);
     btnPause.innerHTML = paused ? ICON.play : ICON.pause;
-    pauseCurtain.classList.toggle('open', paused);
+    pauseCurtain.classList.toggle('open', paused && !quietPause);
   }
 
   btnMin.onclick = () => {
@@ -595,6 +599,7 @@
     burst, popup, shockwave, flash: flashEdge,
     ensureAudio,
     isPaused: () => paused,
+    setPaused, repositionHud: placeHudSafely,
     get sfxOn() { return pref.sfx; },
     get bgmOn() { return pref.bgm; },
     get fxOn() { return pref.fx; },

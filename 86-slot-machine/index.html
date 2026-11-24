@@ -335,9 +335,13 @@
   strips[1].innerHTML = `<div class="cell">${SYMBOLS[4].svg}</div>`;
   strips[2].innerHTML = `<div class="cell">${SYMBOLS[0].svg}</div>`;
   updateUI();
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":86,"label":"Practice credit gain","goals":[40,90,160],"delta":true,"note":"Practice with simulated credits only; no money or purchases."}, { read: () => { return (credits); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

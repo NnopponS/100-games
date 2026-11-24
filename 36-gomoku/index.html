@@ -471,9 +471,13 @@ window.__gsfx = (function(){
   document.getElementById('restart').addEventListener('click', reset);
 
   reset();
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":36,"label":"Longest connected line","goals":[3,4,5],"note":"Build an unbroken line. A complete five in a row claims gold.","seconds":420}, { read: () => { return (Math.max(0, ...board.flatMap((row,r) => row.map((p,c) => p !== BLACK ? 0 : Math.max(...[[1,0],[0,1],[1,1],[1,-1]].map(([dr,dc]) => { let n = 1; while (board[r + n * dr]?.[c + n * dc] === BLACK) n++; return n; })))))); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>

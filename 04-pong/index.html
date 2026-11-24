@@ -452,9 +452,13 @@
   over = true;
   winsEl.textContent = totalWins > 0 ? 'Career wins: ' + totalWins : '';
   requestAnimationFrame(loop);
+
+  // Report native gameplay state to the optional mission engine.
+  window.__arcadeMissionSource = Object.assign({"id":4,"label":"Points past the CPU","goals":[3,6,10],"note":"Outplay the CPU. Gold means taking the match."}, { read: () => { return (score?.you || 0); } });
 })();
 </script>
 
-<script src="../assets/aaa-arcade.js" defer></script>
+<script src="../assets/aaa-arcade.js?v=3" defer></script>
+<script src="../assets/missions.js" defer></script>
 </body>
 </html>
