@@ -1,0 +1,51 @@
+{
+  "parallel": {
+    "wallSeconds": 84,
+    "workers": 2,
+    "eligibleWorkerOverlapSeconds": 70,
+    "observedWorkerDurationsSeconds": {
+      "connect": 84,
+      "range": 70
+    },
+    "aggregateWorkerSeconds": 154,
+    "checksByTask": {
+      "connect": 10,
+      "range": 10
+    },
+    "checksPassed": 20,
+    "totalChecks": 20,
+    "tasksAccepted": 2,
+    "retries": 0,
+    "implementationInterventions": 0,
+    "inputOutputTokens": null,
+    "cost": null,
+    "artifactSha256": {
+      "connect.mjs": "7f9c4b5c4a24d196c02bc8ed6218363a70492385e3aa2564c693a62ae8559c70",
+      "range.mjs": "14211067cd45c8f5a88699cb8daf0f5b20cdd073d36520a551478693f333846a"
+    }
+  },
+  "single": {
+    "wallSeconds": 143,
+    "workers": 1,
+    "eligibleWorkerOverlapSeconds": 0,
+    "observedWorkerDurationsSeconds": {
+      "single": 143
+    },
+    "aggregateWorkerSeconds": 143,
+    "checksByTask": {
+      "connect": 10,
+      "range": 10
+    },
+    "checksPassed": 20,
+    "totalChecks": 20,
+    "tasksAccepted": 2,
+    "retries": 0,
+    "implementationInterventions": 0,
+    "inputOutputTokens": null,
+    "cost": null,
+    "artifactSha256": {
+      "connect.mjs": "5ff33b05b0e4035b61ea21d6b2baf3a415c88a1a51e6a3e8bc97312e71d56070",
+      "range.mjs": "57d9d647ff2ee00fd01524da3c05a148d2210b20b4228ece30f72d3afa359b5c"
+    }
+  }
+}

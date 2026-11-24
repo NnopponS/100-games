@@ -1,0 +1,7 @@
+arm	worker	event	utc
+parallel	connect	dispatch	2026-11-24T17:41:31Z
+parallel	range	dispatch	2026-11-24T17:41:45Z
+parallel	connect	complete	2026-11-24T17:42:55Z
+parallel	range	complete	2026-11-24T17:42:55Z
+single	single	dispatch	2026-11-24T17:43:00Z
+single	single	complete	2026-11-24T17:45:23Z

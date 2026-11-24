@@ -46,3 +46,27 @@ node scoring/run.mjs baseline # 0/20, expected nonzero exit
 To audit the Git-based observations using a clone containing the public historical commits, run `node historical-audit.mjs ../..` and `node historical-frame-probe.mjs ../..` from the same directory. This reproduces deterministic grading and history probes, not the original model responses or elapsed times.
 
 A failure here is an observed failed independent acceptance group, not a style judgment. Rates, if reported, divide fully accepted tasks by elapsed wall minutes. Timed arm starts are recorded before first dispatch; completion is reported when all assigned artifacts are present. Parallel overlap means overlapping admitted workers, not a measurement of instantaneous model-token execution. Two worker allocations are not an equal compute/token budget, and model version identifiers and token/cost totals were not exposed. One paired result cannot separate scheduling from task decomposition, account for stochastic variance, or support a scaling law.
+
+## 3. Reversed-order follow-up
+
+A separately [preregistered](benchmark/replication/PREREGISTRATION.md) follow-up used **two new mechanics**: Connect Four with win/draw detection and exact undo, and archery with analytic projectile timing and ring scoring. This time the **parallel condition ran first**. Both arms used the same stubs and [specification](benchmark/replication/SPEC.md) within this follow-up, with a frozen 20-check grader and the same 360 s wall limit. The work remained headless.
+
+| Condition | Accepted games | Held-out checks | Elapsed wall time | Aggregate observed worker-seconds |
+| --- | ---: | ---: | ---: | ---: |
+| Parallel first, one worker per game | 2/2 | 20/20 | **84 s** | 154 s |
+| Single second, one worker both games | 2/2 | 20/20 | **143 s** | 143 s |
+
+Both arms passed every held-out check; neither required an implementation intervention or a rerun. The parallel arm finished 59 seconds earlier in this observation. Eligible worker lifetime overlap was 70 seconds. Worker time is the sum of observed dispatch-to-completion intervals, not compute or cost. Two completions in the parallel arm were received at the same observation boundary; timing through task messages is coarse enough that small differences should not be overinterpreted.
+
+**Across the two pairs:** these are two descriptive observations with different games and reversed orders. They show that independently scored mechanics work can finish using either structure. They do not measure an average speedup, cost, or how results change at 10, 25 or 100 workers. Different tasks, unobserved compute usage, scheduling, self-testing time and model variability are still confounded. No winning-condition generalization or statistical test is warranted.
+
+[Raw timings](benchmark/replication/timing.tsv) · [Measurements and candidate hashes](benchmark/replication/measurements.json) · [Parallel grader JSON](benchmark/replication/multi-result.json) · [Single grader JSON](benchmark/replication/single-result.json)
+
+Reproduce grading from `docs/benchmark/replication`:
+
+```sh
+sha256sum -c preregister-sha256.txt
+node scoring/run.mjs multi
+node scoring/run.mjs single
+node scoring/run.mjs baseline # 0/20, expected nonzero exit
+```

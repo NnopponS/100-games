@@ -181,9 +181,30 @@ html[data-arcade-stage="07"] .hud .label{color:#2d5f4e}html[data-arcade-stage="0
 
 /* Mobile fixes for originally fixed-width sections, without scaling touch coordinates. */
 @media(max-width:480px){
- html[data-arcade-stage="22"] .right {min-width:0;width:100%;}
- html[data-arcade-stage="22"] .keyboard {max-width:100%;}
- html[data-arcade-stage="22"] .krow {gap:4px;}
+ /* Hangman: give the scene and keyboard separate rows and size each key to its track. */
+ html[data-arcade-stage="22"] .game {display:grid;grid-template-columns:minmax(0,1fr);justify-items:center;}
+ html[data-arcade-stage="22"] :is(.left,.right) {min-width:0;width:100%;max-width:100%;}
+ html[data-arcade-stage="22"] .stage {width:min(300px,100%);}
+ html[data-arcade-stage="22"] #gallows {width:100%;height:auto;}
+ html[data-arcade-stage="22"] .keyboard {min-width:0;max-width:100%;}
+ html[data-arcade-stage="22"] .krow {display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:3px;width:100%;}
+ html[data-arcade-stage="22"] .krow .key {min-width:0;max-width:none;width:100%;height:44px;padding:0;font-size:clamp(12px,4vw,15px);}
+ html[data-arcade-stage="22"] :is(.stats,.controls) {flex-wrap:wrap;justify-content:center;max-width:100%;}
+ html[data-arcade-stage="22"] .hint {min-width:0;max-width:100%;text-align:center;overflow-wrap:anywhere;}
+ html[data-arcade-stage="22"] .hint .key {max-width:100%;min-height:40px;white-space:normal;}
+ /* Wordle: keyboard follows the padded layout width, not the raw viewport. */
+ html[data-arcade-stage="23"] .keyboard {width:min(100%,500px);}
+ html[data-arcade-stage="23"] .krow {gap:clamp(2px,0.9vw,4px);min-width:0;}
+ html[data-arcade-stage="23"] .key {min-width:0;padding:0;font-size:clamp(12px,3.65vw,15px);}
+ html[data-arcade-stage="23"] .key.wide {flex:1 1 51px;font-size:clamp(9px,2.5vw,11px);letter-spacing:0;}
+ html[data-arcade-stage="23"] .subtitle {max-width:100%;text-align:center;letter-spacing:.18em;}
+ html[data-arcade-stage="23"] #toast {max-width:calc(100% - 24px);overflow-wrap:anywhere;}
+ /* Target Shooter: five equal-width stats, with responsive gaps, never above the field width. */
+ html[data-arcade-stage="45"] #hud {display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);padding:10px 7px;gap:5px;}
+ html[data-arcade-stage="45"] .hud-group {display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);min-width:0;gap:3px;}
+ html[data-arcade-stage="45"] #hud .stat {min-width:0;}
+ html[data-arcade-stage="45"] #hud .label {font-size:clamp(8px,2.35vw,10px);letter-spacing:.04em;}
+ html[data-arcade-stage="45"] #hud .value {font-size:clamp(16px,5.1vw,22px);}
  html[data-arcade-stage="71"] .app {min-width:0;width:100%;}
  html[data-arcade-stage="71"] .overlay {padding:7px;align-items:safe center;overflow:auto;}
  html[data-arcade-stage="71"] .panel {padding:9px 12px;}
@@ -192,6 +213,31 @@ html[data-arcade-stage="07"] .hud .label{color:#2d5f4e}html[data-arcade-stage="0
  html[data-arcade-stage="71"] button.big {padding:7px 16px;}
  html[data-arcade-stage="71"] .panel .tiny {margin-top:5px;}
  html[data-arcade-stage="71"] .actions {flex-wrap:wrap;}
+ /* Farm: lock chips and shop controls must not set the farm grid's intrinsic width. */
+ html[data-arcade-stage="77"] main {grid-template-columns:minmax(0,1fr);}
+ html[data-arcade-stage="77"] :is(.app,.farm-card,.shop-card,.plot) {min-width:0;max-width:100%;}
+ html[data-arcade-stage="77"] .farm {grid-template-columns:repeat(3,minmax(0,1fr));}
+ html[data-arcade-stage="77"] .farm-actions {flex-wrap:wrap;max-width:100%;}
+ html[data-arcade-stage="77"] .upg-title {flex-wrap:wrap;gap:3px;}
+ html[data-arcade-stage="77"] :is(.lock-cost,.lock-label,.plot-name,.plot-timer) {max-width:100%;overflow-wrap:anywhere;white-space:normal;text-align:center;}
+ html[data-arcade-stage="77"] .toasts {max-width:calc(100% - 32px);}
+ /* Jigsaw: preserve all advanced buttons on wrapping rows; the game remains the flex remainder. */
+ html[data-arcade-stage="80"] header {width:100%;padding:8px 10px;gap:5px;}
+ html[data-arcade-stage="80"] :is(.stats,.controls) {flex-wrap:wrap;min-width:0;margin-left:0;gap:5px;}
+ html[data-arcade-stage="80"] .controls {flex:1 1 100%;min-height:77px;align-content:flex-start;}
+ html[data-arcade-stage="80"] .controls button {min-height:36px;padding-inline:8px;}
+ html[data-arcade-stage="80"] .controls .icon {width:36px;}
+ html[data-arcade-stage="80"] .seg {max-width:100%;}
+ html[data-arcade-stage="80"] .stat {padding:4px 6px;}
+ /* Laser: a first row of four stats and second row of three accessible controls. */
+ html[data-arcade-stage="95"] .wrap {display:grid;grid-template-columns:minmax(0,1fr);}
+ html[data-arcade-stage="95"] .hud {grid-column:1;grid-row:1;display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:4px;padding:6px;}
+ html[data-arcade-stage="95"] .hud>div {grid-column:span 3;min-width:0;text-align:center;}
+ html[data-arcade-stage="95"] .hud .lab {letter-spacing:.08em;}
+ html[data-arcade-stage="95"] .hud .reset {grid-column:span 4;padding:6px 4px;min-height:36px;white-space:normal;font-size:clamp(10px,2.8vw,13px);}
+ html[data-arcade-stage="95"] #c {grid-column:1;grid-row:2;width:100%;height:auto;}
+ html[data-arcade-stage="95"] .msg {grid-column:1;grid-row:3;}
+ html[data-arcade-stage="95"] .ov {grid-column:1;grid-row:2;position:relative;inset:auto;padding:12px;gap:8px;min-width:0;}
 }
 """
 

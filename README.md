@@ -14,12 +14,12 @@ The original question wasn’t “can we make another game site?” It was wheth
 | **Classic** | Original-style rules and separately addressable game links. Existing bare game URLs still work. |
 | **Medal Trial** | A timed, game-state objective with Bronze/Silver/Gold tiers. Daily rotates on UTC and stores progress on your device. |
 
-The Daylight design applies inside game pages as well as to the launcher. You can search, filter, save favorites, resume your recent games, and use a compact player at phone size. Audio is owned by each game: leaving or switching disposes of the old frame; a hidden game pauses sound and needs new input to resume.
+The Daylight design applies inside game pages as well as to the launcher. You can search, filter, save favorites, resume your recent games, and use a compact player at phone size. Fullscreen uses the browser’s native mode when available, otherwise it hides the arcade controls and expands the board in the browser without restarting the game. Audio is owned by each game: leaving or switching disposes of the old frame; a hidden game pauses sound and needs new input to resume.
 
 ## What the project measures
 
 - [Historical agent experiment](AI_EXPERIMENT_REPORT.md): original concurrency, orchestration and model observations. These notes are descriptive, not a controlled model comparison.
-- [Controlled mechanics pilot](docs/agent-benchmark.md): matched tasks, preregistered checks, worker timing and raw outputs. Both arms passed 20/20; one paired run does not establish general speed or cost differences.
+- [Controlled mechanics pilot](docs/agent-benchmark.md): matched tasks, preregistered checks, worker timing and raw outputs. Both arms passed 20/20 in each of two matched task pairs. These runs do not establish general speed or cost differences.
 - [Engineering playtest](docs/release-playtest.md): why the first 100/100 launch pass missed mobile layout, audio ownership, and limited gameplay depth.
 - [Live report](https://nnoppons.github.io/100-games/report/): CI evidence for the published commit, with local test methodology and explicit limits. It is **not** real-world visitor analytics.
 

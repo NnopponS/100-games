@@ -41,6 +41,10 @@ jobs:
           sha256sum -c preregister-sha256.txt
           node scoring/run.mjs single
           node scoring/run.mjs multi
+          cd replication
+          sha256sum -c preregister-sha256.txt
+          node scoring/run.mjs single
+          node scoring/run.mjs multi
       - run: npm install --no-save --no-package-lock playwright@1.62.1
       - run: npx playwright install --with-deps --only-shell chromium
       - run: node tests/browser-smoke.cjs

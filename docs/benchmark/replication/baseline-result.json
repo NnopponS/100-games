@@ -1,0 +1,127 @@
+{
+  "node": "v24.22.3",
+  "passed": 0,
+  "total": 20,
+  "results": [
+    {
+      "group": "connect",
+      "id": "C01-default-and-custom-first",
+      "pass": false,
+      "error": "Error: Not implemented"
+    },
+    {
+      "group": "connect",
+      "id": "C02-drop-gravity-alternation-and-types",
+      "pass": false,
+      "error": "Error: Not implemented"
+    },
+    {
+      "group": "connect",
+      "id": "C03-horizontal-and-vertical-terminal",
+      "pass": false,
+      "error": "Error: Not implemented"
+    },
+    {
+      "group": "connect",
+      "id": "C04-both-diagonal-directions",
+      "pass": false,
+      "error": "Error: Not implemented"
+    },
+    {
+      "group": "connect",
+      "id": "C05-full-column-is-noop",
+      "pass": false,
+      "error": "Error: Not implemented"
+    },
+    {
+      "group": "connect",
+      "id": "C06-undo-terminal-reset-and-independent-snapshot",
+      "pass": false,
+      "error": "Error: Not implemented"
+    },
+    {
+      "group": "connect",
+      "id": "C07-winning-column-query-is-readonly",
+      "pass": false,
+      "error": "Error: Not implemented"
+    },
+    {
+      "group": "connect",
+      "id": "C08-draw-undo-and-query",
+      "pass": false,
+      "error": "Error: Not implemented"
+    },
+    {
+      "group": "connect",
+      "id": "C09-deterministic-varied-move-oracle",
+      "pass": false,
+      "error": "Error: Not implemented"
+    },
+    {
+      "group": "connect",
+      "id": "C10-invalid-options",
+      "pass": false,
+      "error": "AssertionError [ERR_ASSERTION]: The error is expected to be an instance of \"RangeError\". Received \"Error\"\n\nError message:\n\nNot implemented"
+    },
+    {
+      "group": "range",
+      "id": "D01-default-and-custom-shot-budget",
+      "pass": false,
+      "error": "Error: Not implemented"
+    },
+    {
+      "group": "range",
+      "id": "D02-analytic-center-hit",
+      "pass": false,
+      "error": "Error: Not implemented"
+    },
+    {
+      "group": "range",
+      "id": "D03-inclusive-ring-boundaries-and-combined-score",
+      "pass": false,
+      "error": "Error: Not implemented"
+    },
+    {
+      "group": "range",
+      "id": "D04-ground-before-target-suppresses-scoring",
+      "pass": false,
+      "error": "Error: Not implemented"
+    },
+    {
+      "group": "range",
+      "id": "D05-projectile-oracle-varied-ballistics",
+      "pass": false,
+      "error": "Error: Not implemented"
+    },
+    {
+      "group": "range",
+      "id": "D06-options-copied-and-snapshot-isolated",
+      "pass": false,
+      "error": "Error: Not implemented"
+    },
+    {
+      "group": "range",
+      "id": "D07-rejection-and-terminal-noop",
+      "pass": false,
+      "error": "Error: Not implemented"
+    },
+    {
+      "group": "range",
+      "id": "D08-undo-and-reset-terminal",
+      "pass": false,
+      "error": "Error: Not implemented"
+    },
+    {
+      "group": "range",
+      "id": "D09-legal-endpoints-and-zero-height",
+      "pass": false,
+      "error": "Error: Not implemented"
+    },
+    {
+      "group": "range",
+      "id": "D10-invalid-options",
+      "pass": false,
+      "error": "AssertionError [ERR_ASSERTION]: The error is expected to be an instance of \"RangeError\". Received \"Error\"\n\nError message:\n\nNot implemented"
+    }
+  ]
+}

@@ -56,6 +56,7 @@ input{background:white;border:1px solid #aabbd6;border-radius:11px;padding:9px 1
 <div class="shots" id="shots" hidden>
 <figure><img data-src="./daylight-mobile-library.png" width="780" height="1688" alt="Daylight Arcade 100 library rendered in a mobile Chromium viewport"><figcaption>Library, tested with a dark browser preference.</figcaption></figure>
 <figure><img data-src="./daylight-mobile-whack.png" width="780" height="1688" alt="Whack-a-Mole running inside the light mobile game player"><figcaption>Native Whack-a-Mole stage and compact player.</figcaption></figure>
+<figure><img data-src="./daylight-mobile-checkers-immersive.png" width="780" height="1688" alt="Portrait Checkers using the fullscreen fallback while browser fullscreen rejects the request"><figcaption>Checkers on the tested fallback path.</figcaption></figure>
 </div>
 <p class="notice">These are automated Chromium observations, not real-user analytics or full playthroughs. The phone viewport is emulated, not a physical Brave device.</p>
 </section>
@@ -78,8 +79,8 @@ input{background:white;border:1px solid #aabbd6;border-radius:11px;padding:9px 1
 <div class="metric"><strong>111 s</strong><small>Two eligible workers, 20/20 checks</small></div>
 <div class="metric"><strong>71 s</strong><small>Observed parallel overlap</small></div>
 </div>
-<p class="section-summary">Two matched mechanics tasks in one paired pilot. The parallel arm used 182 observed worker-seconds versus 120; these are not compute or token counts. This pilot is not a prediction about all 100 games.</p>
-<p><a href="../docs/benchmark/measurements.json">Inspect raw measurements</a> · <a href="https://github.com/NnopponS/100-games/blob/main/docs/agent-benchmark.md">Read methods, acceptance checks and limitations</a></p>
+<p class="section-summary">In the first mechanics pair, parallel work used 182 observed worker-seconds versus 120. In a second pair with reversed run order, parallel took 84 seconds and single-worker took 143; both passed 20/20 again, while parallel used 154 observed worker-seconds versus 143. These are not compute or token counts and do not predict performance on all 100 games.</p>
+<p><a href="../docs/benchmark/measurements.json">First pair: raw measurements</a> · <a href="../docs/benchmark/replication/measurements.json">Second pair: raw measurements</a> · <a href="https://github.com/NnopponS/100-games/blob/main/docs/agent-benchmark.md">Read methods, acceptance checks and limitations</a></p>
 </section>
 <section aria-labelledby="matrix">
 <span class="kicker">03 / Game-by-game changes</span>

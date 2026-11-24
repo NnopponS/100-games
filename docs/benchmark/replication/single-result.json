@@ -1,0 +1,107 @@
+{
+  "node": "v24.22.3",
+  "passed": 20,
+  "total": 20,
+  "results": [
+    {
+      "group": "connect",
+      "id": "C01-default-and-custom-first",
+      "pass": true
+    },
+    {
+      "group": "connect",
+      "id": "C02-drop-gravity-alternation-and-types",
+      "pass": true
+    },
+    {
+      "group": "connect",
+      "id": "C03-horizontal-and-vertical-terminal",
+      "pass": true
+    },
+    {
+      "group": "connect",
+      "id": "C04-both-diagonal-directions",
+      "pass": true
+    },
+    {
+      "group": "connect",
+      "id": "C05-full-column-is-noop",
+      "pass": true
+    },
+    {
+      "group": "connect",
+      "id": "C06-undo-terminal-reset-and-independent-snapshot",
+      "pass": true
+    },
+    {
+      "group": "connect",
+      "id": "C07-winning-column-query-is-readonly",
+      "pass": true
+    },
+    {
+      "group": "connect",
+      "id": "C08-draw-undo-and-query",
+      "pass": true
+    },
+    {
+      "group": "connect",
+      "id": "C09-deterministic-varied-move-oracle",
+      "pass": true
+    },
+    {
+      "group": "connect",
+      "id": "C10-invalid-options",
+      "pass": true
+    },
+    {
+      "group": "range",
+      "id": "D01-default-and-custom-shot-budget",
+      "pass": true
+    },
+    {
+      "group": "range",
+      "id": "D02-analytic-center-hit",
+      "pass": true
+    },
+    {
+      "group": "range",
+      "id": "D03-inclusive-ring-boundaries-and-combined-score",
+      "pass": true
+    },
+    {
+      "group": "range",
+      "id": "D04-ground-before-target-suppresses-scoring",
+      "pass": true
+    },
+    {
+      "group": "range",
+      "id": "D05-projectile-oracle-varied-ballistics",
+      "pass": true
+    },
+    {
+      "group": "range",
+      "id": "D06-options-copied-and-snapshot-isolated",
+      "pass": true
+    },
+    {
+      "group": "range",
+      "id": "D07-rejection-and-terminal-noop",
+      "pass": true
+    },
+    {
+      "group": "range",
+      "id": "D08-undo-and-reset-terminal",
+      "pass": true
+    },
+    {
+      "group": "range",
+      "id": "D09-legal-endpoints-and-zero-height",
+      "pass": true
+    },
+    {
+      "group": "range",
+      "id": "D10-invalid-options",
+      "pass": true
+    }
+  ]
+}

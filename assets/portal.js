@@ -20,6 +20,9 @@
   const player = $('playerOverlay');
   const playerMount = $('playerMount');
   let frame = null;
+  let displayMode = 'normal';
+  let pageFullscreenToken = null;
+  let fullscreenPending = false;
   const favoriteFilter = $('favFilterBtn');
   const dailyEligible = games.filter(game => game.dir !== '30-blackjack' && game.dir !== '86-slot-machine');
   let playing = null;
@@ -267,6 +270,7 @@
     next.onload = () => {
       if (playing !== current || frame !== next) return;
       try {
+        next.contentDocument?.addEventListener('keydown', exitOnEscape, true);
         next.contentWindow?.ArcadeAudioLifecycle?.setActive(!document.hidden);
         if (!document.hidden) next.contentWindow?.focus();
       } catch {}
@@ -298,7 +302,7 @@
   }
   function closePlayer(fromRoute = false) {
     if (!player.open) return;
-    if (document.fullscreenElement === player) document.exitFullscreen?.().catch(() => {});
+    leavePresentation(false);
     deactivateFrame();
     player.close();
     playerRoot.inert = false;
@@ -361,17 +365,76 @@
   $('reloadGameBtn').onclick = () => {
     if (playing) mountFrame(playing, true);
   };
-  $('fullscreenBtn').hidden = !document.fullscreenEnabled || !player.requestFullscreen;
-  $('fullscreenBtn').onclick = () => {
-    const pending = document.fullscreenElement ? document.exitFullscreen?.() : player.requestFullscreen?.();
-    pending?.catch(() => frame?.focus());
-  };
+  const stage = $('gamePresentation');
+  const enterButton = $('fullscreenBtn');
+  const exitButton = $('exitScreenBtn');
+  function setPresentation(mode) {
+    displayMode = mode;
+    if (mode === 'normal') delete player.dataset.presentation;
+    else player.dataset.presentation = mode;
+    exitButton.hidden = mode === 'normal';
+    enterButton.setAttribute('aria-pressed', String(mode !== 'normal'));
+    if (mode !== 'normal') exitButton.focus({preventScroll:true});
+  }
+  function leavePresentation(rewind) {
+    const previous = displayMode;
+    const token = pageFullscreenToken;
+    pageFullscreenToken = null;
+    if (previous === 'normal') return;
+    setPresentation('normal');
+    if (document.fullscreenElement === stage) document.exitFullscreen?.().catch(() => {});
+    if (previous === 'immersive' && token && history.state?.arcadePresentation === token) {
+      if (rewind) history.back();
+      else {
+        const state = {...history.state};
+        delete state.arcadePresentation;
+        history.replaceState(state,'',location.href);
+      }
+    }
+    if (player.open && rewind) enterButton.focus({preventScroll:true});
+  }
+  async function enterPresentation() {
+    if (!player.open || !frame || fullscreenPending) return;
+    if (displayMode !== 'normal') { leavePresentation(true); return; }
+    fullscreenPending = true;
+    const currentFrame = frame;
+    try {
+      if (document.fullscreenEnabled && typeof stage.requestFullscreen === 'function') {
+        try { await stage.requestFullscreen({navigationUI:'hide'}); } catch { /* CSS fullscreen fallback below */ }
+      }
+      if (frame !== currentFrame || !player.open) {
+        if (document.fullscreenElement === stage) document.exitFullscreen?.().catch(() => {});
+        return;
+      }
+      if (document.fullscreenElement === stage) setPresentation('native');
+      else {
+        pageFullscreenToken = String(Date.now());
+        history.pushState({...history.state,arcadePresentation:pageFullscreenToken},'',location.href);
+        setPresentation('immersive');
+      }
+    } finally { fullscreenPending = false; }
+  }
+  function exitOnEscape(event) {
+    if (event.key !== 'Escape' || displayMode === 'normal') return;
+    if (event.composedPath().some(el => el.matches?.('dialog[open]') && el !== player)) return;
+    event.preventDefault(); event.stopPropagation(); leavePresentation(true);
+  }
+  enterButton.hidden = false;
+  enterButton.setAttribute('aria-pressed','false');
+  enterButton.onclick = enterPresentation;
+  exitButton.onclick = () => leavePresentation(true);
   document.addEventListener('fullscreenchange', () => {
-    const action = document.fullscreenElement ? 'Exit fullscreen' : 'Fullscreen';
-    $('fullscreenBtn').setAttribute('aria-label', action);
-    $('fullscreenBtn').title = action;
+    if (displayMode === 'native' && document.fullscreenElement !== stage) {
+      setPresentation('normal');
+      if (player.open) enterButton.focus({preventScroll:true});
+    }
   });
-  player.addEventListener('cancel', event => { event.preventDefault(); closePlayer(); });
+  document.addEventListener('keydown', exitOnEscape, true);
+  player.addEventListener('cancel', event => {
+    event.preventDefault();
+    if (displayMode !== 'normal') leavePresentation(true);
+    else closePlayer();
+  });
   controls.addEventListener('keydown', event => {
     if (event.key === 'ArrowDown') { event.preventDefault(); frame?.focus(); }
   });
@@ -382,7 +445,10 @@
     $('searchInput').focus();
   });
   window.addEventListener('hashchange', handleHash);
-  window.addEventListener('popstate', handleHash);
+  window.addEventListener('popstate', event => {
+    if (displayMode === 'immersive' && event.state?.arcadePresentation !== pageFullscreenToken) leavePresentation(false);
+    handleHash();
+  });
   window.addEventListener('message', event => {
     if (!playing || !frame || event.source !== frame.contentWindow
       || (location.protocol !== 'file:' && event.origin !== location.origin)

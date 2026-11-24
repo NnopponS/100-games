@@ -37,7 +37,11 @@ async function withGame(page,origin,slug){
       const bright = s => {const a=rgb(s);return a.length===3 && .2126*a[0]+.7152*a[1]+.0722*a[2]>=175;};
       const element = document.getElementById('aaa-arcade-host')?.shadowRoot?.getElementById('arcadeMissionButton');
       const f = window.ARCADE_FEATURES?.find(f=>Number(f.id) === window.__arcadeMissionSource.id);
-      return { width:innerWidth, overflow:Math.max(doc.scrollWidth,document.body.scrollWidth)-innerWidth,
+      const overflow = Math.max(doc.scrollWidth,document.body.scrollWidth)-innerWidth;
+      const offenders = overflow > 2 ? Array.from(document.body.querySelectorAll('*')).map(el=>{
+        const b=el.getBoundingClientRect();return {name:el.tagName+'#'+el.id+'.'+String(el.className?.baseVal??el.className).slice(0,50),l:Math.round(b.left),r:Math.round(b.right),w:Math.round(b.width)};
+      }).filter(x=>x.w>4&&(x.r>innerWidth+2||x.l < -2)).sort((a,b)=>b.r-a.r).slice(0,8) : [];
+      return { width:innerWidth, overflow, offenders,
         scheme:rootStyle.colorScheme || body.colorScheme, background:body.backgroundColor, rootBackground:rootStyle.backgroundColor,
         bright:bright(body.backgroundColor)||bright(rootStyle.backgroundColor),
         plus:element?.textContent.includes('Arcade+'), adapter:window.__arcadeMissionSource.id,
@@ -146,6 +150,85 @@ async function portalAndAudio(context,origin) {
   } finally { await page.close(); }
 }
 
+async function fullscreenScenarios(browser,origin) {
+  const target = origin+'?edition=daylight#play=37-checkers&mode=plus';
+  const desk = await browser.newContext({viewport:{width:980,height:760}});
+  let native = false;
+  try {
+    const page = await desk.newPage();
+    await page.goto(target,{waitUntil:'domcontentloaded'});
+    await page.frameLocator('#playerFrame').locator('#arcadeMissionButton').waitFor();
+    const supports = await page.evaluate(()=>document.fullscreenEnabled && !!document.getElementById('gamePresentation').requestFullscreen);
+    assert(supports,'Chromium must expose a native fullscreen API for this scenario');
+    await page.evaluate(()=>{
+      const f=document.getElementById('playerFrame'); window.__fullQA={frame:f,document:f.contentDocument};
+    });
+    await page.getByRole('button',{name:'Fullscreen',exact:true}).click();
+    await page.waitForFunction(()=>document.fullscreenElement===document.getElementById('gamePresentation') &&
+      document.getElementById('playerOverlay').dataset.presentation==='native',null,{timeout:5000});
+    assert(await page.evaluate(()=>window.__fullQA.frame===document.getElementById('playerFrame') &&
+      window.__fullQA.document===document.getElementById('playerFrame').contentDocument));
+    await page.getByRole('button',{name:'Exit fullscreen',exact:true}).click();
+    await page.waitForFunction(()=>!document.fullscreenElement &&
+      !document.getElementById('playerOverlay').dataset.presentation,null,{timeout:5000});
+    assert(await page.evaluate(()=>window.__fullQA.frame===document.getElementById('playerFrame')));
+    native = true;
+  } finally {await desk.close();}
+  const phone = await browser.newContext(mobile);
+  try {
+    const page = await phone.newPage();
+    await page.goto(target,{waitUntil:'domcontentloaded'});
+    await page.frameLocator('#playerFrame').locator('#arcadeMissionButton').waitFor();
+    await page.evaluate(()=>{
+      Object.defineProperty(document,'fullscreenEnabled',{configurable:true,value:true});
+      document.getElementById('gamePresentation').requestFullscreen=()=>{
+        window.__fullRejects=(window.__fullRejects||0)+1;
+        return Promise.reject(new DOMException('Fullscreen unavailable in this test','NotAllowedError'));
+      };
+      const f=document.getElementById('playerFrame');window.__fullQA={frame:f,document:f.contentDocument};
+    });
+    await page.getByRole('button',{name:'Fullscreen',exact:true}).tap();
+    await page.waitForFunction(()=>window.__fullRejects===1 && document.getElementById('playerOverlay').dataset.presentation==='immersive');
+    assert(await page.getByRole('button',{name:'Exit fullscreen',exact:true}).isVisible());
+    assert(await page.evaluate(()=>{
+      const stage = document.getElementById('gamePresentation').getBoundingClientRect();
+      const f = document.getElementById('playerFrame');
+      return Math.round(stage.width)===innerWidth && stage.height>=innerHeight-2 &&
+        f===window.__fullQA.frame && f.contentDocument===window.__fullQA.document;
+    }), 'fallback must fill the usable portrait viewport without reloading the game');
+    if (process.env.ARCADE_PLAYTEST_SHOTS) await page.screenshot({path:path.join(process.env.ARCADE_PLAYTEST_SHOTS,'daylight-mobile-checkers-immersive.png')});
+    await page.setViewportSize({width:844,height:390});
+    await page.waitForFunction(()=>{
+      const stage=document.getElementById('gamePresentation').getBoundingClientRect();
+      return stage.width>stage.height && stage.height>=innerHeight-2;
+    });
+    await page.goBack({waitUntil:'commit'});
+    await page.waitForFunction(()=>document.getElementById('playerOverlay').open &&
+      !document.getElementById('playerOverlay').dataset.presentation &&
+      window.__fullQA.frame===document.getElementById('playerFrame'));
+    await page.getByRole('button',{name:'Fullscreen',exact:true}).tap();
+    await page.waitForFunction(()=>document.getElementById('playerOverlay').dataset.presentation==='immersive');
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(()=>document.getElementById('playerOverlay').open &&
+      !document.getElementById('playerOverlay').dataset.presentation &&
+      window.__fullQA.frame===document.getElementById('playerFrame'));
+    await page.evaluate(()=>Object.defineProperty(document,'fullscreenEnabled',{configurable:true,value:false}));
+    await page.getByRole('button',{name:'Fullscreen',exact:true}).tap();
+    await page.waitForFunction(()=>document.getElementById('playerOverlay').dataset.presentation==='immersive');
+    assert.equal(await page.evaluate(()=>window.__fullRejects),2,'unavailable native API should not be called');
+    await page.getByRole('button',{name:'Exit fullscreen',exact:true}).tap();
+    await page.waitForFunction(()=>document.getElementById('playerOverlay').open && !document.getElementById('playerOverlay').dataset.presentation);
+    await page.setViewportSize({width:320,height:700});
+    await page.waitForFunction(()=>{
+      const bar=document.querySelector('.player-bar');
+      return bar && bar.scrollWidth<=innerWidth+1 &&
+        [...bar.querySelectorAll('button')].filter(b=>!b.hidden).every(b=>b.getBoundingClientRect().right<=innerWidth+2);
+    });
+    return { native_fullscreen_verified:native, fallback_no_native_api:true, mobile_controls_320px_fit:true, checkers_rejected_native_used_fallback:true,
+      fallback_portrait_landscape:true, fallback_back_and_escape_preserved_frame:true };
+  } finally { await phone.close(); }
+}
+
 (async()=>{
   const server=process.env.ARCADE_ORIGIN?null:await serve();
   const origin=process.env.ARCADE_ORIGIN || `http://127.0.0.1:${server.address().port}/100-games/`;
@@ -168,8 +251,8 @@ async function portalAndAudio(context,origin) {
     console.log(`Daylight / Arcade+ mobile portrait: ${events.length}/${titles.length}`);
     for(const f of failures)console.error(f.slug, f.error);
     if(failures.length)process.exitCode=1;
-    const flows = await portalAndAudio(c,origin);
-    console.log('Cold + warm mobile paths, explicit light over dark preference, ownership of two WebAudio contexts, background + Back + warm relaunch + mode switch passed');
+    const flows = {...await portalAndAudio(c,origin),...await fullscreenScenarios(browser,origin)};
+    console.log('Cold + warm mobile paths, light over dark preference, two WebAudio contexts, background + Back + warm relaunch + mode switch, native fullscreen, and Checkers fallback portrait/landscape with Back + Escape passed');
     if(process.env.ARCADE_PLAYTEST_REPORT) fs.writeFileSync(process.env.ARCADE_PLAYTEST_REPORT,JSON.stringify({
       schema:1, run_id:process.env.GITHUB_RUN_ID||null, revision:process.env.GITHUB_SHA||null, browser:browser.version(),
       device:{viewport:mobile.viewport,dpr:mobile.deviceScaleFactor,hasTouch:mobile.hasTouch,colorScheme:mobile.colorScheme},
