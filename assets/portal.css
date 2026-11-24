@@ -39,9 +39,9 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,se
 
 /* Native fullscreen uses a regular stage element, not the surrounding dialog. */
 .game-presentation{position:relative;display:flex;flex:1 1 0;min-width:0;min-height:0;width:100%;max-width:100%;overflow:hidden;background:#f5f7fc}
-.game-presentation:fullscreen,.player-overlay[data-presentation=immersive] .game-presentation{width:100%;height:100dvh;max-width:none;max-height:none}
+.game-presentation:fullscreen,.player-overlay[data-presentation=immersive] .game-presentation{width:100%;height:100%;height:100dvh;max-width:none;max-height:none;flex-direction:column}
 .game-presentation::backdrop{background:#f5f7fc}
 .player-overlay[data-presentation=immersive] .player-bar{display:none}
-.screen-exit{position:absolute;z-index:90;top:max(8px,env(safe-area-inset-top));left:max(8px,env(safe-area-inset-left));min-width:44px;min-height:44px;box-shadow:0 5px 18px #1421492b}
+.screen-exit{flex:none;align-self:flex-start;margin:max(4px,env(safe-area-inset-top)) max(8px,env(safe-area-inset-right)) 4px max(8px,env(safe-area-inset-left));min-width:44px;min-height:44px;padding-block:5px;box-shadow:0 2px 6px #14214920}
 .screen-exit[hidden]{display:none!important}
-.game-presentation:fullscreen .player-mount,.player-overlay[data-presentation=immersive] .player-mount{width:100%;height:100%}
+.game-presentation:fullscreen .player-mount,.player-overlay[data-presentation=immersive] .player-mount{width:100%;height:auto}

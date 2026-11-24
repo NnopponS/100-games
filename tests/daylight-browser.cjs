@@ -196,12 +196,28 @@ async function fullscreenScenarios(browser,origin) {
       return Math.round(stage.width)===innerWidth && stage.height>=innerHeight-2 &&
         f===window.__fullQA.frame && f.contentDocument===window.__fullQA.document;
     }), 'fallback must fill the usable portrait viewport without reloading the game');
+    const controlsSeparated=()=>page.evaluate(()=>{
+      const exit=document.getElementById('exitScreenBtn').getBoundingClientRect();
+      const frame=document.getElementById('playerFrame').getBoundingClientRect();
+      return frame.top>=exit.bottom+4;
+    });
+    assert(await controlsSeparated(),'the fullscreen exit must not cover any game or audio controls');
+    const colors=await page.frameLocator('#playerFrame').locator('h1').evaluate(title=>{
+      const rgb=s=>[...s.matchAll(/[\d.]+/g)].slice(0,3).map(m=>Number(m[0]));
+      const luminosity=c=>c.map(v=>{const n=v/255;return n<=.04045?n/12.92:((n+.055)/1.055)**2.4;})
+        .reduce((v,n,i)=>v+n*[.2126,.7152,.0722][i],0);
+      const l=luminosity(rgb(getComputedStyle(title).color));
+      const k=luminosity([225,229,235]);
+      return (Math.max(l,k)+.05)/(Math.min(l,k)+.05);
+    });
+    assert(colors>=4.5,'the light Checkers title must stay legible');
     if (process.env.ARCADE_PLAYTEST_SHOTS) await page.screenshot({path:path.join(process.env.ARCADE_PLAYTEST_SHOTS,'daylight-mobile-checkers-immersive.png')});
     await page.setViewportSize({width:844,height:390});
     await page.waitForFunction(()=>{
       const stage=document.getElementById('gamePresentation').getBoundingClientRect();
       return stage.width>stage.height && stage.height>=innerHeight-2;
     });
+    assert(await controlsSeparated(),'landscape must also keep fullscreen and game controls separated');
     await page.goBack({waitUntil:'commit'});
     await page.waitForFunction(()=>document.getElementById('playerOverlay').open &&
       !document.getElementById('playerOverlay').dataset.presentation &&
@@ -225,7 +241,7 @@ async function fullscreenScenarios(browser,origin) {
         [...bar.querySelectorAll('button')].filter(b=>!b.hidden).every(b=>b.getBoundingClientRect().right<=innerWidth+2);
     });
     return { native_fullscreen_verified:native, fallback_no_native_api:true, mobile_controls_320px_fit:true, checkers_rejected_native_used_fallback:true,
-      fallback_portrait_landscape:true, fallback_back_and_escape_preserved_frame:true };
+      fallback_portrait_landscape:true, fallback_controls_do_not_overlap:true, fallback_back_and_escape_preserved_frame:true };
   } finally { await phone.close(); }
 }
 

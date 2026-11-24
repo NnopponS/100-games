@@ -19,7 +19,7 @@ check.equal(e.schema,1);
 check.equal(e.revision,process.argv[2]);
 check.deepEqual(e.title_routes,{passed:100,planned:100});
 check.equal(e.failed_routes.length,0);
-check(e.flows.native_fullscreen_verified&&e.flows.checkers_rejected_native_used_fallback&&e.flows.two_owned_contexts_silenced_and_closed);
+check(e.flows.native_fullscreen_verified&&e.flows.checkers_rejected_native_used_fallback&&e.flows.fallback_controls_do_not_overlap&&e.flows.two_owned_contexts_silenced_and_closed);
 ' "$evidence" "$revision"
 mkdir -p "$output"
 cp -a .nojekyll index.html assets docs report "$output/"
